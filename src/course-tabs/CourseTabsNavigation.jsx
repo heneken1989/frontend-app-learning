@@ -2,7 +2,6 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 import classNames from 'classnames';
-
 import messages from './messages';
 import Tabs from '../generic/tabs/Tabs';
 import { CoursewareSearch, CoursewareSearchToggle } from '../course-home/courseware-search';

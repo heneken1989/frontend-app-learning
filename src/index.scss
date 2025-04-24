@@ -3,6 +3,9 @@
 @import "~@openedx/paragon/scss/core/core";
 @import "~@edx/brand/paragon/overrides";
 
+// Import custom footer styles
+@import "./custom-components/Footer/Footer";
+
 @import "~@edx/frontend-component-footer/dist/footer";
 @import "~@edx/frontend-component-header/dist/index";
 
@@ -87,7 +90,7 @@
 }
 
 .notification-btn {
-  @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
     height: 3rem;
   }
 }
@@ -96,7 +99,7 @@
   display: flex;
   flex-grow: 1;
 
-  @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
     max-width: 100%;
   }
 
@@ -104,7 +107,7 @@
     margin: -1px -1px 0;
   }
 
-  @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
     width: 100% !important;
   }
 
@@ -284,10 +287,16 @@
 
 .unit-container {
   padding-top: 0;
-  padding-bottom: 2rem;
-  max-width: 1024px;
+  padding-bottom: 0rem;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
+  position: relative;
+
+  &.pt-4,
+  &.py-4 {
+    padding-top: 0 !important;
+  }
 
   @media (min-width: map-get($grid-breakpoints, "sm")) {
     padding-left: $grid-gutter-width;
@@ -295,27 +304,19 @@
   }
 
   @media (min-width: 830px) {
-    padding-left: 40px;
-    padding-right: 40px;
+    padding-left: 2px;
+    padding-right: 2px;
   }
 }
 
 .unit-iframe-wrapper {
   margin-top: 0;
-
-  // Some XBlocks (such as xblock-drag-and-drop-v2) rely on the viewport width
-  // to determine their layout on mobile. This is problematic because the
-  // viewport width may not be the same as the width of the iframe. To fix this,
-  // here we compensate for the padding of the parent div with "container-xl"
-  // class to ensure that the viewport width is the same as the width of the
-  // iframe.
-  margin-left: -$grid-gutter-width * .5;
-  margin-right: -$grid-gutter-width * .5;
-
-  margin-bottom: 2rem;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 1rem;
 
   @media (min-width: 830px) {
-    margin: 0 -40px 2rem;
+    margin: 0 0 2rem;
   }
 }
 
@@ -479,3 +480,30 @@
 @import "course-tabs/course-tabs-navigation.scss";
 @import "courseware/course/sidebar/common/SidebarBase.scss";
 @import "courseware/course/sidebar/sidebars/course-outline/CourseOutlineTray.scss";
+
+.unit-timer {
+  max-width: 700px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  .card-body {
+    padding: 0.5rem !important;
+  }
+  
+  .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .unit-timer-display {
+    font-size: 1rem !important;
+    min-width: 75px !important;
+  }
+}
+
+

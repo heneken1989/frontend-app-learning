@@ -1,0 +1,38 @@
+.footer {
+  background-color: $white;
+  
+  a {
+    color: $primary;
+    
+    &:hover {
+      color: darken($primary, 10%);
+    }
+  }
+  
+  .copyright {
+    color: $gray-700;
+    font-size: 0.875rem;
+  }
+  
+  @include media-breakpoint-down(sm) {
+    .container {
+      flex-direction: column;
+      text-align: center;
+      
+      .logo,
+      .links,
+      .copyright {
+        margin: 0.5rem 0;
+      }
+      
+      .links {
+        flex-wrap: wrap;
+        justify-content: center;
+        
+        a {
+          margin: 0.25rem 0.5rem;
+        }
+      }
+    }
+  }
+} 

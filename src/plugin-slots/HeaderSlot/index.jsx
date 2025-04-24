@@ -1,10 +1,10 @@
 import PropTypes from 'prop-types';
 import { PluginSlot } from '@openedx/frontend-plugin-framework';
 
-import { LearningHeader as Header } from '@edx/frontend-component-header';
+import Header from '../../custom-components/Header/src/learning-header/LearningHeader';
 
 const HeaderSlot = ({
-  courseOrg, courseNumber, courseTitle, showUserDropdown,
+  courseOrg, courseNumber, courseTitle, showUserDropdown, courseId,
 }) => (
   <PluginSlot
     id="header_slot"
@@ -16,6 +16,7 @@ const HeaderSlot = ({
       courseNumber,
       courseTitle,
       showUserDropdown,
+      courseId,
     }}
   >
     <Header
@@ -23,6 +24,7 @@ const HeaderSlot = ({
       courseNumber={courseNumber}
       courseTitle={courseTitle}
       showUserDropdown={showUserDropdown}
+      courseId={courseId}
     />
   </PluginSlot>
 );
@@ -32,6 +34,7 @@ HeaderSlot.propTypes = {
   courseNumber: PropTypes.string,
   courseTitle: PropTypes.string,
   showUserDropdown: PropTypes.bool,
+  courseId: PropTypes.string,
 };
 
 HeaderSlot.defaultProps = {
@@ -39,6 +42,7 @@ HeaderSlot.defaultProps = {
   courseNumber: null,
   courseTitle: null,
   showUserDropdown: true,
+  courseId: null,
 };
 
 export default HeaderSlot;

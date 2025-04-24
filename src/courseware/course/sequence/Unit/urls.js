@@ -30,6 +30,19 @@ export const getIFrameUrl = ({
   });
 };
 
+export const fetchUnitById = (unitId) => {
+  return fetch(`${getConfig().LMS_BASE_URL}/api/courseware/v1/units/${unitId}/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch unit data');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      throw new Error(`Error fetching unit: ${error.message}`);
+    });
+};
 export default {
   getIFrameUrl,
+  fetchUnitById,
 };

@@ -5,7 +5,7 @@ import { Helmet } from 'react-helmet';
 import { getConfig } from '@edx/frontend-platform';
 import { useToggle } from '@openedx/paragon';
 
-import { CourseTabsNavigation } from '../course-tabs';
+//import { CourseTabsNavigation } from '../course-tabs';
 import { useModel } from '../generic/model-store';
 import { AlertList } from '../generic/user-messages';
 import StreakModal from '../shared/streak-celebration';
@@ -80,7 +80,7 @@ const LoadedTabPage = ({
             ...logistrationAlert,
           }}
         />
-        <CourseTabsNavigation tabs={tabs} className="mb-3" activeTabSlug={activeTabSlug} />
+        {/* <CourseTabsNavigation tabs={tabs} className="mb-3" activeTabSlug={activeTabSlug} /> */}
         <div id="main-content" className="container-xl">
           {children}
         </div>

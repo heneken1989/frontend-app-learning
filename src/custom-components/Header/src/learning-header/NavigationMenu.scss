@@ -1,0 +1,52 @@
+.nav-menu {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  margin-left: 1rem;
+
+  .pte-tools {
+    background-color: #e31837;
+    color: white;
+    padding: 8px 16px;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-right: 1rem;
+    
+    span {
+      font-weight: normal;
+    }
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+
+    .nav-item {
+      color: #333;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 8px 0;
+      position: relative;
+
+      &:hover {
+        color: #e31837;
+      }
+
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: transparent;
+        transition: background-color 0.2s;
+      }
+
+      &:hover:after {
+        background-color: #e31837;
+      }
+    }
+  }
+} 

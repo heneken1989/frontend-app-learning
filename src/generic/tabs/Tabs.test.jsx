@@ -4,7 +4,6 @@ import Tabs from './Tabs';
 import useIndexOfLastVisibleChild from './useIndexOfLastVisibleChild';
 
 jest.mock('./useIndexOfLastVisibleChild');
-
 describe('Tabs', () => {
   const mockChildren = [...Array(4).keys()].map(i => (<button key={i} type="button">{`Item ${i}`}</button>));
   // Only half of the children will be visible. The rest of them will be in the dropdown.
