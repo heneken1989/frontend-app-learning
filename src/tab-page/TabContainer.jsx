@@ -41,6 +41,7 @@ const TabContainer = (props) => {
       courseId={courseId}
       courseStatus={courseStatus}
       metadataModel={`${slice}Meta`}
+  
     >
       {courseId && <OuterExamTimer courseId={courseId} />}
       {children}

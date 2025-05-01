@@ -4,7 +4,7 @@ import { PluginSlot } from '@openedx/frontend-plugin-framework';
 import Header from '../../custom-components/Header/src/learning-header/LearningHeader';
 
 const HeaderSlot = ({
-  courseOrg, courseNumber, courseTitle, showUserDropdown, courseId,
+  courseOrg, courseNumber, courseTitle, showUserDropdown, courseId, unitId
 }) => (
   <PluginSlot
     id="header_slot"
@@ -17,6 +17,7 @@ const HeaderSlot = ({
       courseTitle,
       showUserDropdown,
       courseId,
+      unitId,
     }}
   >
     <Header
@@ -25,6 +26,7 @@ const HeaderSlot = ({
       courseTitle={courseTitle}
       showUserDropdown={showUserDropdown}
       courseId={courseId}
+      unitId={unitId}
     />
   </PluginSlot>
 );

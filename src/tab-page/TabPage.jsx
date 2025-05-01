@@ -17,12 +17,14 @@ import LoadedTabPage from './LoadedTabPage';
 import { setCallToActionToast } from '../course-home/data/slice';
 import LaunchCourseHomeTourButton from '../product-tours/newUserCourseHomeTour/LaunchCourseHomeTourButton';
 
+
 const TabPage = ({ intl, ...props }) => {
   const {
     activeTabSlug,
     courseId,
     courseStatus,
     metadataModel,
+    unitId,
   } = props;
   const {
     toastBodyLink,
@@ -64,8 +66,8 @@ const TabPage = ({ intl, ...props }) => {
         </>
       )}
 
-      <HeaderSlot courseOrg={org} courseNumber={number} courseTitle={title} />
-
+      <HeaderSlot courseOrg={org} courseNumber={number} courseTitle={title} unitId={unitId} />
+      
       {courseStatus === 'loading' && (
         <PageLoading srMessage={intl.formatMessage(messages.loading)} />
       )}
@@ -80,7 +82,9 @@ const TabPage = ({ intl, ...props }) => {
           {intl.formatMessage(messages.failure)}
         </p>
       )}
+      
       <FooterSlot />
+      
     </>
   );
 };

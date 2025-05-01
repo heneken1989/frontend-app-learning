@@ -17,6 +17,7 @@ import { useExamAccess, useShouldDisplayHonorCode } from './hooks';
 import { getIFrameUrl, fetchUnitById } from './urls';
 import UnitTitleSlot from '../../../../plugin-slots/UnitTitleSlot';
 import UnitTimer from './UnitTimer';
+
 const Unit = ({
   courseId,
   format,
@@ -75,7 +76,6 @@ const Unit = ({
         {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
      
       <UnitSuspense {...{ courseId, id }} />
-      <UnitTimer unitId={id} initialTimeByProblemType={time_limit} onTimeExpired={handleTimeExpired} />
       <ContentIFrame
         elementId="unit-iframe"
         id={id}
@@ -105,5 +105,4 @@ Unit.defaultProps = {
   onLoaded: undefined,
 };
 
-export default Unit;
-export { UnitTimer }; 
+export default Unit; 

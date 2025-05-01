@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { getConfig } from '@edx/frontend-platform';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
@@ -8,6 +8,10 @@ import { NotificationsNone } from '@openedx/paragon/icons';
 import { AlertList } from '../../../../generic/user-messages';
 import useEnrollmentAlert from '../../../../alerts/enrollment-alert';
 import useLogistrationAlert from '../../../../alerts/logistration-alert';
+import UnitTimer from '../../../../courseware/course/sequence/Unit/UnitTimer';
+import { fetchUnitById } from '../../../../courseware/course/sequence/Unit/urls';
+import { useModel } from '../../../../generic/model-store';
+import { modelKeys } from '../../../../courseware/course/sequence/Unit/constants';
 
 import AnonymousUserMenu from './AnonymousUserMenu';
 import AuthenticatedUserDropdown from './AuthenticatedUserDropdown';
@@ -80,9 +84,66 @@ NotificationButton.defaultProps = {
 };
 
 const LearningHeader = ({
-  courseOrg, courseNumber, courseTitle, intl, showUserDropdown, courseId,
+  courseOrg, courseNumber, courseTitle, intl, showUserDropdown, courseId, unitId,
 }) => {
+  console.log('[LearningHeader] Props:', {
+    courseOrg,
+    courseNumber,
+    courseTitle,
+    showUserDropdown,
+    courseId,
+    unitId,
+  });
+
   const { authenticatedUser } = useContext(AppContext);
+  const [timeLimit, setTimeLimit] = useState(null);
+  const [hasQuiz, setHasQuiz] = useState(false);
+  
+  // Get unit data using the same method as index.jsx
+  const unit = useModel(modelKeys.units, unitId);
+  console.log('[LearningHeader] Unit from model:', unit);
+
+  useEffect(() => {
+    let didCancel = false;
+    async function fetchTimeLimit() {
+      if (unitId) {
+        // Prefer time_limit from model if available
+        if (unit && unit.time_limit) {
+          setTimeLimit(unit.time_limit);
+        } else {
+          // Fallback: fetch directly
+          try {
+            const unitData = await fetchUnitById(unitId);
+            if (!didCancel) {
+              if (unitData.time_limit) {
+                setTimeLimit(unitData.time_limit);
+              }
+              if (unitData.html && unitData.html.includes('paragraph_quiz.html')) {
+                setHasQuiz(true);
+              }
+            }
+          } catch (error) {
+            if (!didCancel) {
+              console.error('[LearningHeader] Error fetching unit for time limit:', error);
+            }
+          }
+        }
+      }
+    }
+    fetchTimeLimit();
+    return () => { didCancel = true; };
+  }, [unitId, unit]);
+
+  const handleTimeExpired = () => {
+    console.log('[LearningHeader] Time expired for unit:', unitId);
+  };
+
+  console.log('[LearningHeader] Current state:', {
+    timeLimit,
+    hasQuiz,
+    isAuthenticated: !!authenticatedUser,
+    unitData: unit,
+  });
 
   const headerLogo = (
     <LogoSlot
@@ -98,8 +159,17 @@ const LearningHeader = ({
       <div className="container-xl py-2 d-flex align-items-center">
         {headerLogo}
         <NavigationMenu />
-        <div className="flex-grow-1 course-title-lockup d-flex" style={{ lineHeight: 1 }}>
-        
+        <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
+          {console.log('[LearningHeader] Rendering timer section. unitId:', unitId, 'timeLimit:', timeLimit)}
+          {unitId && timeLimit ? (
+            <UnitTimer
+              unitId={unitId}
+              initialTimeByProblemType={timeLimit}
+              onTimeExpired={handleTimeExpired}
+            />
+          ) : (
+            console.log('[LearningHeader] Timer not rendered. unitId:', unitId, 'timeLimit:', timeLimit)
+          )}
         </div>
         {showUserDropdown && authenticatedUser && (
         <>
@@ -138,6 +208,9 @@ const LearningHeader = ({
             background: #d23228;
             border-radius: 50%;
           }
+          .course-title-lockup {
+            justify-content: center;
+          }
         `}
       </style>
     </header>
@@ -151,6 +224,7 @@ LearningHeader.propTypes = {
   intl: intlShape.isRequired,
   showUserDropdown: PropTypes.bool,
   courseId: PropTypes.string,
+  unitId: PropTypes.string,
 };
 
 LearningHeader.defaultProps = {
@@ -159,6 +233,7 @@ LearningHeader.defaultProps = {
   courseTitle: null,
   showUserDropdown: true,
   courseId: null,
+  unitId: null,
 };
 
 export default injectIntl(LearningHeader);

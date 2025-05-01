@@ -1,103 +1,99 @@
-.outline-sidebar-wrapper {
-    width: 32.125rem;
-    max-width: 100%;
-    overflow: auto;
-    position: relative;
-    flex-shrink: 0;
+.outline-tray-wrapper {
+  position: relative;
 }
 
-.outline-sidebar {
-    @media (min-width: map-get($grid-breakpoints, "xl")) {
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
+.outline-tray-toggle {
+  font-size: 1rem;
+  color: $gray-700;
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  
+  &:hover {
+    color: $primary;
+  }
 }
 
-.outline-sidebar-heading-wrapper {
-    border: 1px solid #d7d3d1;
-
-    &.sticky {
-        position: sticky;
-        top: 0;
-        left: 0;
-        z-index: 5;
-    }
-
-    .outline-sidebar-heading {
-        font-weight: $font-weight-bold;
-    }
+.outline-tray-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-start;
 }
 
-.course-sidebar-section {
-    background: $white;
-    border: 1px solid #d7d3d1;
-
-    button {
-        line-height: 1.75rem;
-
-        &.focus::before,
-        &:focus::before {
-            border-radius: 0;
-        }
-    }
+.outline-tray {
+  width: 300px;
+  height: 100%;
+  background: $white;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease-out;
 }
 
-.outline-sidebar-toggle-btn {
-    font-size: 1.5rem;
-
-    .collapsed & {
-        transform: scale(-1, 1);
-    }
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 
-#outline-sidebar-outline {
-    margin-top: -1px;
+.outline-tray-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid $gray-200;
+}
 
-    @media (min-width: map-get($grid-breakpoints, "xl")) {
-        margin-bottom: 0;
+.outline-tray-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: $gray-900;
+}
+
+.outline-tray-close {
+  font-size: 1rem;
+  color: $gray-700;
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  
+  &:hover {
+    color: $primary;
+  }
+}
+
+.outline-tray-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  list-style: none;
+  margin: 0;
+  
+  a {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: $gray-900;
+    text-decoration: none;
+    border-radius: 4px;
+    
+    &:hover {
+      background: $gray-100;
     }
-
-    li {
-        font-size: 1rem;
-        line-height: 1.5rem;
-
-        .collapsible-trigger {
-            border-radius: 0;
-            padding: map-get($spacers, 3\.5) map-get($spacers, 4) map-get($spacers, 3\.5) map-get($spacers, 5);
-
-            @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
-                padding-left: map-get($spacers, 4);
-            }
-
-            &:hover {
-                background-color: $light-500;
-            }
-
-            .collapsible-icon {
-                margin-inline-start: initial;
-            }
-        }
-
-        &:last-child .pgn_collapsible {
-            @extend .mb-0;
-        }
+    
+    &.active {
+      background: $primary-100;
+      color: $primary;
     }
-
-    .collapsible-body {
-        padding: 0;
-
-        ol li > a {
-            padding: map-get($spacers, 3\.5) map-get($spacers, 4) map-get($spacers, 3\.5) map-get($spacers, 5\.5);
-
-            @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
-                padding-left: map-get($spacers, 4\.5);
-            }
-
-            &:hover {
-                text-decoration: none;
-                background-color: $light-500;
-            }
-        }
-    }
+  }
 }

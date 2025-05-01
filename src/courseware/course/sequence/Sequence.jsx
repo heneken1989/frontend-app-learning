@@ -22,8 +22,7 @@ import messages from './messages';
 import HiddenAfterDue from './hidden-after-due';
 import { SequenceNavigation, UnitNavigation } from './sequence-navigation';
 import SequenceContent from './SequenceContent';
-import { CourseOutlineSidebarSlot } from '../../../plugin-slots/CourseOutlineSidebarSlot';
-import { CourseOutlineSidebarTriggerSlot } from '../../../plugin-slots/CourseOutlineSidebarTriggerSlot';
+
 
 const Sequence = ({
   unitId,
@@ -162,13 +161,6 @@ const Sequence = ({
   const defaultContent = (
     <>
       <div className="sequence-container d-inline-flex flex-row w-100">
-        <CourseOutlineSidebarTriggerSlot
-          sectionId={section ? section.id : null}
-          sequenceId={sequenceId}
-          isStaff={isStaff}
-          unitId={unitId}
-        />
-        <CourseOutlineSidebarSlot />
         <div className="sequence w-100">
           {!isEnabledOutlineSidebar && (
             <div className="sequence-navigation-container">
@@ -195,7 +187,7 @@ const Sequence = ({
             </div>
           )}
 
-          <div className="unit-container flex-grow-1 pt-4">
+          <div className="unit-container flex-grow-1">
             <SequenceContent
               courseId={courseId}
               gated={gated}
@@ -227,7 +219,7 @@ const Sequence = ({
         >
           {defaultContent}
         </SequenceExamWrapper>
-        <CourseLicense license={license || undefined} />
+
       </div>
     );
   }
