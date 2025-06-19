@@ -29,8 +29,9 @@ const UnitNavigation = ({
   const [showSubmitButton, setShowSubmitButton] = useState(false);
   const [answerShown, setAnswerShown] = useState(false);
   const {
-    isFirstUnit, isLastUnit, nextLink, previousLink,
+    isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink,
   } = useSequenceNavigationMetadata(sequenceId, unitId);
+
 
   // Check for iframe and send initial message
   useEffect(() => {
@@ -134,21 +135,23 @@ const UnitNavigation = ({
     const buttonStyle = `previous-button ${isAtTop ? 'text-dark mr-3' : 'justify-content-center'}`;
     return (
       <PreviousButton
-        isFirstUnit={isFirstUnit}
+        className="go-back-button"
+        isFirstUnit={isFirstUnitInSequence}
         variant="outline-secondary"
         buttonLabel={intl.formatMessage(messages.previousButton)}
         buttonStyle={buttonStyle}
         onClick={onClickPrevious}
         previousLink={previousLink}
         isAtTop={isAtTop}
+        disabled={isFirstUnitInSequence}
       />
     );
   };
 
   const renderNextButton = () => {
     const { exitActive, exitText } = GetCourseExitNavigation(courseId, intl);
-    const buttonText = (isLastUnit && exitText) ? exitText : intl.formatMessage(messages.nextButton);
-    const disabled = isLastUnit && !exitActive;
+    const buttonText = (isLastUnitInSequence && exitText) ? exitText : intl.formatMessage(messages.nextButton);
+    const disabled = isLastUnitInSequence;
     const variant = 'outline-primary';
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
@@ -171,6 +174,7 @@ const UnitNavigation = ({
 
     return (
       <NextButton
+        className="go-next-button"
         variant={variant}
         buttonStyle={buttonStyle}
         onClickHandler={onClickNext}
@@ -183,7 +187,7 @@ const UnitNavigation = ({
   };
 
   return (
-    <div className="d-flex align-items-center">
+    <div className="unit-navigation-bar d-flex align-items-center justify-content-center">
       {renderPreviousButton()}
       {renderSubmitButton()}
       {renderNextButton()}
@@ -212,3 +216,5 @@ UnitNavigation.defaultProps = {
 };
 
 export default UnitNavigation;
+
+

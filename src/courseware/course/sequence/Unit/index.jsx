@@ -59,7 +59,6 @@ const Unit = ({
   useEffect(() => {
     fetchUnitById(id)
       .then((unitData) => {
-        console.log('[DEBUG] Time Limit:', unitData.time_limit);
         setTime_limit(unitData.time_limit);
         // Check if this unit contains a quiz
         if (unitData.html && unitData.html.includes('paragraph_quiz.html')) {

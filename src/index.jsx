@@ -24,6 +24,7 @@ import DatesTab from './course-home/dates-tab';
 import GoalUnsubscribe from './course-home/goal-unsubscribe';
 import ProgressTab from './course-home/progress-tab/ProgressTab';
 import { TabContainer } from './tab-page';
+import ProgressPage from './custom-components/ProgressPage';
 
 import { fetchDatesTab, fetchOutlineTab, fetchProgressTab } from './course-home/data';
 import { fetchCourse } from './courseware/data';
@@ -52,7 +53,6 @@ subscribe(APP_READY, () => {
             <NoticesProvider>
               <UserMessagesProvider>
                 <Routes>
-                  <Route path="*" element={<PageWrap><PageNotFound /></PageWrap>} />
                   <Route path={ROUTES.UNSUBSCRIBE} element={<PageWrap><GoalUnsubscribe /></PageWrap>} />
                   <Route path={ROUTES.REDIRECT} element={<PageWrap><CoursewareRedirectLandingPage /></PageWrap>} />
                   <Route
@@ -144,6 +144,11 @@ subscribe(APP_READY, () => {
                   )}
                   />
                   ))}
+                  <Route
+                    path={DECODE_ROUTES.SUBSEQUENCE_PROGRESS}
+                    element={<DecodePageRoute><PageWrap><ProgressPage /></PageWrap></DecodePageRoute>}
+                  />
+                  <Route path="*" element={<PageWrap><PageNotFound /></PageWrap>} />
                 </Routes>
               </UserMessagesProvider>
             </NoticesProvider>

@@ -77,6 +77,8 @@ export function useSequenceNavigationMetadata(currentSequenceId, currentUnitId) 
   return {
     isFirstUnit,
     isLastUnit,
+    isFirstUnitInSequence,
+    isLastUnitInSequence,
     nextLink,
     previousLink,
     navigationDisabledNextSequence,

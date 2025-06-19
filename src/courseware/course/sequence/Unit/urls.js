@@ -42,7 +42,52 @@ export const fetchUnitById = (unitId) => {
       throw new Error(`Error fetching unit: ${error.message}`);
     });
 };
+
+export const fetchAllCourses = () => {
+  return fetch(`${getConfig().LMS_BASE_URL}/api/all_courses/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      throw new Error(`Error fetching courses: ${error.message}`);
+    });
+};
+
+export const fetchSectionsByCourseId = (courseId) => {
+  console.log('[fetchSectionsByCourseId] courseId:', courseId);
+  return fetch(`${getConfig().LMS_BASE_URL}/api/all_courses/${courseId}/sections/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch sections');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      throw new Error(`Error fetching sections: ${error.message}`);
+    });
+};
+
+export const fetchSequencesBySectionId = (sectionId) => {
+  console.log('[fetchSequencesBySectionId] sectionId:', sectionId);
+  return fetch(`${getConfig().LMS_BASE_URL}/api/sections/${encodeURIComponent(sectionId)}/sequences/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch sequences');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      throw new Error(`Error fetching sequences: ${error.message}`);
+    });
+};
+
 export default {
   getIFrameUrl,
   fetchUnitById,
+  fetchAllCourses,
+  fetchSectionsByCourseId,
+  fetchSequencesBySectionId,
 };

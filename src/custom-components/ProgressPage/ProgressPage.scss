@@ -1,0 +1,125 @@
+.progress-page {
+  padding: 2rem;
+  background: #fff;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .header {
+    margin-bottom: 2rem;
+    
+    h1 {
+      font-size: 2rem;
+      color: #00262B;
+      margin-bottom: 1rem;
+    }
+
+    .description {
+      color: #666;
+    }
+  }
+
+  .progress-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    @media (min-width: 768px) {
+      flex-direction: row;
+      justify-content: center;
+      gap: 4rem;
+    }
+
+    .chart-container {
+      margin-bottom: 2rem;
+      position: relative;
+
+      @media (min-width: 768px) {
+        margin-bottom: 0;
+      }
+
+      .donut {
+        margin: 0 auto;
+        
+        .donut-hole {
+          fill: #fff;
+        }
+
+        .donut-chart-text {
+          transform: translateY(0.25em);
+
+          .donut-chart-number {
+            font-size: 0.6em;
+            line-height: 1;
+            text-anchor: middle;
+            transform: translateY(-0.25em);
+          }
+
+          .donut-chart-label {
+            font-size: 0.2em;
+            text-anchor: middle;
+            transform: translateY(0.7em);
+          }
+        }
+
+        .donut-segment {
+          fill: none;
+          stroke-width: 2.8;
+
+          &.complete-stroke {
+            stroke: #00688D;
+          }
+
+          &.incomplete-stroke {
+            stroke: #E9E6E4;
+          }
+
+          &.locked-stroke {
+            stroke: #D3D3D3;
+          }
+        }
+      }
+    }
+
+    .stats {
+      display: flex;
+      gap: 2rem;
+      text-align: center;
+
+      .stat-item {
+        text-align: center;
+        padding: 1rem;
+
+        .number {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #00688D;
+        }
+
+        .label {
+          font-size: 0.875rem;
+          color: #454545;
+        }
+      }
+    }
+  }
+
+  .raised-card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    border: 1px solid #E9E6E4;
+  }
+
+  .actions {
+    margin-top: 2rem;
+    text-align: center;
+
+    .start-button {
+      min-width: 200px;
+    }
+  }
+
+  .alert {
+    max-width: 600px;
+    margin: 2rem auto;
+  }
+} 

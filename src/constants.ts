@@ -16,6 +16,7 @@ export const DECODE_ROUTES = {
     '/preview/course/:courseId/:sequenceId/:unitId',
     '/preview/course/:courseId/:sequenceId',
   ],
+  SUBSEQUENCE_PROGRESS: '/course/:courseId/subsequence/:subsequenceId/progress',
   REDIRECT_HOME: 'home/:courseId',
   REDIRECT_SURVEY: 'survey/:courseId',
 } as const satisfies Readonly<{ [k: string]: string | readonly string[] }>;

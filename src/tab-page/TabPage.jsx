@@ -83,7 +83,7 @@ const TabPage = ({ intl, ...props }) => {
         </p>
       )}
       
-      <FooterSlot />
+
       
     </>
   );

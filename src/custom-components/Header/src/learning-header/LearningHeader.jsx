@@ -9,7 +9,7 @@ import { AlertList } from '../../../../generic/user-messages';
 import useEnrollmentAlert from '../../../../alerts/enrollment-alert';
 import useLogistrationAlert from '../../../../alerts/logistration-alert';
 import UnitTimer from '../../../../courseware/course/sequence/Unit/UnitTimer';
-import { fetchUnitById } from '../../../../courseware/course/sequence/Unit/urls';
+import { fetchUnitById, fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId } from '../../../../courseware/course/sequence/Unit/urls';
 import { useModel } from '../../../../generic/model-store';
 import { modelKeys } from '../../../../courseware/course/sequence/Unit/constants';
 
@@ -22,29 +22,236 @@ import messages from './messages';
 import LearningHelpSlot from '../plugin-slots/LearningHelpSlot';
 import './NavigationMenu.scss';
 
-const NavigationMenu = () => {
-  const menuItems = [
-    { label: 'Speaking', href: '#speaking' },
-    { label: 'Writing', href: '#writing' },
-    { label: 'Reading', href: '#reading' },
-    { label: 'Listening', href: '#listening' },
-    { label: 'Test', href: '#test' },
+const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
+
+// Extract the multi-level dropdown as a reusable component
+const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEVELS, fetchSectionsByCourseId, fetchSequencesBySectionId }) => {
+  const [vocabOpen, setVocabOpen] = useState(false);
+  const [openLevel, setOpenLevel] = useState(null);
+  const [hoveredCourse, setHoveredCourse] = useState(null);
+  const [hoveredSequence, setHoveredSequence] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [sequences, setSequences] = useState([]);
+
+  // Derive the active path for highlighting
+  const activePath = [
+    openLevel,
+    hoveredCourse ? hoveredCourse.id : null,
+    hoveredSequence,
   ];
 
+  const handleCourseHover = (course, skill) => {
+    setHoveredCourse(course);
+    setHoveredSequence(null);
+    fetchSectionsByCourseId(course.id)
+      .then(sectionsData => {
+        setSections(sectionsData);
+        const section = sectionsData.find(sec => sec.display_name.toLowerCase().includes(skill ? skill.toLowerCase() : ''));
+        if (section) {
+          fetchSequencesBySectionId(section.id)
+            .then(sequencesData => setSequences(sequencesData));
+        } else {
+          setSequences([]);
+        }
+      });
+  };
+
+  return (
+    <div
+      className="nav-item vocab-dropdown"
+      onMouseEnter={() => { setVocabOpen(true); setHoveredSkill(label); }}
+      onMouseLeave={() => { setVocabOpen(false); setOpenLevel(null); setHoveredCourse(null); setHoveredSequence(null); }}
+      style={{ position: 'relative', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}
+    >
+      {label}
+      {vocabOpen && (
+        <div className="dropdown-menu-custom" style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          minWidth: 140,
+          background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+          borderRadius: 6,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          zIndex: 1000,
+          border: '2px solid #bdbdbd',
+          marginTop: 0,
+        }}>
+          {LEVELS.map((level) => {
+            const isLevelActive = openLevel === level;
+            const filteredCourses = courses.filter(course => (course.display_name || '').toLowerCase().includes(level.toLowerCase()));
+            return (
+              <div
+                key={level}
+                style={{ position: 'relative', borderRadius: 4 }}
+                onMouseEnter={() => { setOpenLevel(level); setHoveredCourse(null); setHoveredSequence(null); }}
+                onMouseLeave={() => setOpenLevel(null)}
+                className={isLevelActive ? 'dropdown-active-item' : ''}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    padding: '8px 16px',
+                    borderRadius: 4,
+                    background: isLevelActive ? '#0097a9' : 'none',
+                    color: isLevelActive ? '#fff' : '#333',
+                    transition: 'background 0.2s',
+                  }}
+                  className="dropdown-hover-item"
+                >
+                  {level}
+                  <span style={{ marginLeft: 8 }}>&#9654;</span>
+                </div>
+                {isLevelActive && (
+                  <div style={{
+                    position: 'absolute',
+                    left: '100%',
+                    top: 0,
+                    background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+                    border: '2px solid #bdbdbd',
+                    minWidth: 180,
+                    zIndex: 1000,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                    borderRadius: 6,
+                  }}>
+                    {filteredCourses.map(course => {
+                      const isCourseActive = hoveredCourse && hoveredCourse.id === course.id;
+                      return (
+                        <div
+                          key={course.id}
+                          onMouseEnter={() => handleCourseHover(course, label)}
+                          style={{ position: 'relative', borderRadius: 4 }}
+                          className={isCourseActive ? 'dropdown-active-item' : ''}
+                        >
+                          <a
+                            href={`#/course/${course.id}`}
+                            style={{
+                              display: 'block',
+                              padding: '8px 16px',
+                              color: '#333',
+                              textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                              borderRadius: 4,
+                              background: isCourseActive ? '#0097a9' : 'none',
+                              color: isCourseActive ? '#fff' : '#333',
+                              transition: 'background 0.2s',
+                            }}
+                            className="dropdown-hover-item"
+                          >
+                            {course.display_name}
+                          </a>
+                          {isCourseActive && sequences.length > 0 && (
+                            <div style={{
+                              position: 'absolute',
+                              left: '100%',
+                              top: 0,
+                              background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+                              border: '2px solid #bdbdbd',
+                              minWidth: 180,
+                              zIndex: 2000,
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                              borderRadius: 6,
+                            }}>
+                              {sequences.map(seq => {
+                                const isSeqActive = hoveredSequence === seq.id;
+                                return (
+                                  <div key={seq.id} style={{
+                                    padding: '8px 16px',
+                                    color: isSeqActive ? '#fff' : '#333',
+                                    borderRadius: 4,
+                                    transition: 'background 0.2s',
+                                    background: isSeqActive ? '#0097a9' : 'none',
+                                  }}
+                                  className="dropdown-hover-item"
+                                  onMouseEnter={() => setHoveredSequence(seq.id)}
+                                  onMouseLeave={() => setHoveredSequence(null)}
+                                  >
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      <a
+                                        href={`/learning/course/${encodeURIComponent(course.id)}/subsequence/${encodeURIComponent(seq.id)}/progress`}
+                                        style={{
+                                          color: isSeqActive ? '#fff' : '#333',
+                                          textDecoration: 'none',
+                                          display: 'block',
+                                          fontSize: '1em',
+                                          borderRadius: 4,
+                                          transition: 'background 0.2s',
+                                          padding: 0,
+                                          background: 'none',
+                                        }}
+                                        className="dropdown-hover-item"
+                                      >
+                                        {seq.display_name}
+                                      </a>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const NavigationMenu = ({ courses }) => {
+  const [hoveredSkill, setHoveredSkill] = useState(null);
   return (
     <nav className="nav-menu">
       <div className="pte-tools">Japanese <span>tools</span></div>
-      <div className="nav-links">
-        {menuItems.map((item) => (
-          <a
-            key={item.label}
-            className="nav-item"
-            href={item.href}
-          >
-            {item.label}
-          </a>
+      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        {['聴解', '言葉。漢字', '文法', '読解', '模試テスト'].map((label) => (
+          <MultiLevelDropdown
+            key={label}
+            label={label}
+            courses={courses}
+            hoveredSkill={hoveredSkill}
+            setHoveredSkill={setHoveredSkill}
+            LEVELS={LEVELS}
+            fetchSectionsByCourseId={fetchSectionsByCourseId}
+            fetchSequencesBySectionId={fetchSequencesBySectionId}
+          />
         ))}
       </div>
+      <style>{`
+        .dropdown-hover-item {
+          color: #333 !important;
+        }
+        .dropdown-hover-item:hover {
+          background: #0097a9 !important;
+          color: #fff !important;
+        }
+        .dropdown-active-item, .nav-item-active {
+          background: #0097a9 !important;
+          color: #fff !important;
+        }
+        .nav-item:hover, .nav-item:focus, .nav-item-active {
+          background: #0097a9 !important;
+          color: #fff !important;
+        }
+        .nav-item {
+          color: #333 !important;
+        }
+        .dropdown-menu, .dropdown-menu[style], .dropdown-menu-custom {
+          border: 1px solid #d0d7de !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+        }
+        .nav-item, .nav-item:active, .nav-item:visited, .nav-item:focus {
+          text-decoration: none !important;
+        }
+      `}</style>
     </nav>
   );
 };
@@ -98,6 +305,13 @@ const LearningHeader = ({
   const { authenticatedUser } = useContext(AppContext);
   const [timeLimit, setTimeLimit] = useState(null);
   const [hasQuiz, setHasQuiz] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [openLevel, setOpenLevel] = useState(null);
+  const [hoveredSkill, setHoveredSkill] = useState(null);
+  const [hoveredLevel, setHoveredLevel] = useState(null);
+  const [hoveredCourse, setHoveredCourse] = useState(null);
+  const [sections, setSections] = useState([]);
+  const [sequences, setSequences] = useState([]);
   
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
@@ -134,6 +348,17 @@ const LearningHeader = ({
     return () => { didCancel = true; };
   }, [unitId, unit]);
 
+  useEffect(() => {
+    fetchAllCourses()
+      .then(data => {
+        console.log('[LearningHeader] Fetched courses:', data);
+        setCourses(data);
+      })
+      .catch(err => {
+        console.error('[LearningHeader] Error fetching courses:', err);
+      });
+  }, []);
+
   const handleTimeExpired = () => {
     console.log('[LearningHeader] Time expired for unit:', unitId);
   };
@@ -158,7 +383,7 @@ const LearningHeader = ({
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
       <div className="container-xl py-2 d-flex align-items-center">
         {headerLogo}
-        <NavigationMenu />
+        <NavigationMenu courses={courses} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
           {console.log('[LearningHeader] Rendering timer section. unitId:', unitId, 'timeLimit:', timeLimit)}
           {unitId && timeLimit ? (
@@ -185,6 +410,9 @@ const LearningHeader = ({
       </div>
       <style>
         {`
+          .learning-header {
+            background: linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%);
+          }
           .notification-btn {
             position: relative;
             padding: 0.5rem;
