@@ -1,0 +1,346 @@
+.payment-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2rem 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  .payment-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
+
+  .payment-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+  }
+
+  .payment-content {
+    padding: 2rem;
+  }
+
+  .course-summary {
+    margin-bottom: 2rem;
+
+    h2 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .course-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #e9ecef;
+
+      .course-info {
+        flex: 1;
+
+        h3 {
+          margin: 0 0 1rem 0;
+          color: #333;
+          font-size: 1.3rem;
+          font-weight: 600;
+        }
+
+        .course-details {
+          p {
+            margin: 0.5rem 0;
+            color: #666;
+            font-size: 0.95rem;
+
+            strong {
+              color: #333;
+            }
+          }
+        }
+      }
+
+      .course-price {
+        .price {
+          font-size: 1.8rem;
+          font-weight: 700;
+          color: #667eea;
+        }
+      }
+    }
+  }
+
+  .payment-method {
+    margin-bottom: 2rem;
+
+    h2 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .payment-options {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+
+      .payment-option {
+        flex: 1;
+        min-width: 200px;
+        cursor: pointer;
+        position: relative;
+
+        input[type="radio"] {
+          position: absolute;
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .option-content {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 1rem;
+          border: 2px solid #e9ecef;
+          border-radius: 12px;
+          transition: all 0.3s ease;
+          background: white;
+
+          img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+          }
+
+          span {
+            font-weight: 600;
+            color: #333;
+          }
+        }
+
+        input[type="radio"]:checked + .option-content {
+          border-color: #667eea;
+          background: #f0f4ff;
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        &:hover .option-content {
+          border-color: #667eea;
+          transform: translateY(-2px);
+        }
+      }
+    }
+  }
+
+  .payment-summary {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+
+    h2 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #e9ecef;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      span {
+        color: #666;
+        font-size: 1rem;
+      }
+
+      &.total {
+        border-top: 2px solid #667eea;
+        margin-top: 0.5rem;
+        padding-top: 1rem;
+
+        span {
+          font-weight: 700;
+          font-size: 1.2rem;
+          color: #333;
+        }
+      }
+    }
+  }
+
+  .payment-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+
+    button {
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: none;
+      min-width: 150px;
+
+      &.btn-pay {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+
+        &:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+
+      &.btn-cancel {
+        background: #f8f9fa;
+        color: #666;
+        border: 2px solid #e9ecef;
+
+        &:hover {
+          background: #e9ecef;
+          color: #333;
+        }
+      }
+    }
+  }
+}
+
+.testing-toggle {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  border: 2px solid #e9ecef;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #333;
+}
+
+.toggle-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #0097a9;
+}
+
+.toggle-text {
+  font-size: 1rem;
+}
+
+.toggle-description {
+  margin-top: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .payment-page {
+    padding: 1rem 0.5rem;
+
+    .payment-container {
+      border-radius: 12px;
+    }
+
+    .payment-header {
+      padding: 1.5rem;
+
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+
+    .payment-content {
+      padding: 1.5rem;
+    }
+
+    .course-card {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+
+      .course-price {
+        .price {
+          font-size: 1.5rem;
+        }
+      }
+    }
+
+    .payment-options {
+      flex-direction: column;
+
+      .payment-option {
+        min-width: auto;
+      }
+    }
+
+    .payment-actions {
+      flex-direction: column;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// Animation for loading state
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.btn-pay:disabled {
+  animation: pulse 1.5s infinite;
+} 

@@ -3,9 +3,7 @@ import PropTypes from 'prop-types';
 import { getConfig } from '@edx/frontend-platform';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 import { AppContext } from '@edx/frontend-platform/react';
-import { Button, Icon, Dropdown } from '@openedx/paragon';
-import { NotificationsNone } from '@openedx/paragon/icons';
-import { AlertList } from '../../../../generic/user-messages';
+import { Button, Icon } from '@openedx/paragon';
 import useEnrollmentAlert from '../../../../alerts/enrollment-alert';
 import useLogistrationAlert from '../../../../alerts/logistration-alert';
 import UnitTimer from '../../../../courseware/course/sequence/Unit/UnitTimer';
@@ -20,12 +18,14 @@ import CourseInfoSlot from '../plugin-slots/CourseInfoSlot';
 import { courseInfoDataShape } from './LearningHeaderCourseInfo';
 import messages from './messages';
 import LearningHelpSlot from '../plugin-slots/LearningHelpSlot';
+import EnrollmentStatus from '../../../EnrollmentStatus/src/EnrollmentStatus';
 import './NavigationMenu.scss';
 
 const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
 // Extract the multi-level dropdown as a reusable component
 const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEVELS, fetchSectionsByCourseId, fetchSequencesBySectionId }) => {
+  const { authenticatedUser } = useContext(AppContext);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [openLevel, setOpenLevel] = useState(null);
   const [hoveredCourse, setHoveredCourse] = useState(null);
@@ -33,12 +33,14 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
   const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
 
-  // Derive the active path for highlighting
-  const activePath = [
-    openLevel,
-    hoveredCourse ? hoveredCourse.id : null,
-    hoveredSequence,
-  ];
+  const handleAuthClick = (e) => {
+    if (!authenticatedUser) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = `${getConfig().LMS_BASE_URL}/login?next=${encodeURIComponent(window.location.href)}`;
+      return;
+    }
+  };
 
   const handleCourseHover = (course, skill) => {
     setHoveredCourse(course);
@@ -101,6 +103,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                     transition: 'background 0.2s',
                   }}
                   className="dropdown-hover-item"
+                  onClick={handleAuthClick}
                 >
                   {level}
                   <span style={{ marginLeft: 8 }}>&#9654;</span>
@@ -128,6 +131,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                         >
                           <a
                             href={`#/course/${course.id}`}
+                            onClick={handleAuthClick}
                             style={{
                               display: 'block',
                               padding: '8px 16px',
@@ -172,6 +176,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                       <a
                                         href={`/learning/course/${encodeURIComponent(course.id)}/subsequence/${encodeURIComponent(seq.id)}/progress`}
+                                        onClick={handleAuthClick}
                                         style={{
                                           color: isSeqActive ? '#fff' : '#333',
                                           textDecoration: 'none',
@@ -224,6 +229,32 @@ const NavigationMenu = ({ courses }) => {
             fetchSequencesBySectionId={fetchSequencesBySectionId}
           />
         ))}
+        <div
+          className="nav-item payment-link"
+          style={{ 
+            position: 'relative', 
+            padding: '8px 16px', 
+            borderRadius: 4, 
+            cursor: 'pointer',
+            background: '#0097a9',
+            color: '#fff',
+            fontWeight: '600',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => window.location.href = '/learning/payment'}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#007a8a';
+            e.target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#0097a9';
+            e.target.style.transform = 'translateY(0)';
+          }}
+        >
+          💳 Thanh toán
+        </div>
+        <EnrollmentStatus />
       </div>
       <style>{`
         .dropdown-hover-item {
@@ -251,43 +282,21 @@ const NavigationMenu = ({ courses }) => {
         .nav-item, .nav-item:active, .nav-item:visited, .nav-item:focus {
           text-decoration: none !important;
         }
+        .payment-link {
+          background: #0097a9 !important;
+          color: #fff !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+        .payment-link:hover {
+          background: #007a8a !important;
+          color: #fff !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        }
       `}</style>
     </nav>
   );
-};
-
-const NotificationButton = ({ alerts }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const hasAlerts = alerts && Object.keys(alerts).length > 0;
-
-  return (
-    <Dropdown className="mx-2">
-      <Dropdown.Toggle
-        id="notification-dropdown"
-        variant="light"
-        className="notification-btn"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Icon src={Bell} className="notification-icon" />
-        {hasAlerts && <span className="notification-badge" />}
-      </Dropdown.Toggle>
-      <Dropdown.Menu show={isOpen} onClose={() => setIsOpen(false)}>
-        <AlertList
-          topic="outline"
-          className="p-2"
-          customAlerts={alerts}
-        />
-      </Dropdown.Menu>
-    </Dropdown>
-  );
-};
-
-NotificationButton.propTypes = {
-  alerts: PropTypes.object,
-};
-
-NotificationButton.defaultProps = {
-  alerts: {},
 };
 
 const LearningHeader = ({
@@ -412,29 +421,6 @@ const LearningHeader = ({
         {`
           .learning-header {
             background: linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%);
-          }
-          .notification-btn {
-            position: relative;
-            padding: 0.5rem;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .notification-icon {
-            width: 20px;
-            height: 20px;
-          }
-          .notification-badge {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 8px;
-            height: 8px;
-            background: #d23228;
-            border-radius: 50%;
           }
           .course-title-lockup {
             justify-content: center;

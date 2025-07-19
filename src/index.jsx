@@ -25,6 +25,19 @@ import GoalUnsubscribe from './course-home/goal-unsubscribe';
 import ProgressTab from './course-home/progress-tab/ProgressTab';
 import { TabContainer } from './tab-page';
 import ProgressPage from './custom-components/ProgressPage';
+import LearningHome from './custom-components/LearningHome';
+import PaymentPage from './custom-components/PaymentPage';
+import PaymentSuccess from './custom-components/PaymentSuccess';
+import PaymentCancel from './custom-components/PaymentCancel';
+import EnrollmentStatusRoute from './custom-components/EnrollmentStatus/src/EnrollmentStatusRoute';
+
+// Simple test component for debugging
+const TestComponent = () => (
+  <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <h1>Test Component Working!</h1>
+    <p>If you can see this, React Router is working.</p>
+  </div>
+);
 
 import { fetchDatesTab, fetchOutlineTab, fetchProgressTab } from './course-home/data';
 import { fetchCourse } from './courseware/data';
@@ -38,6 +51,7 @@ import { DECODE_ROUTES, ROUTES } from './constants';
 import PreferencesUnsubscribe from './preferences-unsubscribe';
 import PageNotFound from './generic/PageNotFound';
 import PluginProvider from './PluginProvider';
+
 
 subscribe(APP_READY, () => {
   const root = createRoot(document.getElementById('root'));
@@ -53,6 +67,18 @@ subscribe(APP_READY, () => {
             <NoticesProvider>
               <UserMessagesProvider>
                 <Routes>
+                  <Route path="/learning/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
+                  <Route path="/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
+                  <Route
+                    path={DECODE_ROUTES.LEARNING_HOME}
+                    element={<DecodePageRoute><PageWrap><LearningHome /></PageWrap></DecodePageRoute>}
+                  />
+                  <Route
+                    path={DECODE_ROUTES.LEARNING_ROOT}
+                    element={<DecodePageRoute><PageWrap><LearningHome /></PageWrap></DecodePageRoute>}
+                  />
+                  <Route path="/" element={<PageWrap><LearningHome /></PageWrap>} />
+                  <Route path="/learning" element={<PageWrap><LearningHome /></PageWrap>} />
                   <Route path={ROUTES.UNSUBSCRIBE} element={<PageWrap><GoalUnsubscribe /></PageWrap>} />
                   <Route path={ROUTES.REDIRECT} element={<PageWrap><CoursewareRedirectLandingPage /></PageWrap>} />
                   <Route
@@ -148,6 +174,13 @@ subscribe(APP_READY, () => {
                     path={DECODE_ROUTES.SUBSEQUENCE_PROGRESS}
                     element={<DecodePageRoute><PageWrap><ProgressPage /></PageWrap></DecodePageRoute>}
                   />
+                  <Route path="/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
+                  <Route path="/learning/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
+                  <Route path="/learning/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
+                  <Route path="/learning/payment/cancel" element={<PageWrap><PaymentCancel /></PageWrap>} />
+                  <Route path="/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
+                  <Route path="/test-payment-success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
+                  <Route path="/test" element={<PageWrap><TestComponent /></PageWrap>} />
                   <Route path="*" element={<PageWrap><PageNotFound /></PageWrap>} />
                 </Routes>
               </UserMessagesProvider>

@@ -81,8 +81,8 @@
 
 .sequence {
   @media (min-width: map-get($grid-breakpoints, "sm")) {
-    border: solid 1px #eaeaea;
-    border-radius: 4px;
+    border: none;
+    border-radius: 0;
   }
 }
 
