@@ -1,19 +1,13 @@
-<!doctype html>
-<html lang="en-us">
-  <head>
-    <title>Course | <%= process.env.SITE_NAME %></title>
-    <meta charset="utf-8">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="<%=htmlWebpackPlugin.options.FAVICON_URL%>" type="image/x-icon" />
-
-    <% if (htmlWebpackPlugin.options.OPTIMIZELY_PROJECT_ID) { %>
-      <script src="https://www.edx.org/optimizelyjs/<%= htmlWebpackPlugin.options.OPTIMIZELY_PROJECT_ID %>.js"></script>
-    <% } %>
-    <% if (htmlWebpackPlugin.options.META_TAG_ROBOTS_CONTENT_ATTR) { %>
-      <meta name="robots" content="<%= htmlWebpackPlugin.options.META_TAG_ROBOTS_CONTENT_ATTR %>">
-    <% } %>
-  </head>
-  <body>
+    <title>Learning Platform</title>
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="robots" content="noindex, nofollow">
+</head>
+<body>
     <div id="root"></div>
-  </body>
+</body>
 </html>
