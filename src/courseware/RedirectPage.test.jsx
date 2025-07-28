@@ -7,7 +7,6 @@ import RedirectPage from './RedirectPage';
 import { REDIRECT_MODES } from '../constants';
 
 const BASE_URL = getConfig().LMS_BASE_URL;
-
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useParams: () => ({

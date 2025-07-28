@@ -49,8 +49,8 @@ const PaymentPage = ({ intl }) => {
         currency: 'VND',
         paymentMethod: paymentMethod,
         paymentType: 'all_access', // Chỉ có một loại thanh toán
-        returnUrl: `${window.location.origin}/learning/payment/success`,
-        cancelUrl: `${window.location.origin}/learning/payment/cancel`,
+        returnUrl: `${window.location.origin}/payment/success`,
+        cancelUrl: `${window.location.origin}/payment/cancel`,
         useSimulator: useSimulator
       };
 

@@ -128,6 +128,14 @@ subscribe(APP_READY, () => {
                     )}
                     />
                     ))}
+                    <Route
+                      path={DECODE_ROUTES.SUBSEQUENCE_PROGRESS}
+                      element={(
+                        <PageWrap>
+                          <ProgressPage />
+                        </PageWrap>
+                    )}
+                    />
                     {DECODE_ROUTES.COURSEWARE.map((route) => (
                       <Route
                         key={route}
@@ -139,6 +147,23 @@ subscribe(APP_READY, () => {
                     )}
                     />
                     ))}
+                    {/* Learning Courseware Routes */}
+                    <Route
+                      path="/learning/course/:courseId/:sequenceId/:unitId"
+                      element={(
+                        <DecodePageRoute>
+                          <CoursewareContainer />
+                        </DecodePageRoute>
+                    )}
+                    />
+                    <Route
+                      path="/learning/course/:courseId/:sequenceId"
+                      element={(
+                        <DecodePageRoute>
+                          <CoursewareContainer />
+                        </DecodePageRoute>
+                    )}
+                    />
                     <Route path="/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
                     <Route path="/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
                     <Route path="/payment/cancel" element={<PageWrap><PaymentCancel /></PageWrap>} />

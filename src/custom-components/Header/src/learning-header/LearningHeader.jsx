@@ -175,7 +175,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                                   >
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                       <a
-                                        href={`/learning/course/${encodeURIComponent(course.id)}/subsequence/${encodeURIComponent(seq.id)}/progress`}
+                                        href={`/course/${encodeURIComponent(course.id)}/subsequence/${encodeURIComponent(seq.id)}/progress`}
                                         onClick={handleAuthClick}
                                         style={{
                                           color: isSeqActive ? '#fff' : '#333',
@@ -242,7 +242,7 @@ const NavigationMenu = ({ courses }) => {
             textDecoration: 'none',
             transition: 'all 0.2s ease'
           }}
-          onClick={() => window.location.href = '/learning/payment'}
+          onClick={() => window.location.href = '/payment'}
           onMouseEnter={(e) => {
             e.target.style.background = '#007a8a';
             e.target.style.transform = 'translateY(-1px)';
