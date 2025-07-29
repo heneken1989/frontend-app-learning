@@ -36,7 +36,7 @@ const EnrollmentStatus = () => {
 
   const handleClick = () => {
     // Navigate to enrollment status page
-    window.location.href = '/enrollment-status';
+    window.location.href = '/learning/enrollment-status';
   };
 
   if (loading) {
