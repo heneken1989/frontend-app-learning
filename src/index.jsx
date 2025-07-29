@@ -69,7 +69,7 @@ subscribe(APP_READY, () => {
                 <UserMessagesProvider>
                   <Routes>
                     <Route path="/" element={<PageWrap><LearningHome /></PageWrap>} />
-                    <Route path="/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
+                    <Route path="/learning/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
                     <Route
                       path={DECODE_ROUTES.HOME}
                       element={(
@@ -164,9 +164,9 @@ subscribe(APP_READY, () => {
                         </DecodePageRoute>
                     )}
                     />
-                    <Route path="/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
-                    <Route path="/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
-                    <Route path="/payment/cancel" element={<PageWrap><PaymentCancel /></PageWrap>} />
+                    <Route path="/learning/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
+                    <Route path="/learning/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
+                    <Route path="/learning/payment/cancel" element={<PageWrap><PaymentCancel /></PageWrap>} />
                     <Route path={ROUTES.UNSUBSCRIBE} element={<PageWrap><GoalUnsubscribe /></PageWrap>} />
                     <Route path={ROUTES.REDIRECT} element={<PageWrap><CoursewareRedirectLandingPage /></PageWrap>} />
                     <Route path={ROUTES.PREFERENCES_UNSUBSCRIBE} element={<PageWrap><PreferencesUnsubscribe /></PageWrap>} />
