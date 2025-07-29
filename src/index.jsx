@@ -59,7 +59,7 @@ subscribe(APP_READY, () => {
   root.render(
     <StrictMode>
       <AppProvider store={store} wrapWithRouter={false}>
-        <BrowserRouter basename="/">
+        <BrowserRouter basename="/learning">
           <PluginProvider>
             <Helmet>
               <link rel="shortcut icon" href={getConfig().FAVICON_URL} type="image/x-icon" />
