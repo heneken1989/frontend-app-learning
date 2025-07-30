@@ -56,7 +56,7 @@ const ProgressPage = () => {
   }, [courseId, subsequenceId]);
 
   const handleStartLearning = () => {
-    navigate(`/learning/course/${courseId}/${subsequenceId}`);
+    navigate(`/course/${courseId}/${subsequenceId}`);
   };
 
   if (windowWidth === undefined) {
