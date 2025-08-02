@@ -79,7 +79,7 @@ const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
       padding: '0.5rem',
       textAlign: 'center',
     }}>
-      {initialTimeByProblemType ? 'Time remaining: ' : 'Time spent: '}
+      {initialTimeByProblemType > 0 ? 'Time remaining: ' : 'Time spent: '}
       {formatTime()}
     </div>
   );

@@ -330,16 +330,24 @@ const LearningHeader = ({
     let didCancel = false;
     async function fetchTimeLimit() {
       if (unitId) {
+        console.log('[LearningHeader] Fetching time limit for unitId:', unitId);
         // Prefer time_limit from model if available
         if (unit && unit.time_limit) {
+          console.log('[LearningHeader] Found time_limit in model:', unit.time_limit);
           setTimeLimit(unit.time_limit);
         } else {
+          console.log('[LearningHeader] No time_limit in model, fetching from API...');
           // Fallback: fetch directly
           try {
             const unitData = await fetchUnitById(unitId);
+            console.log('[LearningHeader] API response:', unitData);
             if (!didCancel) {
               if (unitData.time_limit) {
+                console.log('[LearningHeader] Found time_limit in API:', unitData.time_limit);
                 setTimeLimit(unitData.time_limit);
+              } else {
+                console.log('[LearningHeader] No time_limit in API response, setting to 0');
+                setTimeLimit(0);
               }
               if (unitData.html && unitData.html.includes('paragraph_quiz.html')) {
                 setHasQuiz(true);
@@ -351,6 +359,8 @@ const LearningHeader = ({
             }
           }
         }
+      } else {
+        console.log('[LearningHeader] No unitId provided');
       }
     }
     fetchTimeLimit();
@@ -395,7 +405,7 @@ const LearningHeader = ({
         <NavigationMenu courses={courses} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
           {console.log('[LearningHeader] Rendering timer section. unitId:', unitId, 'timeLimit:', timeLimit)}
-          {unitId && timeLimit ? (
+          {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
               unitId={unitId}
               initialTimeByProblemType={timeLimit}
