@@ -145,7 +145,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                             }}
                             className="dropdown-hover-item"
                           >
-                            {course.display_name}
+                            {course.display_name.replace(/N[1-5]/gi, '').trim()}
                           </a>
                           {isCourseActive && sequences.length > 0 && (
                             <div style={{
