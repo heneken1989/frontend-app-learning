@@ -4,17 +4,16 @@ import { FormattedMessage } from '@edx/frontend-platform/i18n';
 
 const Footer = () => {
   const config = getConfig();
-  
+
   return (
     <footer className="footer d-flex justify-content-center border-top py-3 px-4">
       <div className="container d-flex flex-row justify-content-between align-items-center">
         {/* Logo */}
 
-        
         {/* Links */}
         <div className="links d-flex flex-row">
-          <a 
-            className="text-decoration-none mx-2" 
+          <a
+            className="text-decoration-none mx-2"
             href={`${config.LMS_BASE_URL}/about`}
           >
             <FormattedMessage
@@ -22,8 +21,8 @@ const Footer = () => {
               defaultMessage="About"
             />
           </a>
-          <a 
-            className="text-decoration-none mx-2" 
+          <a
+            className="text-decoration-none mx-2"
             href={`${config.LMS_BASE_URL}/contact`}
           >
             <FormattedMessage
@@ -31,8 +30,8 @@ const Footer = () => {
               defaultMessage="Contact"
             />
           </a>
-          <a 
-            className="text-decoration-none mx-2" 
+          <a
+            className="text-decoration-none mx-2"
             href={`${config.LMS_BASE_URL}/terms-of-service`}
           >
             <FormattedMessage
@@ -40,8 +39,8 @@ const Footer = () => {
               defaultMessage="Terms of Service"
             />
           </a>
-          <a 
-            className="text-decoration-none mx-2" 
+          <a
+            className="text-decoration-none mx-2"
             href={`${config.LMS_BASE_URL}/privacy-policy`}
           >
             <FormattedMessage
@@ -50,7 +49,7 @@ const Footer = () => {
             />
           </a>
         </div>
-        
+
         {/* Copyright */}
 
       </div>
@@ -58,4 +57,4 @@ const Footer = () => {
   );
 };
 
-export default Footer; 
+export default Footer;

@@ -38,16 +38,14 @@ const Unit = ({
   const unit = useModel(modelKeys.units, id);
   const view = authenticatedUser ? views.student : views.public;
   const shouldDisplayUnitPreview = pathname.startsWith('/preview') && isOriginalUserStaff;
-  const getUrl = usePluginsCallback('getIFrameUrl', () =>
-    getIFrameUrl({
-      id,
-      view,
-      format,
-      examAccess,
-      jumpToId: searchParams.get('jumpToId'),
-      preview: shouldDisplayUnitPreview ? '1' : '0',
-    })
-  );
+  const getUrl = usePluginsCallback('getIFrameUrl', () => getIFrameUrl({
+    id,
+    view,
+    format,
+    examAccess,
+    jumpToId: searchParams.get('jumpToId'),
+    preview: shouldDisplayUnitPreview ? '1' : '0',
+  }));
   const iframeUrl = getUrl();
   const handleTimeExpired = () => {
     // Logic to handle when the timer expires
@@ -72,8 +70,8 @@ const Unit = ({
 
   return (
     <div className="unit">
-        {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
-     
+      {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
+
       <UnitSuspense {...{ courseId, id }} />
       <ContentIFrame
         elementId="unit-iframe"
@@ -104,4 +102,4 @@ Unit.defaultProps = {
   onLoaded: undefined,
 };
 
-export default Unit; 
+export default Unit;

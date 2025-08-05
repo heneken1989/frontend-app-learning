@@ -17,7 +17,7 @@ const EnrollmentStatus = () => {
       const lmsBaseUrl = getConfig().LMS_BASE_URL;
       const response = await fetch(`${lmsBaseUrl}/api/payment/enrollment/status/`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -74,7 +74,7 @@ const EnrollmentStatus = () => {
 
   return (
     <div className="enrollment-status-header">
-      <div 
+      <div
         className={`status-indicator ${statusClass}`}
         title={statusTitle}
         onClick={handleClick}
@@ -85,4 +85,4 @@ const EnrollmentStatus = () => {
   );
 };
 
-export default EnrollmentStatus; 
+export default EnrollmentStatus;

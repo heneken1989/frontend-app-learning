@@ -23,7 +23,6 @@ import HiddenAfterDue from './hidden-after-due';
 import { SequenceNavigation, UnitNavigation } from './sequence-navigation';
 import SequenceContent from './SequenceContent';
 
-
 const Sequence = ({
   unitId,
   sequenceId,

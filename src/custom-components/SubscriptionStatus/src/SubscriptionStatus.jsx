@@ -17,7 +17,7 @@ const SubscriptionStatus = () => {
       const lmsBaseUrl = getConfig().LMS_BASE_URL;
       const response = await fetch(`${lmsBaseUrl}/api/payment/subscription/details/`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -34,19 +34,17 @@ const SubscriptionStatus = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price);
-  };
+  const formatPrice = (price) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(price);
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) { return 'N/A'; }
     return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -70,7 +68,9 @@ const SubscriptionStatus = () => {
     return null;
   }
 
-  const { has_subscription, subscription_info, courses, total_courses, recent_transactions } = subscriptionData;
+  const {
+    has_subscription, subscription_info, courses, total_courses, recent_transactions,
+  } = subscriptionData;
 
   return (
     <div className="subscription-status">
@@ -85,7 +85,7 @@ const SubscriptionStatus = () => {
               <span className="badge-icon">✅</span>
               <span className="badge-text">Active Subscription</span>
             </div>
-            
+
             {subscription_info && (
               <div className="subscription-details">
                 <h3>📊 Thông tin Subscription</h3>
@@ -127,7 +127,7 @@ const SubscriptionStatus = () => {
               <span className="badge-icon">⚠️</span>
               <span className="badge-text">No Active Subscription</span>
             </div>
-            
+
             <div className="subscription-prompt">
               <h3>💡 Nâng cấp lên All Access</h3>
               <p>Đăng ký gói All Access để truy cập tất cả khóa học với chỉ một lần thanh toán!</p>
@@ -141,7 +141,7 @@ const SubscriptionStatus = () => {
                   <li>✅ Hỗ trợ học tập 24/7</li>
                 </ul>
               </div>
-              <button 
+              <button
                 className="btn-upgrade"
                 onClick={() => window.location.href = '/learning/payment'}
               >
@@ -177,4 +177,4 @@ const SubscriptionStatus = () => {
   );
 };
 
-export default SubscriptionStatus; 
+export default SubscriptionStatus;

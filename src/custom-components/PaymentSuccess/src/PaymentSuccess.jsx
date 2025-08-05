@@ -12,7 +12,7 @@ const PaymentSuccess = () => {
     subscription: searchParams.get('subscription') === 'true',
     paymentType: searchParams.get('paymentType') || 'single_course',
     enrolledCount: parseInt(searchParams.get('enrolledCount') || '0'),
-    totalCourses: parseInt(searchParams.get('totalCourses') || '0')
+    totalCourses: parseInt(searchParams.get('totalCourses') || '0'),
   });
 
   useEffect(() => {
@@ -20,12 +20,10 @@ const PaymentSuccess = () => {
     console.log('Payment Success - Transaction Data:', transactionData);
   }, [transactionData]);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(parseInt(price));
-  };
+  const formatPrice = (price) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(parseInt(price));
 
   return (
     <div className="payment-success-page">
@@ -34,14 +32,14 @@ const PaymentSuccess = () => {
           <div className="checkmark">✓</div>
         </div>
         <h1>🎉 Thanh toán thành công!</h1>
-        
+
         {transactionData.subscription && transactionData.paymentType === 'all_access' ? (
           <div className="all-access-success">
             <h2>🌟 Gói All Access đã được kích hoạt!</h2>
             <p>
               Chúc mừng! Bạn đã được kích hoạt gói All Access và có thể truy cập tất cả khóa học trên nền tảng.
             </p>
-            
+
             <div className="subscription-details">
               <h3>📊 Thông tin đăng ký:</h3>
               <div className="detail-item">
@@ -81,7 +79,7 @@ const PaymentSuccess = () => {
             <p>
               Cảm ơn bạn đã mua khóa học. Bạn sẽ nhận được email xác nhận trong thời gian sớm nhất.
             </p>
-            
+
             {transactionData.simulator && (
               <div className="transaction-details">
                 <h3>Chi tiết giao dịch (Test)</h3>
@@ -98,17 +96,17 @@ const PaymentSuccess = () => {
             )}
           </div>
         )}
-        
+
         <div className="success-actions">
           {transactionData.subscription && transactionData.paymentType === 'all_access' ? (
             <>
-              <button 
+              <button
                 className="btn-primary"
                 onClick={() => navigate('/learning/dashboard')}
               >
                 🎓 Vào Dashboard
               </button>
-              <button 
+              <button
                 className="btn-secondary"
                 onClick={() => navigate('/learning/courses')}
               >
@@ -117,13 +115,13 @@ const PaymentSuccess = () => {
             </>
           ) : (
             <>
-              <button 
+              <button
                 className="btn-primary"
                 onClick={() => navigate('/learning')}
               >
                 Vào học ngay
               </button>
-              <button 
+              <button
                 className="btn-secondary"
                 onClick={() => navigate('/learning/payment')}
               >
@@ -131,8 +129,8 @@ const PaymentSuccess = () => {
               </button>
             </>
           )}
-          
-          <button 
+
+          <button
             className="btn-home"
             onClick={() => navigate('/')}
           >
@@ -144,4 +142,4 @@ const PaymentSuccess = () => {
   );
 };
 
-export default PaymentSuccess; 
+export default PaymentSuccess;

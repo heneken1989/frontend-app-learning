@@ -15,7 +15,7 @@ jest.mock('react', () => {
   const originalReact = jest.requireActual('react');
   const mockUseState = jest.fn();
   const mockUseEffect = jest.fn();
-  
+
   return {
     ...originalReact,
     useState: mockUseState,
@@ -45,7 +45,7 @@ const props = {
 
 describe('UnitTimer component', () => {
   let el;
-  
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
@@ -53,7 +53,7 @@ describe('UnitTimer component', () => {
 
     // Mock useState
     React.useState.mockImplementation((initialValue) => [initialValue, jest.fn()]);
-    
+
     // Mock useEffect to execute the callback immediately
     React.useEffect.mockImplementation((callback, deps) => callback());
   });
@@ -71,14 +71,14 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
 
     el = shallow(<UnitTimer {...props} />);
-    
+
     expect(el.type).toEqual(React.Fragment);
     expect(el.findByTestId('unit-timer-display').text()).toEqual('00:00:00');
-    
+
     // Verify timer controls are rendered
     const buttons = el.findByType(Button);
     expect(buttons.length).toEqual(4);
-    
+
     // First button should be Pause since timer starts running
     expect(buttons[0].props.iconBefore).toEqual(Pause);
     expect(buttons[0].props.children).toEqual('Pause');
@@ -87,23 +87,23 @@ describe('UnitTimer component', () => {
   it('loads saved time from localStorage', () => {
     // Mock localStorage to return saved time
     localStorageMock.getItem.mockImplementationOnce(() => '120'); // 2 minutes
-    
+
     // Set up useState to return expected values
     React.useState
       .mockImplementationOnce((initialVal) => [initialVal, jest.fn()]) // seconds initially 0
       .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-      
+
     // Create a setter for seconds that will be captured by useEffect
     const setSeconds = jest.fn();
     React.useState.mockImplementationOnce(() => [0, setSeconds]);
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Verify localStorage was checked
     expect(localStorageMock.getItem).toHaveBeenCalledWith(`unit_timer_${props.unitId}`);
-    
+
     // Verify the seconds were updated
     expect(setSeconds).toHaveBeenCalledWith(120);
   });
@@ -111,13 +111,13 @@ describe('UnitTimer component', () => {
   it('sets initial time based on problem type if no saved time exists', () => {
     // Mock localStorage to return null (no saved time)
     localStorageMock.getItem.mockImplementation((key) => null);
-    
+
     // Create props with initialTimeByProblemType
     const propsWithInitialTime = {
       ...props,
       initialTimeByProblemType: 300, // 5 minutes
     };
-    
+
     // Set up useState to return expected values
     const setSeconds = jest.fn();
     React.useState
@@ -125,9 +125,9 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...propsWithInitialTime} />);
-    
+
     // Verify setSeconds was called with initialTimeByProblemType
     expect(setSeconds).toHaveBeenCalledWith(300);
   });
@@ -140,13 +140,13 @@ describe('UnitTimer component', () => {
       }
       return null;
     });
-    
+
     // Create props with initialTimeByProblemType
     const propsWithInitialTime = {
       ...props,
       initialTimeByProblemType: 300, // 5 minutes
     };
-    
+
     // Set up useState to return expected values
     const setSeconds = jest.fn();
     React.useState
@@ -154,9 +154,9 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...propsWithInitialTime} />);
-    
+
     // Verify setSeconds was called with the saved time (120), not initialTimeByProblemType
     expect(setSeconds).toHaveBeenCalledWith(120);
     expect(setSeconds).not.toHaveBeenCalledWith(300);
@@ -170,13 +170,13 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [true, setIsRunning]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Find and click the pause button
     const pauseButton = el.findByType(Button)[0];
     pauseButton.props.onClick();
-    
+
     // Verify setIsRunning was called with the opposite value
     expect(setIsRunning).toHaveBeenCalledWith(false);
   });
@@ -190,13 +190,13 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [false, setIsRunning]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Find and click the reset button
     const resetButton = el.findByType(Button)[1];
     resetButton.props.onClick();
-    
+
     // Verify setSeconds and setIsRunning were called with the expected values
     expect(setSeconds).toHaveBeenCalledWith(0);
     expect(setIsRunning).toHaveBeenCalledWith(true);
@@ -208,25 +208,25 @@ describe('UnitTimer component', () => {
     const setSeconds = jest.fn();
     const setIsRunning = jest.fn();
     const initialLogs = [];
-    
+
     React.useState
       .mockImplementationOnce(() => [120, setSeconds]) // seconds
       .mockImplementationOnce(() => [true, setIsRunning]) // isRunning
       .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
       .mockImplementationOnce(() => [initialLogs, setCompletionLogs]); // completionLogs
-    
+
     // Mock Date for consistent testing
     const mockDate = new Date('2023-01-01T12:00:00Z');
     global.Date = jest.fn(() => mockDate);
     global.Date.now = jest.fn(() => mockDate.getTime());
     global.Date.toISOString = jest.fn(() => mockDate.toISOString());
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Find and click the complete button
     const completeButton = el.findByType(Button)[2];
     completeButton.props.onClick();
-    
+
     // Verify setCompletionLogs was called with the expected log
     expect(setCompletionLogs).toHaveBeenCalledWith(expect.arrayContaining([
       expect.objectContaining({
@@ -235,7 +235,7 @@ describe('UnitTimer component', () => {
         dateCompleted: mockDate.toISOString(),
       }),
     ]));
-    
+
     // Verify timer was reset
     expect(setSeconds).toHaveBeenCalledWith(0);
     expect(setIsRunning).toHaveBeenCalledWith(true);
@@ -249,13 +249,13 @@ describe('UnitTimer component', () => {
       .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
       .mockImplementationOnce(() => [false, setIsModalOpen]) // isModalOpen
       .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Find and click the history button
     const historyButton = el.findByType(Button)[3];
     historyButton.props.onClick();
-    
+
     // Verify setIsModalOpen was called with true
     expect(setIsModalOpen).toHaveBeenCalledWith(true);
   });
@@ -264,21 +264,23 @@ describe('UnitTimer component', () => {
     // Set up useState with mock setters that we can track
     const setCompletionLogs = jest.fn();
     const setIsModalOpen = jest.fn();
-    const initialLogs = [{ id: 1, unitId: props.unitId, timeSpent: 120, dateCompleted: '2023-01-01T12:00:00Z' }];
-    
+    const initialLogs = [{
+      id: 1, unitId: props.unitId, timeSpent: 120, dateCompleted: '2023-01-01T12:00:00Z',
+    }];
+
     React.useState
       .mockImplementationOnce(() => [0, jest.fn()]) // seconds
       .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
       .mockImplementationOnce(() => [true, setIsModalOpen]) // isModalOpen
       .mockImplementationOnce(() => [initialLogs, setCompletionLogs]); // completionLogs
-    
+
     el = shallow(<UnitTimer {...props} />);
-    
+
     // Find and click the clear logs button in the modal
     const modal = el.findByType(Modal);
     const clearButton = modal.findByText('Clear History');
     clearButton.props.onClick();
-    
+
     // Verify setCompletionLogs was called with empty array
     expect(setCompletionLogs).toHaveBeenCalledWith([]);
     // Verify modal was closed
@@ -295,16 +297,16 @@ describe('UnitTimer component', () => {
       { seconds: 3600, expected: '01:00:00' },
       { seconds: 7325, expected: '02:02:05' },
     ];
-    
+
     testCases.forEach(({ seconds, expected }) => {
       React.useState
         .mockImplementationOnce(() => [seconds, jest.fn()]) // seconds
         .mockImplementationOnce(() => [true, jest.fn()]) // isRunning
         .mockImplementationOnce(() => [false, jest.fn()]) // isModalOpen
         .mockImplementationOnce(() => [[], jest.fn()]); // completionLogs
-      
+
       const el = shallow(<UnitTimer {...props} />);
       expect(el.findByTestId('unit-timer-display').text()).toEqual(expected);
     });
   });
-}); 
+});

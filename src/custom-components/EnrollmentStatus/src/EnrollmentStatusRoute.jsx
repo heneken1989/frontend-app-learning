@@ -10,4 +10,4 @@ const EnrollmentStatusRoute = () => {
   );
 };
 
-export default EnrollmentStatusRoute; 
+export default EnrollmentStatusRoute;

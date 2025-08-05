@@ -73,7 +73,7 @@ const CourseOutlineTray = ({ intl }) => {
                 <SidebarSequence
                   courseId={courseId}
                   sequence={sequences[activeSequenceId]}
-                  defaultOpen={true}
+                  defaultOpen
                   activeUnitId={unitId}
                 />
               )}

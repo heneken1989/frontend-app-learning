@@ -40,7 +40,7 @@ config.plugins.push(
     template: path.resolve(__dirname, 'public/index.html'),
     filename: 'index.html',
     inject: true,
-  })
+  }),
 );
 
 config.plugins.push(
@@ -54,7 +54,7 @@ config.plugins.push(
         },
       },
     ],
-  })
+  }),
 );
 
 module.exports = config;

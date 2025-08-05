@@ -8,7 +8,7 @@ const PaymentCancel = () => {
   const [transactionData, setTransactionData] = useState({
     txnRef: searchParams.get('txnRef') || 'DEMO123',
     simulator: searchParams.get('simulator') === 'true',
-    error: searchParams.get('error') || null
+    error: searchParams.get('error') || null,
   });
 
   useEffect(() => {
@@ -37,7 +37,7 @@ const PaymentCancel = () => {
         <p>
           Giao dịch thanh toán đã bị hủy. Bạn có thể thử lại bất cứ lúc nào.
         </p>
-        
+
         {transactionData.error && (
           <div className="error-details">
             <h3>Chi tiết lỗi</h3>
@@ -46,7 +46,7 @@ const PaymentCancel = () => {
             </div>
           </div>
         )}
-        
+
         {transactionData.simulator && (
           <div className="transaction-details">
             <h3>Chi tiết giao dịch (Test)</h3>
@@ -58,15 +58,15 @@ const PaymentCancel = () => {
             </div>
           </div>
         )}
-        
+
         <div className="cancel-actions">
-          <button 
+          <button
             className="btn-primary"
             onClick={() => navigate('/')}
           >
             Về trang chủ
           </button>
-          <button 
+          <button
             className="btn-secondary"
             onClick={() => navigate('/learning/payment')}
           >
@@ -78,4 +78,4 @@ const PaymentCancel = () => {
   );
 };
 
-export default PaymentCancel; 
+export default PaymentCancel;

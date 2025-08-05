@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getConfig } from '@edx/frontend-platform';
-import { Button, Card, ProgressBar, useWindowSize } from '@openedx/paragon';
+import {
+  Button, Card, ProgressBar, useWindowSize,
+} from '@openedx/paragon';
+import {
+  PieChart, Pie, Cell, Legend, Tooltip,
+} from 'recharts';
 import LearningHeader from '../Header/src/learning-header/LearningHeader';
 import Footer from '../Footer';
-import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts';
 
 const ProgressPage = () => {
   const { courseId, subsequenceId } = useParams();
@@ -28,12 +32,12 @@ const ProgressPage = () => {
           courseId,
           subsequenceId,
         });
-        
+
         const apiUrl = `${getConfig().LMS_BASE_URL}/api/courseware/v1/subsequence/${courseId}/${subsequenceId}/progress`;
         const response = await fetch(apiUrl, {
           credentials: 'include',
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
           },
         });
         if (!response.ok) {
@@ -43,7 +47,6 @@ const ProgressPage = () => {
         }
 
         const data = await response.json();
-
 
         setProgressData(data);
       } catch (err) {
@@ -96,7 +99,7 @@ const ProgressPage = () => {
       completeCount,
       incompleteCount,
       lockedCount,
-      rawProgressData: progressData
+      rawProgressData: progressData,
     });
     const totalUnits = progressData.total_units || 0;
     const remainingCount = totalUnits - completeCount;
@@ -119,10 +122,16 @@ const ProgressPage = () => {
           background: '#fff',
         }}
       >
-        <div style={{ fontWeight: 700, fontSize: 28, marginBottom: 24, textAlign: 'center' }}>
+        <div style={{
+          fontWeight: 700, fontSize: 28, marginBottom: 24, textAlign: 'center',
+        }}
+        >
           {totalUnits > 0 ? `${totalUnits}問中${completeCount}問を練習しました` : '問題がありません'}
         </div>
-        <div style={{ padding: 32, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{
+          padding: 32, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center',
+        }}
+        >
           <PieChart width={400} height={400}>
             <Pie
               data={donutData}
@@ -142,9 +151,17 @@ const ProgressPage = () => {
             <Tooltip />
           </PieChart>
           {/* Custom Legend */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24, gap: 32 }}>
+          <div style={{
+            display: 'flex', justifyContent: 'center', marginTop: 24, gap: 32,
+          }}
+          >
             {donutData.map((entry, index) => (
-              <div key={entry.name} style={{ display: 'flex', alignItems: 'center', fontSize: 18, fontWeight: 600, color: COLORS[index % COLORS.length] }}>
+              <div
+                key={entry.name}
+                style={{
+                  display: 'flex', alignItems: 'center', fontSize: 18, fontWeight: 600, color: COLORS[index % COLORS.length],
+                }}
+              >
                 <span style={{
                   display: 'inline-block',
                   width: 16,
@@ -152,27 +169,31 @@ const ProgressPage = () => {
                   borderRadius: '50%',
                   background: COLORS[index % COLORS.length],
                   marginRight: 8,
-                }} />
+                }}
+                />
                 {entry.name}
               </div>
             ))}
           </div>
           {/* Start Practice Button */}
-          <div style={{ marginTop: 40, display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <Button 
-              variant="danger" 
-              size="lg" 
+          <div style={{
+            marginTop: 40, display: 'flex', justifyContent: 'center', width: '100%',
+          }}
+          >
+            <Button
+              variant="danger"
+              size="lg"
               onClick={handleStartLearning}
-              style={{ 
+              style={{
                 backgroundColor: '#dc3545',
                 borderColor: '#dc3545',
                 '&:hover': {
                   backgroundColor: '#c82333',
-                  borderColor: '#bd2130'
-                }
+                  borderColor: '#bd2130',
+                },
               }}
             >
-                   練習開始
+              練習開始
             </Button>
           </div>
         </div>
@@ -182,16 +203,19 @@ const ProgressPage = () => {
 
   return (
     <>
-      <LearningHeader 
+      <LearningHeader
         courseId={courseId}
         courseTitle={progressData?.title || 'Course Progress'}
       />
       {/* Fullscreen, no container, no footer */}
-      <div style={{ width: '100vw', minHeight: '90vh', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff' }}>
-          {renderContent()}
+      <div style={{
+        width: '100vw', minHeight: '90vh', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', background: '#fff',
+      }}
+      >
+        {renderContent()}
       </div>
     </>
   );
 };
 
-export default ProgressPage; 
+export default ProgressPage;

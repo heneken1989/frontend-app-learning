@@ -9,10 +9,10 @@ const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
   const [timeLeft, setTimeLeft] = useState(
     typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0
       ? initialTimeByProblemType
-      : 0
+      : 0,
   );
   const timerRef = useRef();
-  
+
   // Reset timer when initialTimeByProblemType changes
   useEffect(() => {
     // If the time limit changes, clear any previous saved value
@@ -31,9 +31,9 @@ const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
     if (typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
-          if (prev > 1) return prev - 1;
+          if (prev > 1) { return prev - 1; }
           clearInterval(timerRef.current);
-          if (onTimeExpired) onTimeExpired();
+          if (onTimeExpired) { onTimeExpired(); }
           return 0;
         });
       }, 1000);
@@ -41,44 +41,45 @@ const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
 
     return () => clearInterval(timerRef.current);
   }, [initialTimeByProblemType, onTimeExpired, storageKey]);
-  
+
   // Load saved time from localStorage when component mounts
   useEffect(() => {
     const savedTime = localStorage.getItem(storageKey);
     if (savedTime) {
       const timeSpent = parseInt(savedTime, 10);
       setTimeLeft(timeSpent);
-      
+
       if (initialTimeByProblemType && timeSpent >= initialTimeByProblemType) {
         setTimeLeft(0);
         onTimeExpired();
       }
     }
   }, [storageKey, initialTimeByProblemType, onTimeExpired]);
-  
+
   // Save time to localStorage
   useEffect(() => {
     if (typeof timeLeft === 'number' && timeLeft > 0) {
       localStorage.setItem(storageKey, timeLeft.toString());
     }
   }, [timeLeft, storageKey]);
-  
+
   // Format timer display (HH:MM:SS)
   const formatTime = () => {
     const hours = Math.floor(timeLeft / 3600);
     const minutes = Math.floor((timeLeft % 3600) / 60);
     const secs = timeLeft % 60;
-    
+
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   return (
-    <div style={{ 
-      fontFamily: 'monospace', 
-      fontSize: '1.2rem', 
+    <div style={{
+      fontFamily: 'monospace',
+      fontSize: '1.2rem',
       padding: '0.5rem',
       textAlign: 'center',
-    }}>
+    }}
+    >
       {initialTimeByProblemType > 0 ? 'Time remaining: ' : 'Time spent: '}
       {formatTime()}
     </div>
@@ -96,4 +97,4 @@ UnitTimer.defaultProps = {
   onTimeExpired: () => {},
 };
 
-export default UnitTimer; 
+export default UnitTimer;

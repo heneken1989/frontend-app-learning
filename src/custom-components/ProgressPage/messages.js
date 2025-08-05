@@ -38,4 +38,4 @@ const messages = defineMessages({
   },
 });
 
-export default messages; 
+export default messages;

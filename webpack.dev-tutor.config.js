@@ -20,4 +20,3 @@ const tutorConfig = {
 };
 
 module.exports = merge(devConfig, tutorConfig);
-

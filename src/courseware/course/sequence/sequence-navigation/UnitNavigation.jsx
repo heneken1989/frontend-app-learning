@@ -32,7 +32,6 @@ const UnitNavigation = ({
     isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink,
   } = useSequenceNavigationMetadata(sequenceId, unitId);
 
-
   // Check for iframe and send initial message
   useEffect(() => {
     const sendCheck = () => {
@@ -64,7 +63,7 @@ const UnitNavigation = ({
   const handleSubmit = () => {
     const iframe = document.getElementById('unit-iframe');
     console.log('Submit clicked', { isSubmitting, answerShown });
-    
+
     if (!iframe || isSubmitting) {
       console.log('Submit blocked', { isSubmitting });
       return;
@@ -216,5 +215,3 @@ UnitNavigation.defaultProps = {
 };
 
 export default UnitNavigation;
-
-

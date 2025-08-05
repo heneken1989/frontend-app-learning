@@ -11,7 +11,7 @@ const PaymentPage = ({ intl }) => {
     price: 1000000, // 1,000,000 VND for all courses
     instructor: 'Nhiều giảng viên',
     duration: 'Không giới hạn',
-    level: 'Tất cả trình độ'
+    level: 'Tất cả trình độ',
   });
 
   const [paymentMethod, setPaymentMethod] = useState('vnpay');
@@ -24,9 +24,9 @@ const PaymentPage = ({ intl }) => {
       const lmsBaseUrl = getConfig().LMS_BASE_URL;
       const response = await fetch(`${lmsBaseUrl}/csrf/api/v1/token`, {
         method: 'GET',
-        credentials: 'include'
+        credentials: 'include',
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         return data.csrfToken;
@@ -39,7 +39,7 @@ const PaymentPage = ({ intl }) => {
 
   const handlePayment = async () => {
     setIsProcessing(true);
-    
+
     try {
       // Tạo dữ liệu thanh toán cho tất cả khóa học
       const paymentData = {
@@ -47,11 +47,11 @@ const PaymentPage = ({ intl }) => {
         courseId: 'ALL_COURSES',
         courseName: 'Gói All Access - Truy cập tất cả khóa học',
         currency: 'VND',
-        paymentMethod: paymentMethod,
+        paymentMethod,
         paymentType: 'all_access', // Chỉ có một loại thanh toán
         returnUrl: `${window.location.origin}/payment/success`,
         cancelUrl: `${window.location.origin}/payment/cancel`,
-        useSimulator: useSimulator
+        useSimulator,
       };
 
       console.log('Sending payment data:', paymentData);
@@ -65,10 +65,10 @@ const PaymentPage = ({ intl }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(csrfToken && { 'X-CSRFToken': csrfToken })
+          ...(csrfToken && { 'X-CSRFToken': csrfToken }),
         },
         body: JSON.stringify(paymentData),
-        credentials: 'include'
+        credentials: 'include',
       });
 
       console.log('Response status:', response.status);
@@ -81,7 +81,7 @@ const PaymentPage = ({ intl }) => {
 
       const data = await response.json();
       console.log('Payment response:', data);
-      
+
       if (data.success && data.paymentUrl) {
         console.log('Redirecting to:', data.paymentUrl);
         // Redirect đến VNPay hoặc simulator
@@ -89,7 +89,6 @@ const PaymentPage = ({ intl }) => {
       } else {
         throw new Error(data.error || 'No payment URL received');
       }
-      
     } catch (error) {
       console.error('Payment error:', error);
       alert('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.');
@@ -98,12 +97,10 @@ const PaymentPage = ({ intl }) => {
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
-    }).format(price);
-  };
+  const formatPrice = (price) => new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(price);
 
   return (
     <div className="payment-page">
@@ -159,7 +156,7 @@ const PaymentPage = ({ intl }) => {
                   <span>VNPay</span>
                 </div>
               </label>
-              
+
               <label className="payment-option">
                 <input
                   type="radio"
@@ -174,7 +171,7 @@ const PaymentPage = ({ intl }) => {
                 </div>
               </label>
             </div>
-            
+
             {/* Testing Toggle */}
             <div className="testing-toggle">
               <label className="toggle-label">
@@ -188,10 +185,9 @@ const PaymentPage = ({ intl }) => {
                 </span>
               </label>
               <p className="toggle-description">
-                {useSimulator 
+                {useSimulator
                   ? 'Sử dụng simulator để test thanh toán không cần tiền thật'
-                  : 'Sử dụng VNPay sandbox - test với thẻ ảo của VNPay'
-                }
+                  : 'Sử dụng VNPay sandbox - test với thẻ ảo của VNPay'}
               </p>
             </div>
           </div>
@@ -220,7 +216,7 @@ const PaymentPage = ({ intl }) => {
             >
               {isProcessing ? 'Đang xử lý...' : 'Thanh toán ngay'}
             </button>
-            
+
             <button className="btn-cancel" onClick={() => window.history.back()}>
               Hủy bỏ
             </button>
@@ -235,4 +231,4 @@ PaymentPage.propTypes = {
   intl: intlShape.isRequired,
 };
 
-export default injectIntl(PaymentPage); 
+export default injectIntl(PaymentPage);

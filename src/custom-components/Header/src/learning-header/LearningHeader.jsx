@@ -7,7 +7,9 @@ import { Button, Icon } from '@openedx/paragon';
 import useEnrollmentAlert from '../../../../alerts/enrollment-alert';
 import useLogistrationAlert from '../../../../alerts/logistration-alert';
 import UnitTimer from '../../../../courseware/course/sequence/Unit/UnitTimer';
-import { fetchUnitById, fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId } from '../../../../courseware/course/sequence/Unit/urls';
+import {
+  fetchUnitById, fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId,
+} from '../../../../courseware/course/sequence/Unit/urls';
 import { useModel } from '../../../../generic/model-store';
 import { modelKeys } from '../../../../courseware/course/sequence/Unit/constants';
 
@@ -24,7 +26,9 @@ import './NavigationMenu.scss';
 const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
 // Extract the multi-level dropdown as a reusable component
-const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEVELS, fetchSectionsByCourseId, fetchSequencesBySectionId }) => {
+const MultiLevelDropdown = ({
+  label, courses, hoveredSkill, setHoveredSkill, LEVELS, fetchSectionsByCourseId, fetchSequencesBySectionId,
+}) => {
   const { authenticatedUser } = useContext(AppContext);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [openLevel, setOpenLevel] = useState(null);
@@ -38,7 +42,6 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
       e.preventDefault();
       e.stopPropagation();
       window.location.href = `${getConfig().LMS_BASE_URL}/login?next=${encodeURIComponent(window.location.href)}`;
-      return;
     }
   };
 
@@ -63,22 +66,27 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
       className="nav-item vocab-dropdown"
       onMouseEnter={() => { setVocabOpen(true); setHoveredSkill(label); }}
       onMouseLeave={() => { setVocabOpen(false); setOpenLevel(null); setHoveredCourse(null); setHoveredSequence(null); }}
-      style={{ position: 'relative', padding: '8px 16px', borderRadius: 4, cursor: 'pointer' }}
+      style={{
+        position: 'relative', padding: '8px 16px', borderRadius: 4, cursor: 'pointer',
+      }}
     >
       {label}
       {vocabOpen && (
-        <div className="dropdown-menu-custom" style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          minWidth: 140,
-          background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
-          borderRadius: 6,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-          zIndex: 1000,
-          border: '2px solid #bdbdbd',
-          marginTop: 0,
-        }}>
+        <div
+          className="dropdown-menu-custom"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            minWidth: 140,
+            background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+            borderRadius: 6,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+            zIndex: 1000,
+            border: '2px solid #bdbdbd',
+            marginTop: 0,
+          }}
+        >
           {LEVELS.map((level) => {
             const isLevelActive = openLevel === level;
             const filteredCourses = courses.filter(course => (course.display_name || '').toLowerCase().includes(level.toLowerCase()));
@@ -119,7 +127,8 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                     zIndex: 1000,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
                     borderRadius: 6,
-                  }}>
+                  }}
+                  >
                     {filteredCourses.map(course => {
                       const isCourseActive = hoveredCourse && hoveredCourse.id === course.id;
                       return (
@@ -129,9 +138,7 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                           style={{ position: 'relative', borderRadius: 4 }}
                           className={isCourseActive ? 'dropdown-active-item' : ''}
                         >
-                          <a
-                            href={`/course/${course.id}`}
-                            onClick={handleAuthClick}
+                          <div
                             style={{
                               display: 'block',
                               padding: '8px 16px',
@@ -142,11 +149,12 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                               background: isCourseActive ? '#0097a9' : 'none',
                               color: isCourseActive ? '#fff' : '#333',
                               transition: 'background 0.2s',
+                              cursor: 'default',
                             }}
                             className="dropdown-hover-item"
                           >
                             {course.display_name.replace(/N[1-5]/gi, '').trim()}
-                          </a>
+                          </div>
                           {isCourseActive && sequences.length > 0 && (
                             <div style={{
                               position: 'absolute',
@@ -158,20 +166,23 @@ const MultiLevelDropdown = ({ label, courses, hoveredSkill, setHoveredSkill, LEV
                               zIndex: 2000,
                               boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
                               borderRadius: 6,
-                            }}>
+                            }}
+                            >
                               {sequences.map(seq => {
                                 const isSeqActive = hoveredSequence === seq.id;
                                 return (
-                                  <div key={seq.id} style={{
-                                    padding: '8px 16px',
-                                    color: isSeqActive ? '#fff' : '#333',
-                                    borderRadius: 4,
-                                    transition: 'background 0.2s',
-                                    background: isSeqActive ? '#0097a9' : 'none',
-                                  }}
-                                  className="dropdown-hover-item"
-                                  onMouseEnter={() => setHoveredSequence(seq.id)}
-                                  onMouseLeave={() => setHoveredSequence(null)}
+                                  <div
+                                    key={seq.id}
+                                    style={{
+                                      padding: '8px 16px',
+                                      color: isSeqActive ? '#fff' : '#333',
+                                      borderRadius: 4,
+                                      transition: 'background 0.2s',
+                                      background: isSeqActive ? '#0097a9' : 'none',
+                                    }}
+                                    className="dropdown-hover-item"
+                                    onMouseEnter={() => setHoveredSequence(seq.id)}
+                                    onMouseLeave={() => setHoveredSequence(null)}
                                   >
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                       <a
@@ -231,16 +242,16 @@ const NavigationMenu = ({ courses }) => {
         ))}
         <div
           className="nav-item payment-link"
-          style={{ 
-            position: 'relative', 
-            padding: '8px 16px', 
-            borderRadius: 4, 
+          style={{
+            position: 'relative',
+            padding: '8px 16px',
+            borderRadius: 4,
             cursor: 'pointer',
             background: '#0097a9',
             color: '#fff',
             fontWeight: '600',
             textDecoration: 'none',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
           }}
           onClick={() => window.location.href = '/learning/payment'}
           onMouseEnter={(e) => {
@@ -294,7 +305,8 @@ const NavigationMenu = ({ courses }) => {
           transform: translateY(-1px) !important;
           box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
         }
-      `}</style>
+      `}
+      </style>
     </nav>
   );
 };
@@ -321,7 +333,7 @@ const LearningHeader = ({
   const [hoveredCourse, setHoveredCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
-  
+
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
   console.log('[LearningHeader] Unit from model:', unit);

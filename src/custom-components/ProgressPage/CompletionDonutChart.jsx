@@ -35,7 +35,7 @@ const CompletionDonutChart = () => {
             {intl.formatMessage(messages.complete)}
           </text>
         </g>
-        
+
         {/* Incomplete segment */}
         {incompletePercentage > 0 && (
           <circle
@@ -81,4 +81,4 @@ const CompletionDonutChart = () => {
   );
 };
 
-export default CompletionDonutChart; 
+export default CompletionDonutChart;

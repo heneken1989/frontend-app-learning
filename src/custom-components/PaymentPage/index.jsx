@@ -1,3 +1,3 @@
 import PaymentPage from './src/PaymentPage';
 
-export default PaymentPage; 
+export default PaymentPage;

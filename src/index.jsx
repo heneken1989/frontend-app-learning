@@ -6,7 +6,9 @@ import {
 import { AppProvider, ErrorPage, PageWrap } from '@edx/frontend-platform/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Routes, Route, Navigate, BrowserRouter } from 'react-router-dom';
+import {
+  Routes, Route, Navigate, BrowserRouter,
+} from 'react-router-dom';
 
 import { Helmet } from 'react-helmet';
 import { fetchDiscussionTab, fetchLiveTab } from './course-home/data/thunks';
@@ -31,14 +33,6 @@ import PaymentSuccess from './custom-components/PaymentSuccess';
 import PaymentCancel from './custom-components/PaymentCancel';
 import EnrollmentStatusRoute from './custom-components/EnrollmentStatus/src/EnrollmentStatusRoute';
 
-// Simple test component for debugging
-const TestComponent = () => (
-  <div style={{ padding: '2rem', textAlign: 'center' }}>
-    <h1>Test Component Working!</h1>
-    <p>If you can see this, React Router is working.</p>
-  </div>
-);
-
 import { fetchDatesTab, fetchOutlineTab, fetchProgressTab } from './course-home/data';
 import { fetchCourse } from './courseware/data';
 import { store } from './store';
@@ -52,6 +46,13 @@ import PreferencesUnsubscribe from './preferences-unsubscribe';
 import PageNotFound from './generic/PageNotFound';
 import PluginProvider from './PluginProvider';
 
+// Simple test component for debugging
+const TestComponent = () => (
+  <div style={{ padding: '2rem', textAlign: 'center' }}>
+    <h1>Test Component Working!</h1>
+    <p>If you can see this, React Router is working.</p>
+  </div>
+);
 
 subscribe(APP_READY, () => {
   const root = createRoot(document.getElementById('root'));
@@ -126,7 +127,7 @@ subscribe(APP_READY, () => {
                             </TabContainer>
                           </DecodePageRoute>
                     )}
-                    />
+                      />
                     ))}
                     <Route
                       path={DECODE_ROUTES.SUBSEQUENCE_PROGRESS}
@@ -145,7 +146,7 @@ subscribe(APP_READY, () => {
                             <CoursewareContainer />
                           </DecodePageRoute>
                     )}
-                    />
+                      />
                     ))}
                     {/* Learning Courseware Routes */}
                     <Route
