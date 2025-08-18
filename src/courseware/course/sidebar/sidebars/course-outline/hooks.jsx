@@ -93,23 +93,8 @@ export const useCourseOutlineSidebar = () => {
   };
 
   useEffect(() => {
-    console.log('[CourseOutline Debug] useEffect triggered:', {
-      isEnabledSidebar,
-      courseOutlineStatus,
-      courseOutlineShouldUpdate,
-      courseId,
-      LMS_BASE_URL: window.location.origin
-    });
-
     if ((isEnabledSidebar && courseOutlineStatus !== LOADED) || courseOutlineShouldUpdate) {
-      console.log('[CourseOutline Debug] Dispatching getCourseOutlineStructure for courseId:', courseId);
       dispatch(getCourseOutlineStructure(courseId));
-    } else {
-      console.log('[CourseOutline Debug] Skipping getCourseOutlineStructure:', {
-        isEnabledSidebar,
-        courseOutlineStatus,
-        courseOutlineShouldUpdate
-      });
     }
   }, [courseId, isEnabledSidebar, courseOutlineShouldUpdate]);
 
