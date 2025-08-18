@@ -1,5 +1,21 @@
 .footer {
   background-color: $white;
+  height: 80px; // Chiều cao cố định
+  min-height: 80px; // Đảm bảo chiều cao tối thiểu
+  position: fixed; // Cố định vị trí
+  bottom: 0; // Ở dưới cùng
+  left: 0;
+  right: 0;
+  z-index: 1000; // Đảm bảo hiển thị trên các element khác
+  
+  // Thêm padding để nội dung không bị che
+  .container {
+    padding: 1rem 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
   
   a {
     color: $primary;
@@ -35,4 +51,9 @@
       }
     }
   }
+}
+
+// Thêm margin-bottom cho body để nội dung không bị footer che
+body {
+  margin-bottom: 80px; // Bằng với chiều cao footer
 } 
