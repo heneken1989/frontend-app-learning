@@ -276,11 +276,28 @@ export function getCourseDiscussionTopics(courseId) {
 
 export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
+    console.log('[CourseOutline Thunk Debug] Starting getCourseOutlineStructure:', { courseId });
+    
     dispatch(fetchCourseOutlineRequest());
+    
     try {
+      console.log('[CourseOutline Thunk Debug] Calling getCourseOutline API...');
       const courseOutline = await getCourseOutline(courseId);
+      
+      console.log('[CourseOutline Thunk Debug] API call successful:', {
+        courseId,
+        hasCourseOutline: !!courseOutline,
+        outlineKeys: courseOutline ? Object.keys(courseOutline) : []
+      });
+      
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
+      console.error('[CourseOutline Thunk Debug] API call failed:', {
+        courseId,
+        error: error.message,
+        fullError: error
+      });
+      
       logError(error);
       dispatch(fetchCourseOutlineFailure());
     }

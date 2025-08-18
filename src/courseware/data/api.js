@@ -97,10 +97,40 @@ export async function getCourseTopics(courseId) {
  * @returns {Promise<{units: {}, sequences: {}, sections: {}}|null>}
  */
 export async function getCourseOutline(courseId) {
-  const { data } = await getAuthenticatedHttpClient()
-    .get(`${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`);
+  const apiUrl = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`;
+  
+  console.log('[CourseOutline API Debug] Calling API:', {
+    courseId,
+    apiUrl,
+    LMS_BASE_URL: getConfig().LMS_BASE_URL,
+    fullUrl: apiUrl
+  });
 
-  return data.blocks ? normalizeOutlineBlocks(courseId, data.blocks) : null;
+  try {
+    const { data } = await getAuthenticatedHttpClient()
+      .get(apiUrl);
+
+    console.log('[CourseOutline API Debug] API Response:', {
+      courseId,
+      hasData: !!data,
+      hasBlocks: !!data.blocks,
+      blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
+      responseData: data
+    });
+
+    return data.blocks ? normalizeOutlineBlocks(courseId, data.blocks) : null;
+  } catch (error) {
+    console.error('[CourseOutline API Debug] API Error:', {
+      courseId,
+      apiUrl,
+      error: error.message,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+      fullError: error
+    });
+    throw error;
+  }
 }
 
 /**
