@@ -92,7 +92,7 @@
 }
 
 .notification-btn {
-  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
+  @media (max-width: 575px) {
     height: 3rem;
   }
 }
@@ -101,7 +101,7 @@
   display: flex;
   flex-grow: 1;
 
-  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
+  @media (max-width: 575px) {
     max-width: 100%;
   }
 
@@ -109,7 +109,7 @@
     margin: -1px -1px 0;
   }
 
-  @media (max-width: map-get($grid-breakpoints, "sm") - 1) {
+  @media (max-width: 575px) {
     width: 100% !important;
   }
 
@@ -254,7 +254,7 @@
     justify-content: center;
     align-items: center;
 
-    @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+    @media (max-width: 575px) {
       padding-top: 0rem;
       padding-bottom: 0rem;
     }
@@ -334,7 +334,7 @@
   max-width: 640px;
   margin: 0 auto;
 
-  @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+  @media (max-width: 575px) {
     flex-direction: column;
     gap: $spacer;
   }
@@ -351,7 +351,7 @@
   .next-button {
     flex-basis: 75%;
 
-     @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+     @media (max-width: 575px) {
        flex-basis: 100%;
      }
   }
@@ -359,7 +359,7 @@
   .previous-button {
     flex-basis: 25%;
 
-     @media (max-width: -1 + map-get($grid-breakpoints, "sm")) {
+     @media (max-width: 575px) {
        flex-basis: 100%;
      }
   }
@@ -524,7 +524,7 @@
   justify-content: center;
   gap: 16px;
   min-height: 50px;
-  height: 50px; // Thêm chiều cao cố định
+  height: 50px;
   pointer-events: auto;
   
   .submit-answer-button {
@@ -539,9 +539,36 @@
   }
 }
 
+// Loading Overlay Styles
+.loading-overlay {
+  animation: fadeIn 0.3s ease-in-out;
+  
+  .spinner-border {
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Thêm margin-bottom cho body để nội dung không bị footer che
 body {
-  margin-bottom: 80px; // Bằng với chiều cao footer
+  margin-bottom: 80px;
 }
 
 .unit-navigation-bar .previous-button.btn,
@@ -551,6 +578,7 @@ body {
   border: none !important;
   box-shadow: 0 2px 4px rgba(0,151,167,0.08);
 }
+
 .unit-navigation-bar .previous-button.btn:hover,
 .unit-navigation-bar .previous-button.btn:focus,
 .unit-navigation-bar .next-button.btn:hover,
