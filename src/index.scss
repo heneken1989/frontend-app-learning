@@ -509,31 +509,28 @@
 }
 
 
+// Unit Navigation Bar (Footer) - Fixed height
 .unit-navigation-bar {
-  position: fixed;
+  height: 80px; // Chiều cao cố định
+  min-height: 80px; // Đảm bảo chiều cao tối thiểu
+  position: fixed; // Cố định vị trí
+  bottom: 0; // Ở dưới cùng
   left: 0;
   right: 0;
-  bottom: 0;
-  z-index: 1050;
-  background: rgba(238, 230, 230, 0.95);
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 56px;
-  pointer-events: auto;
-  .submit-answer-button {
-    background: #e53935 !important;
-    color: #fff !important;
-    border: none !important;
-    box-shadow: 0 2px 4px rgba(229,57,53,0.08);
-    &:hover, &:focus {
-      background: #b71c1c !important;
-      color: #fff !important;
-    }
+  z-index: 1000; // Đảm bảo hiển thị trên các element khác
+  background-color: $white; // Màu nền
+  border-top: 1px solid $gray-300; // Viền trên
+  padding: 1rem 0; // Padding để nội dung không bị sát viền
+  
+  // Đảm bảo các nút được căn giữa
+  .btn {
+    margin: 0 0.5rem;
   }
+}
+
+// Thêm margin-bottom cho body để nội dung không bị footer che
+body {
+  margin-bottom: 80px; // Bằng với chiều cao footer
 }
 
 .unit-navigation-bar .previous-button.btn,
