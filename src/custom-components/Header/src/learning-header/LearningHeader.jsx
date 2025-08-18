@@ -79,7 +79,7 @@ const MultiLevelDropdown = ({
             top: '100%',
             left: 0,
             minWidth: 140,
-            background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+            background: 'rgba(238, 230, 230, 0.95)',
             borderRadius: 6,
             boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
             zIndex: 1000,
@@ -114,14 +114,14 @@ const MultiLevelDropdown = ({
                   onClick={handleAuthClick}
                 >
                   {level}
-                  <span style={{ marginLeft: 8 }}>&#9654;</span>
+                  <span style={{ marginLeft: 8 }}></span>
                 </div>
                 {isLevelActive && (
                   <div style={{
                     position: 'absolute',
                     left: '100%',
                     top: 0,
-                    background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+                    background: 'rgba(238, 230, 230, 0.95)',
                     border: '2px solid #bdbdbd',
                     minWidth: 180,
                     zIndex: 1000,
@@ -160,7 +160,7 @@ const MultiLevelDropdown = ({
                               position: 'absolute',
                               left: '100%',
                               top: 0,
-                              background: 'linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%)',
+                              background: 'rgba(238, 230, 230, 0.95)',
                               border: '2px solid #bdbdbd',
                               minWidth: 180,
                               zIndex: 2000,
@@ -226,7 +226,7 @@ const NavigationMenu = ({ courses }) => {
   const [hoveredSkill, setHoveredSkill] = useState(null);
   return (
     <nav className="nav-menu">
-      <div className="pte-tools">Japanese <span>tools</span></div>
+      <div className="pte-tools">Manabi <span>Hub</span></div>
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         {['聴解', '言葉。漢字', '文法', '読解', '模試テスト'].map((label) => (
           <MultiLevelDropdown
@@ -401,19 +401,11 @@ const LearningHeader = ({
     unitData: unit,
   });
 
-  const headerLogo = (
-    <LogoSlot
-      href={`${getConfig().LMS_BASE_URL}/dashboard`}
-      src={getConfig().LOGO_URL}
-      alt={getConfig().SITE_NAME}
-    />
-  );
-
   return (
     <header className="learning-header">
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
       <div className="container-xl py-2 d-flex align-items-center">
-        {headerLogo}
+        {/* Logo removed */}
         <NavigationMenu courses={courses} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
           {console.log('[LearningHeader] Rendering timer section. unitId:', unitId, 'timeLimit:', timeLimit)}
@@ -442,10 +434,14 @@ const LearningHeader = ({
       <style>
         {`
           .learning-header {
-            background: linear-gradient(180deg, #f5eded 0%, #f7f3f3 100%);
+            background: rgba(238, 230, 230, 0.95);
           }
           .course-title-lockup {
             justify-content: center;
+          }
+          /* Hide logo */
+          .learning-header .logo {
+            display: none !important;
           }
         `}
       </style>

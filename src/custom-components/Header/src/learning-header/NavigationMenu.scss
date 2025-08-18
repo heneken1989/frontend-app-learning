@@ -1,7 +1,7 @@
 .nav-menu {
   display: flex;
   align-items: center;
-  background-color: white;
+  background-color: rgba(238, 230, 230, 0.95);
   margin-left: 1rem;
 
   .pte-tools {
@@ -48,5 +48,18 @@
         background-color: #e31837;
       }
     }
+  }
+
+  // Dropdown menu styles
+  .dropdown-menu-custom {
+    background: rgba(238, 230, 230, 0.95) !important;
+    border: 2px solid #bdbdbd !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+  }
+
+  // Ensure all dropdown levels have consistent background
+  .nav-item .dropdown-menu-custom,
+  .nav-item .dropdown-menu-custom > div > div > div {
+    background: rgba(238, 230, 230, 0.95) !important;
   }
 } 

@@ -78,9 +78,14 @@ const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
       fontSize: '1.2rem',
       padding: '0.5rem',
       textAlign: 'center',
+      backgroundColor: timeLeft === 0 ? '#e31837' : 'transparent',
+      color: timeLeft === 0 ? 'white' : '#333',
+      borderRadius: '4px',
+      minWidth: '120px',
+      transition: 'all 0.3s ease',
+      boxShadow: timeLeft === 0 ? '0 2px 8px rgba(227, 24, 55, 0.3)' : 'none',
     }}
     >
-      {initialTimeByProblemType > 0 ? 'Time remaining: ' : 'Time spent: '}
       {formatTime()}
     </div>
   );
