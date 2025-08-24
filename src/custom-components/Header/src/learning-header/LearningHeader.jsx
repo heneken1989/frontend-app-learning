@@ -243,16 +243,33 @@ const NavigationMenu = ({ courses }) => {
 
       // Step 1: Get CSRF token from Django backend
       console.log('[AutoEnroll] Getting CSRF token...');
+      console.log('[AutoEnroll] CSRF URL:', `${baseUrl}/api/payment/csrf-token/`);
+      
       const csrfResponse = await fetch(`${baseUrl}/api/payment/csrf-token/`, {
         method: 'GET',
         credentials: 'include',
       });
 
+      console.log('[AutoEnroll] CSRF Response status:', csrfResponse.status);
+      console.log('[AutoEnroll] CSRF Response headers:', Object.fromEntries(csrfResponse.headers.entries()));
+
       if (!csrfResponse.ok) {
-        throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
+        const errorText = await csrfResponse.text();
+        console.error('[AutoEnroll] CSRF Error response:', errorText);
+        throw new Error(`Failed to get CSRF token: ${csrfResponse.status} - ${errorText}`);
       }
 
-      const csrfData = await csrfResponse.json();
+      const responseText = await csrfResponse.text();
+      console.log('[AutoEnroll] CSRF Response text:', responseText);
+      
+      let csrfData;
+      try {
+        csrfData = JSON.parse(responseText);
+      } catch (e) {
+        console.error('[AutoEnroll] CSRF JSON parse error:', e);
+        throw new Error(`Invalid JSON response: ${responseText}`);
+      }
+      
       const csrfToken = csrfData.csrf_token;
 
       console.log('[AutoEnroll] CSRF Token received:', csrfToken ? 'Yes' : 'No');
@@ -263,6 +280,8 @@ const NavigationMenu = ({ courses }) => {
 
       // Step 2: Call the auto enrollment API
       console.log('[AutoEnroll] Calling auto-enroll API...');
+      console.log('[AutoEnroll] Auto-enroll URL:', `${baseUrl}/api/payment/auto-enroll-all/`);
+      
       const response = await fetch(`${baseUrl}/api/payment/auto-enroll-all/`, {
         method: 'POST',
         headers: {
@@ -273,6 +292,7 @@ const NavigationMenu = ({ courses }) => {
       });
 
       console.log('[AutoEnroll] Response status:', response.status);
+      console.log('[AutoEnroll] Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -280,7 +300,17 @@ const NavigationMenu = ({ courses }) => {
         throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
-      const result = await response.json();
+      const autoEnrollResponseText = await response.text();
+      console.log('[AutoEnroll] Response text:', autoEnrollResponseText);
+      
+      let result;
+      try {
+        result = JSON.parse(autoEnrollResponseText);
+      } catch (e) {
+        console.error('[AutoEnroll] JSON parse error:', e);
+        throw new Error(`Invalid JSON response: ${autoEnrollResponseText}`);
+      }
+      
       console.log('[AutoEnroll] Success result:', result);
 
       if (result.success) {
