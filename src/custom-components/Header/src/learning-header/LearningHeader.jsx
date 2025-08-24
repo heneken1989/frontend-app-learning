@@ -237,25 +237,78 @@ const NavigationMenu = ({ courses }) => {
       console.log('[AutoEnroll] Starting auto enrollment process...');
       
       // Get the correct base URL based on current environment
-      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')
-        ? 'http://local.openedx.io:8000'
-        : 'https://nihongodrill.com';
+      let baseUrl;
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
+        baseUrl = 'http://local.openedx.io:8000';
+      } else {
+        // Production - try different URL patterns
+        baseUrl = 'https://nihongodrill.com';
+        console.log('[AutoEnroll] Production environment detected');
+      }
+      
+      console.log('[AutoEnroll] Current hostname:', window.location.hostname);
+      console.log('[AutoEnroll] Using baseUrl:', baseUrl);
 
       // Step 1: Test if payment API exists on production
       console.log('[AutoEnroll] Testing payment API availability...');
       
-      // First, test if the payment app exists
-      const testResponse = await fetch(`${baseUrl}/api/payment/test/`, {
-        method: 'GET',
-        credentials: 'include',
-      });
+      // Try different URL patterns on production
+      let testResponse;
+      let workingUrl = null;
+      
+      if (window.location.hostname !== 'localhost' && !window.location.hostname.includes('local.openedx.io')) {
+        // Production - try multiple URL patterns
+        const urlPatterns = [
+          `${baseUrl}/api/payment/test/`,
+          `${baseUrl}/lms/api/payment/test/`,
+          `${baseUrl}/edx/api/payment/test/`,
+          `${baseUrl}/api/v1/payment/test/`,
+        ];
+        
+        console.log('[AutoEnroll] Testing URL patterns:', urlPatterns);
+        
+        for (const url of urlPatterns) {
+          try {
+            console.log('[AutoEnroll] Testing URL:', url);
+            testResponse = await fetch(url, {
+              method: 'GET',
+              credentials: 'include',
+            });
+            
+            if (testResponse.ok) {
+              workingUrl = url.replace('/test/', '');
+              console.log('[AutoEnroll] Found working URL:', workingUrl);
+              break;
+            }
+          } catch (e) {
+            console.log('[AutoEnroll] URL failed:', url, e.message);
+            continue;
+          }
+        }
+        
+        if (!workingUrl) {
+          console.warn('[AutoEnroll] No working payment API found on production');
+          alert('⚠️ Tính năng Auto Enroll chưa có sẵn trên production server.\n\nVui lòng liên hệ admin để deploy payment app hoặc sử dụng tính năng này trên development server.');
+          return;
+        }
+        
+        // Update baseUrl to working URL
+        baseUrl = workingUrl;
+        console.log('[AutoEnroll] Updated baseUrl to:', baseUrl);
+      } else {
+        // Development - use original URL
+        testResponse = await fetch(`${baseUrl}/api/payment/test/`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+      }
       
       console.log('[AutoEnroll] Test API status:', testResponse.status);
       console.log('[AutoEnroll] Test API headers:', Object.fromEntries(testResponse.headers.entries()));
       
       if (!testResponse.ok) {
-        console.warn('[AutoEnroll] Payment app not available on production');
-        alert('⚠️ Tính năng Auto Enroll chưa có sẵn trên production server.\n\nVui lòng liên hệ admin để deploy payment app hoặc sử dụng tính năng này trên development server.');
+        console.warn('[AutoEnroll] Payment app not available');
+        alert('⚠️ Tính năng Auto Enroll chưa có sẵn.\n\nVui lòng liên hệ admin để deploy payment app.');
         return;
       }
       
