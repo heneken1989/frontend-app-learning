@@ -241,7 +241,25 @@ const NavigationMenu = ({ courses }) => {
         ? 'http://local.openedx.io:8000'
         : 'https://nihongodrill.com';
 
-      // Step 1: Get CSRF token from Django backend
+      // Step 1: Test if payment API exists on production
+      console.log('[AutoEnroll] Testing payment API availability...');
+      
+      // First, test if the payment app exists
+      const testResponse = await fetch(`${baseUrl}/api/payment/test/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      
+      console.log('[AutoEnroll] Test API status:', testResponse.status);
+      console.log('[AutoEnroll] Test API headers:', Object.fromEntries(testResponse.headers.entries()));
+      
+      if (!testResponse.ok) {
+        console.warn('[AutoEnroll] Payment app not available on production');
+        alert('⚠️ Tính năng Auto Enroll chưa có sẵn trên production server.\n\nVui lòng liên hệ admin để deploy payment app hoặc sử dụng tính năng này trên development server.');
+        return;
+      }
+      
+      // Step 2: Get CSRF token from Django backend
       console.log('[AutoEnroll] Getting CSRF token...');
       console.log('[AutoEnroll] CSRF URL:', `${baseUrl}/api/payment/csrf-token/`);
       
