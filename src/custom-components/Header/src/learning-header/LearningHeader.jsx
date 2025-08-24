@@ -267,6 +267,9 @@ const NavigationMenu = ({ courses }) => {
           `${baseUrl}/payment/test/`,               // Direct payment path
         ];
         
+        // Track which pattern worked for proper URL construction
+        let workingPattern = null;
+        
         console.log('[AutoEnroll] Testing URL patterns:', urlPatterns);
         
         for (const url of urlPatterns) {
@@ -278,8 +281,11 @@ const NavigationMenu = ({ courses }) => {
             });
             
             if (testResponse.ok) {
-              workingUrl = url.replace('/test/', '');
-              console.log('[AutoEnroll] Found working URL:', workingUrl);
+              // Track which pattern worked
+              workingPattern = url;
+              workingUrl = baseUrl;
+              console.log('[AutoEnroll] Found working pattern:', workingPattern);
+              console.log('[AutoEnroll] Using base URL:', workingUrl);
               break;
             }
           } catch (e) {
@@ -297,6 +303,9 @@ const NavigationMenu = ({ courses }) => {
         // Update baseUrl to working URL
         baseUrl = workingUrl;
         console.log('[AutoEnroll] Updated baseUrl to:', baseUrl);
+        
+        // Store the working pattern for URL construction
+        window.workingPaymentPattern = workingPattern;
       } else {
         // Development - use original URL
         testResponse = await fetch(`${baseUrl}/api/payment/test/`, {
@@ -316,9 +325,20 @@ const NavigationMenu = ({ courses }) => {
       
       // Step 2: Get CSRF token from Django backend
       console.log('[AutoEnroll] Getting CSRF token...');
-      console.log('[AutoEnroll] CSRF URL:', `${baseUrl}/api/payment/csrf-token/`);
       
-      const csrfResponse = await fetch(`${baseUrl}/api/payment/csrf-token/`, {
+      // Use the working pattern to construct the correct URL
+      let csrfUrl;
+      if (window.workingPaymentPattern) {
+        // Production - use the working pattern
+        csrfUrl = window.workingPaymentPattern.replace('/test/', '/csrf-token/');
+      } else {
+        // Development - use standard pattern
+        csrfUrl = `${baseUrl}/api/payment/csrf-token/`;
+      }
+      
+      console.log('[AutoEnroll] CSRF URL:', csrfUrl);
+      
+      const csrfResponse = await fetch(csrfUrl, {
         method: 'GET',
         credentials: 'include',
       });
@@ -353,9 +373,20 @@ const NavigationMenu = ({ courses }) => {
 
       // Step 2: Call the auto enrollment API
       console.log('[AutoEnroll] Calling auto-enroll API...');
-      console.log('[AutoEnroll] Auto-enroll URL:', `${baseUrl}/api/payment/auto-enroll-all/`);
       
-      const response = await fetch(`${baseUrl}/api/payment/auto-enroll-all/`, {
+      // Use the working pattern to construct the correct URL
+      let autoEnrollUrl;
+      if (window.workingPaymentPattern) {
+        // Production - use the working pattern
+        autoEnrollUrl = window.workingPaymentPattern.replace('/test/', '/auto-enroll-all/');
+      } else {
+        // Development - use standard pattern
+        autoEnrollUrl = `${baseUrl}/api/payment/auto-enroll-all/`;
+      }
+      
+      console.log('[AutoEnroll] Auto-enroll URL:', autoEnrollUrl);
+      
+      const response = await fetch(autoEnrollUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
