@@ -239,30 +239,32 @@ const NavigationMenu = ({ courses }) => {
       // Get the correct base URL based on current environment
       let baseUrl;
       if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
+        // Development - LMS runs on port 8000
         baseUrl = 'http://local.openedx.io:8000';
+        console.log('[AutoEnroll] Development environment detected');
       } else {
-        // Production - try different URL patterns
-        baseUrl = 'https://nihongodrill.com';
+        // Production - LMS runs on subdomain lms.nihongodrill.com
+        baseUrl = 'https://lms.nihongodrill.com';
         console.log('[AutoEnroll] Production environment detected');
       }
       
       console.log('[AutoEnroll] Current hostname:', window.location.hostname);
-      console.log('[AutoEnroll] Using baseUrl:', baseUrl);
+      console.log('[AutoEnroll] Current port:', window.location.port);
+      console.log('[AutoEnroll] Using LMS baseUrl:', baseUrl);
 
       // Step 1: Test if payment API exists on production
       console.log('[AutoEnroll] Testing payment API availability...');
       
-      // Try different URL patterns on production
+      // Try different URL patterns on production LMS
       let testResponse;
       let workingUrl = null;
       
       if (window.location.hostname !== 'localhost' && !window.location.hostname.includes('local.openedx.io')) {
-        // Production - try multiple URL patterns
+        // Production - try multiple LMS API patterns on lms.nihongodrill.com
         const urlPatterns = [
-          `${baseUrl}/api/payment/test/`,
-          `${baseUrl}/lms/api/payment/test/`,
-          `${baseUrl}/edx/api/payment/test/`,
-          `${baseUrl}/api/v1/payment/test/`,
+          `${baseUrl}/api/payment/test/`,           // Standard LMS API
+          `${baseUrl}/api/v1/payment/test/`,        // Versioned API
+          `${baseUrl}/payment/test/`,               // Direct payment path
         ];
         
         console.log('[AutoEnroll] Testing URL patterns:', urlPatterns);
