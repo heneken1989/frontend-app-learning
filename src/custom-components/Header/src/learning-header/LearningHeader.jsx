@@ -223,7 +223,92 @@ const MultiLevelDropdown = ({
 };
 
 const NavigationMenu = ({ courses }) => {
+  const { authenticatedUser } = useContext(AppContext);
   const [hoveredSkill, setHoveredSkill] = useState(null);
+
+  // Auto Enroll All handler
+  const handleAutoEnrollAllCourses = async () => {
+    if (!authenticatedUser) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
+
+    try {
+      console.log('[AutoEnroll] Starting auto enrollment process...');
+      
+      // Get the correct base URL based on current environment
+      const baseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')
+        ? 'http://local.openedx.io:8000'
+        : 'https://nihongodrill.com';
+
+      // Step 1: Get CSRF token from Django backend
+      console.log('[AutoEnroll] Getting CSRF token...');
+      const csrfResponse = await fetch(`${baseUrl}/api/payment/csrf-token/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!csrfResponse.ok) {
+        throw new Error(`Failed to get CSRF token: ${csrfResponse.status}`);
+      }
+
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.csrf_token;
+
+      console.log('[AutoEnroll] CSRF Token received:', csrfToken ? 'Yes' : 'No');
+
+      if (!csrfToken) {
+        throw new Error('CSRF token not received from backend');
+      }
+
+      // Step 2: Call the auto enrollment API
+      console.log('[AutoEnroll] Calling auto-enroll API...');
+      const response = await fetch(`${baseUrl}/api/payment/auto-enroll-all/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        credentials: 'include',
+      });
+
+      console.log('[AutoEnroll] Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[AutoEnroll] Error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+
+      const result = await response.json();
+      console.log('[AutoEnroll] Success result:', result);
+
+      if (result.success) {
+        alert(`🎉 Thành công!\n\n✅ Đã đăng ký ${result.enrolled_count} khóa học mới\n📚 Tổng cộng có ${result.total_available_courses} khóa học khả dụng\n👤 User: ${result.user}\n\n${result.message}`);
+        
+        // Reload page to refresh enrollment status
+        window.location.reload();
+      } else {
+        throw new Error(result.error || 'Unknown error occurred');
+      }
+
+    } catch (error) {
+      console.error('[AutoEnroll] Error:', error);
+      
+      // Show user-friendly error message
+      let errorMessage = 'Có lỗi xảy ra khi đăng ký khóa học!';
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng!';
+      } else if (error.message.includes('CSRF')) {
+        errorMessage = 'Lỗi bảo mật. Vui lòng làm mới trang và thử lại!';
+      } else {
+        errorMessage = `Lỗi: ${error.message}`;
+      }
+      
+      alert(`❌ ${errorMessage}\n\nVui lòng thử lại sau hoặc liên hệ hỗ trợ.`);
+    }
+  };
+
   return (
     <nav className="nav-menu">
       <div className="pte-tools">Manabi <span>Hub</span></div>
@@ -265,6 +350,31 @@ const NavigationMenu = ({ courses }) => {
         >
           💳 Thanh toán
         </div>
+        <div
+          className="nav-item auto-enroll-link"
+          style={{
+            position: 'relative',
+            padding: '8px 16px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            background: '#28a745',
+            color: '#fff',
+            fontWeight: '600',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={handleAutoEnrollAllCourses}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#218838';
+            e.target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#28a745';
+            e.target.style.transform = 'translateY(0)';
+          }}
+        >
+          🚀 Auto Enroll All
+        </div>
         <EnrollmentStatus />
       </div>
       <style>{`
@@ -301,6 +411,18 @@ const NavigationMenu = ({ courses }) => {
         }
         .payment-link:hover {
           background: #007a8a !important;
+          color: #fff !important;
+          transform: translateY(-1px) !important;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+        }
+        .auto-enroll-link {
+          background: #28a745 !important;
+          color: #fff !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+        .auto-enroll-link:hover {
+          background: #218838 !important;
           color: #fff !important;
           transform: translateY(-1px) !important;
           box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
