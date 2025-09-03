@@ -65,6 +65,18 @@ const OutlineTab = () => {
     verifiedMode,
   } = useModel('outline', courseId);
 
+  // Debug outline data
+  useEffect(() => {
+    console.log('🏠 [OutlineTab] Outline data updated', {
+      courseId,
+      coursesCount: Object.keys(courses || {}).length,
+      sectionsCount: Object.keys(sections || {}).length,
+      courses,
+      sections,
+      timestamp: new Date().toISOString()
+    });
+  }, [courses, sections, courseId]);
+
   const {
     marketingUrl,
   } = useModel('coursewareMeta', courseId);

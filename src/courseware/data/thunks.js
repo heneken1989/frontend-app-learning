@@ -276,11 +276,61 @@ export function getCourseDiscussionTopics(courseId) {
 
 export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
+    const startTime = Date.now();
+    console.log('📡 [Thunk] getCourseOutlineStructure started', {
+      courseId,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent.slice(0, 100),
+      connectionType: navigator.connection?.effectiveType || 'unknown',
+      onlineStatus: navigator.onLine
+    });
+
     dispatch(fetchCourseOutlineRequest());
+    
     try {
+      console.log('🔄 [Thunk] Calling getCourseOutline API', {
+        courseId,
+        timestamp: new Date().toISOString()
+      });
+      
       const courseOutline = await getCourseOutline(courseId);
+      const duration = Date.now() - startTime;
+      
+      console.log('✅ [Thunk] getCourseOutline API success', {
+        courseId,
+        duration: `${duration}ms`,
+        dataSize: JSON.stringify(courseOutline).length,
+        sequenceCount: Object.keys(courseOutline?.sequences || {}).length,
+        sectionCount: Object.keys(courseOutline?.sections || {}).length,
+        unitCount: Object.keys(courseOutline?.units || {}).length,
+        data: courseOutline,
+        timestamp: new Date().toISOString()
+      });
+      
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
+      
+      // Additional debugging for empty results
+      if (!courseOutline || Object.keys(courseOutline?.sequences || {}).length === 0) {
+        console.warn('⚠️ [Thunk] Course outline returned empty or no sequences', {
+          courseId,
+          outline: courseOutline,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
     } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error('❌ [Thunk] getCourseOutline API failed', {
+        courseId,
+        duration: `${duration}ms`,
+        error: error.message,
+        stack: error.stack,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        timestamp: new Date().toISOString()
+      });
+      
       logError(error);
       dispatch(fetchCourseOutlineFailure());
     }
