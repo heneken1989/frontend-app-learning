@@ -38,18 +38,21 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       containerRef.current = document.createElement('div');
       containerRef.current.id = 'persistent-navigation-container';
       containerRef.current.style.cssText = `
-        position: sticky;
-        top: 0;
-        left: 0;
-        right: 0;
-
+        position: relative;
+        width: 100%;
         background: white;
         border-bottom: 1px solid #eee;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
       `;
       
-      // Insert at the beginning of body
-      document.body.insertBefore(containerRef.current, document.body.firstChild);
+      // Insert before the main content area instead of at body start
+      const mainContent = document.querySelector('.courseware-sequence') || document.querySelector('.unit') || document.querySelector('main');
+      if (mainContent) {
+        mainContent.parentNode.insertBefore(containerRef.current, mainContent);
+      } else {
+        document.body.insertBefore(containerRef.current, document.body.firstChild);
+      }
       setContainer(containerRef.current);
     }
 

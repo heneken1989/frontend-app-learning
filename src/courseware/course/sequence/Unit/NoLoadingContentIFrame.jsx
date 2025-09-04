@@ -22,26 +22,32 @@ const NoLoadingContentIFrame = ({
     // Reset loading state when URL changes
     setIsLoading(true);
     setShowContent(false);
+    
+    // Hide loading message quickly - don't wait for full load
+    const quickHideTimeout = setTimeout(() => {
+      setIsLoading(false);
+      setShowContent(true);
+    }, 800); // Hide after 800ms regardless of load status
+    
+    return () => clearTimeout(quickHideTimeout);
   }, [iframeUrl]);
 
   const handleLoad = () => {
-    // Short delay to ensure content is ready, then reveal
-    setTimeout(() => {
-      setIsLoading(false);
-      setShowContent(true);
-      if (onLoaded) onLoaded();
-    }, 300);
+    // Hide loading message immediately when iframe starts loading
+    setIsLoading(false);
+    setShowContent(true);
+    if (onLoaded) onLoaded();
   };
 
   return (
     <>
       <style>{`
         .content-iframe {
-          transition: opacity 0.4s ease-in-out;
+          transition: opacity 0.3s ease-in-out;
         }
 
         .content-iframe.loading {
-          opacity: 0.3;
+          opacity: 0.8; /* Show iframe content even while loading */
         }
 
         .content-iframe.visible {
@@ -63,6 +69,7 @@ const NoLoadingContentIFrame = ({
           z-index: 10;
           pointer-events: none;
           opacity: ${isLoading ? '1' : '0'};
+          visibility: ${isLoading ? 'visible' : 'hidden'};
           transition: all 0.4s ease-in-out;
           display: flex;
           align-items: center;
@@ -181,7 +188,6 @@ const NoLoadingContentIFrame = ({
 
 NoLoadingContentIFrame.propTypes = {
   iframeUrl: PropTypes.string,
-  id: PropTypes.string.isRequired,
   title: PropTypes.string,
   elementId: PropTypes.string,
   onLoaded: PropTypes.func,
