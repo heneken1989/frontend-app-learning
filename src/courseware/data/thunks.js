@@ -263,61 +263,11 @@ export function getCourseDiscussionTopics(courseId) {
 
 export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
-    console.log('🚀 [getCourseOutlineStructure] Starting API call for courseId:', courseId);
     dispatch(fetchCourseOutlineRequest());
     try {
-      // Debug: Log API call details
-      const startTime = Date.now();
       const courseOutline = await getCourseOutline(courseId);
-      const duration = Date.now() - startTime;
-      
-      // Debug info for course outline loading - ALWAYS log for production debugging
-      console.log('✅ [getCourseOutlineStructure] API call completed:', {
-        courseId,
-        duration: `${duration}ms`,
-        sequencesCount: Object.keys(courseOutline?.sequences || {}).length,
-        unitsCount: Object.keys(courseOutline?.units || {}).length,
-        sectionsCount: Object.keys(courseOutline?.sections || {}).length,
-        hasSequences: !!courseOutline?.sequences,
-        hasUnits: !!courseOutline?.units,
-        hasSections: !!courseOutline?.sections,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Log detailed sequences info
-      if (courseOutline?.sequences) {
-        console.log('📋 [getCourseOutlineStructure] Sequences details:', 
-          Object.entries(courseOutline.sequences).map(([id, seq]) => ({
-            id: id.slice(-8), // Show last 8 chars for readability
-            title: seq.title || 'No title',
-            unitCount: seq.unitIds?.length || 0,
-            hasUnits: !!seq.unitIds
-          }))
-        );
-        
-        // Special debug for ID65 sequence - simplified
-        const id65Sequence = Object.entries(courseOutline.sequences).find(([id, seq]) => 
-          seq.title === 'ID65' || id.includes('83020c34')
-        );
-        if (id65Sequence) {
-          const [id, seq] = id65Sequence;
-          console.log('🔍 [getCourseOutlineStructure] ID65:', {
-            title: seq.title,
-            unitCount: seq.unitIds?.length || 0
-          });
-        }
-      }
-      
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
-      // Debug: Log error details - ALWAYS log for production debugging
-      console.error('❌ [getCourseOutlineStructure] API Error:', {
-        courseId,
-        error: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        timestamp: new Date().toISOString()
-      });
       dispatch(fetchCourseOutlineFailure());
     }
   };

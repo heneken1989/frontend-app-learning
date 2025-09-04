@@ -93,19 +93,9 @@ export const useCourseOutlineSidebar = () => {
   };
 
   useEffect(() => {
-    console.log('🔄 [CourseOutlineSidebar] useEffect triggered:', {
-      isEnabledSidebar,
-      courseOutlineStatus,
-      courseOutlineShouldUpdate,
-      courseId,
-      timestamp: new Date().toISOString()
-    });
     
     if ((isEnabledSidebar && courseOutlineStatus !== LOADED) || courseOutlineShouldUpdate) {
-      console.log('📡 [CourseOutlineSidebar] Dispatching getCourseOutlineStructure for courseId:', courseId);
       dispatch(getCourseOutlineStructure(courseId));
-    } else {
-      console.log('⏭️ [CourseOutlineSidebar] Skipping API call - conditions not met');
     }
   }, [courseId, isEnabledSidebar, courseOutlineShouldUpdate]);
 

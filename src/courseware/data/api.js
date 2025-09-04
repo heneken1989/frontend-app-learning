@@ -109,31 +109,6 @@ export async function getCourseOutline(courseId) {
   const { data } = await getAuthenticatedHttpClient()
     .get(url);
 
-  // Debug: Log response details - ALWAYS log for production debugging
-  console.log('📊 [getCourseOutline] API Response:', {
-    courseId,
-    blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
-    hasBlocks: !!data.blocks,
-    responseKeys: Object.keys(data),
-    timestamp: new Date().toISOString()
-  });
-  
-  // Log detailed blocks info
-  if (data.blocks) {
-    const blocks = Object.entries(data.blocks);
-    console.log('🧩 [getCourseOutline] Blocks details:', {
-      totalBlocks: blocks.length,
-      blockTypes: blocks.reduce((acc, [id, block]) => {
-        acc[block.type] = (acc[block.type] || 0) + 1;
-        return acc;
-      }, {}),
-      sampleBlocks: blocks.slice(0, 5).map(([id, block]) => ({
-        id: id.slice(-8),
-        type: block.type,
-        title: block.title || 'No title'
-      }))
-    });
-  }
 
   return data.blocks ? normalizeOutlineBlocks(courseId, data.blocks) : null;
 }
