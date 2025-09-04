@@ -45,6 +45,16 @@ const CourseOutlineTray = ({ intl }) => {
   useEffect(() => {
     const startTime = Date.now();
     
+    // Console log for production debugging
+    console.log('🔍 [CourseOutlineTray] Debug Info:', {
+      courseOutlineStatus,
+      courseId,
+      sequencesCount: Object.keys(sequences || {}).length,
+      activeSequenceId,
+      unitId,
+      timestamp: new Date().toISOString()
+    });
+    
     // Get user role and permissions
     const getUserInfo = async () => {
       try {
@@ -72,6 +82,11 @@ const CourseOutlineTray = ({ intl }) => {
         }
         
         if (userData) {
+          console.log('👤 [CourseOutlineTray] User Info:', {
+            is_staff: userData.is_staff,
+            username: userData.username,
+            role: userData.is_staff ? 'staff' : 'student'
+          });
           setDebugInfo(prev => ({
             ...prev,
             userRole: userData.is_staff ? 'staff' : 'student',
@@ -80,6 +95,7 @@ const CourseOutlineTray = ({ intl }) => {
         } else {
           // Fallback: try to get user info from window object or other sources
           const fallbackRole = window.user || window.global || window.edx;
+          console.log('⚠️ [CourseOutlineTray] Fallback user role:', fallbackRole);
           setDebugInfo(prev => ({
             ...prev,
             userRole: fallbackRole ? 'detected' : 'unknown',
@@ -87,6 +103,7 @@ const CourseOutlineTray = ({ intl }) => {
           }));
         }
       } catch (error) {
+        console.error('❌ [CourseOutlineTray] User info error:', error);
         setDebugInfo(prev => ({
           ...prev,
           userRole: 'unknown',
@@ -105,6 +122,12 @@ const CourseOutlineTray = ({ intl }) => {
 
     if (courseOutlineStatus !== LOADING) {
       const duration = Date.now() - startTime;
+      console.log('📊 [CourseOutlineTray] Loading completed:', {
+        duration: `${duration}ms`,
+        sequencesCount: Object.keys(sequences || {}).length,
+        status: courseOutlineStatus,
+        hasSequences: !!sequences
+      });
       setDebugInfo(prev => ({
         ...prev,
         loadingDuration: duration,

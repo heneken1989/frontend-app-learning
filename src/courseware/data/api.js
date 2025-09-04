@@ -99,26 +99,39 @@ export async function getCourseTopics(courseId) {
 export async function getCourseOutline(courseId) {
   const url = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`;
   
-  // Debug: Log API call
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🌐 Course Outline API Call:', {
-      url,
-      courseId,
-      timestamp: new Date().toISOString()
-    });
-  }
+  // Debug: Log API call - ALWAYS log for production debugging
+  console.log('🌐 [getCourseOutline] API Call:', {
+    url,
+    courseId,
+    timestamp: new Date().toISOString()
+  });
   
   const { data } = await getAuthenticatedHttpClient()
     .get(url);
 
-  // Debug: Log response details
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📊 Course Outline API Response:', {
-      courseId,
-      blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
-      hasBlocks: !!data.blocks,
-      responseKeys: Object.keys(data),
-      fullResponse: data
+  // Debug: Log response details - ALWAYS log for production debugging
+  console.log('📊 [getCourseOutline] API Response:', {
+    courseId,
+    blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
+    hasBlocks: !!data.blocks,
+    responseKeys: Object.keys(data),
+    timestamp: new Date().toISOString()
+  });
+  
+  // Log detailed blocks info
+  if (data.blocks) {
+    const blocks = Object.entries(data.blocks);
+    console.log('🧩 [getCourseOutline] Blocks details:', {
+      totalBlocks: blocks.length,
+      blockTypes: blocks.reduce((acc, [id, block]) => {
+        acc[block.type] = (acc[block.type] || 0) + 1;
+        return acc;
+      }, {}),
+      sampleBlocks: blocks.slice(0, 5).map(([id, block]) => ({
+        id: id.slice(-8),
+        type: block.type,
+        title: block.title || 'No title'
+      }))
     });
   }
 

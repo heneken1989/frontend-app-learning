@@ -263,6 +263,7 @@ export function getCourseDiscussionTopics(courseId) {
 
 export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
+    console.log('🚀 [getCourseOutlineStructure] Starting API call for courseId:', courseId);
     dispatch(fetchCourseOutlineRequest());
     try {
       // Debug: Log API call details
@@ -270,29 +271,41 @@ export function getCourseOutlineStructure(courseId) {
       const courseOutline = await getCourseOutline(courseId);
       const duration = Date.now() - startTime;
       
-      // Debug info for course outline loading
-      if (process.env.NODE_ENV === 'development') {
-        console.group('🔍 Course Outline Debug');
-        console.log('Course ID:', courseId);
-        console.log('API Duration:', duration + 'ms');
-        console.log('Sequences Count:', Object.keys(courseOutline?.sequences || {}).length);
-        console.log('Units Count:', Object.keys(courseOutline?.units || {}).length);
-        console.log('Sections Count:', Object.keys(courseOutline?.sections || {}).length);
-        console.log('Full Response:', courseOutline);
-        console.groupEnd();
+      // Debug info for course outline loading - ALWAYS log for production debugging
+      console.log('✅ [getCourseOutlineStructure] API call completed:', {
+        courseId,
+        duration: `${duration}ms`,
+        sequencesCount: Object.keys(courseOutline?.sequences || {}).length,
+        unitsCount: Object.keys(courseOutline?.units || {}).length,
+        sectionsCount: Object.keys(courseOutline?.sections || {}).length,
+        hasSequences: !!courseOutline?.sequences,
+        hasUnits: !!courseOutline?.units,
+        hasSections: !!courseOutline?.sections,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Log detailed sequences info
+      if (courseOutline?.sequences) {
+        console.log('📋 [getCourseOutlineStructure] Sequences details:', 
+          Object.entries(courseOutline.sequences).map(([id, seq]) => ({
+            id: id.slice(-8), // Show last 8 chars for readability
+            title: seq.title || 'No title',
+            unitCount: seq.unitIds?.length || 0,
+            hasUnits: !!seq.unitIds
+          }))
+        );
       }
       
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
-      // Debug: Log error details
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Course Outline API Error:', {
-          courseId,
-          error: error.message,
-          status: error.response?.status,
-          data: error.response?.data
-        });
-      }
+      // Debug: Log error details - ALWAYS log for production debugging
+      console.error('❌ [getCourseOutlineStructure] API Error:', {
+        courseId,
+        error: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        timestamp: new Date().toISOString()
+      });
       dispatch(fetchCourseOutlineFailure());
     }
   };

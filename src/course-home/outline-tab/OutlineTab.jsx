@@ -67,6 +67,24 @@ const OutlineTab = () => {
 
   // Debug outline data
   useEffect(() => {
+    console.log('🏠 [OutlineTab] Course outline data updated:', {
+      courseId,
+      coursesCount: Object.keys(courses || {}).length,
+      sectionsCount: Object.keys(sections || {}).length,
+      hasCourses: !!courses,
+      hasSections: !!sections,
+      timestamp: new Date().toISOString()
+    });
+    
+    if (courses) {
+      console.log('📚 [OutlineTab] Courses details:', 
+        Object.entries(courses).map(([id, course]) => ({
+          id: id.slice(-8),
+          title: course.title || 'No title',
+          hasSections: !!course.sections
+        }))
+      );
+    }
   }, [courses, sections, courseId]);
 
   const {
