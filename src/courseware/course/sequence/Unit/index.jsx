@@ -74,12 +74,13 @@ const Unit = ({
     <div className="unit">
       {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
       
-      {/* Page Load Monitor for auto-reload on issues */}
+      {/* Page Load Monitor for auto-reload on quiz content issues */}
       <PageLoadMonitor 
         courseId={courseId} 
         unitId={id} 
         maxLoadTime={30000}
         maxRetries={2}
+        enableAutoReload={true}
       />
       
       {/* Global Error Handler for auto-reload on critical errors */}
@@ -87,6 +88,7 @@ const Unit = ({
         courseId={courseId} 
         unitId={id} 
         maxRetries={2}
+        enableAutoReload={false}
       />
 
       <UnitSuspense {...{ courseId, id }} />
@@ -100,7 +102,7 @@ const Unit = ({
         title={unit.title}
         courseId={courseId}
         hasQuiz={hasQuiz}
-        enableAutoReload={false}
+        enableAutoReload={true}
       />
     </div>
   );

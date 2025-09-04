@@ -6,7 +6,8 @@ import React, { useEffect } from 'react';
 const GlobalErrorHandler = ({ 
   courseId = '', 
   unitId = '',
-  maxRetries = 3 
+  maxRetries = 3,
+  enableAutoReload = false // Disable by default
 }) => {
   useEffect(() => {
     let retryCount = 0;
@@ -33,7 +34,7 @@ const GlobalErrorHandler = ({
         event.filename.includes('unit')
       );
       
-      if (isCriticalError && retryCount < maxRetries) {
+      if (isCriticalError && retryCount < maxRetries && enableAutoReload) {
         retryCount++;
         console.log(`🔄 [GlobalErrorHandler] Auto-reloading due to critical error (attempt ${retryCount}/${maxRetries})`);
         setTimeout(() => {
@@ -41,6 +42,8 @@ const GlobalErrorHandler = ({
         }, 3000);
       } else if (!isCriticalError) {
         console.log('ℹ️ [GlobalErrorHandler] Non-critical error, not reloading');
+      } else if (!enableAutoReload) {
+        console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled, not reloading');
       } else {
         console.error('❌ [GlobalErrorHandler] Max retries reached, stopping auto-reload');
       }
@@ -65,7 +68,7 @@ const GlobalErrorHandler = ({
         )
       );
       
-      if (isCriticalRejection && retryCount < maxRetries) {
+      if (isCriticalRejection && retryCount < maxRetries && enableAutoReload) {
         retryCount++;
         console.log(`🔄 [GlobalErrorHandler] Auto-reloading due to critical promise rejection (attempt ${retryCount}/${maxRetries})`);
         setTimeout(() => {
@@ -73,6 +76,8 @@ const GlobalErrorHandler = ({
         }, 3000);
       } else if (!isCriticalRejection) {
         console.log('ℹ️ [GlobalErrorHandler] Non-critical promise rejection, not reloading');
+      } else if (!enableAutoReload) {
+        console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled, not reloading');
       }
     };
 

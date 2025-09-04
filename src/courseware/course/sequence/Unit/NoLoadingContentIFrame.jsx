@@ -13,7 +13,7 @@ const NoLoadingContentIFrame = ({
   loadingMessage = '',
   courseId = '',
   hasQuiz = false,
-  enableAutoReload = false, // Disable auto-reload by default
+  enableAutoReload = true, // Enable auto-reload for quiz content issues
   ...otherProps
 }) => {
   const [isLoading, setIsLoading] = useState(true);
