@@ -80,16 +80,25 @@ const CourseOutlineTray = ({ intl }) => {
         if (!debugInfo.userRole) {
           const response = await fetch('/api/user/v1/me');
           if (response.ok) {
-            const data = await response.json();
-            if (data && (data.is_staff !== undefined || data.username)) {
-              console.log('👤 [CourseOutlineTray] User Info:', {
-                is_staff: data.is_staff,
-                username: data.username,
-                role: data.is_staff ? 'staff' : 'student'
-              });
+            try {
+              const data = await response.json();
+              if (data && (data.is_staff !== undefined || data.username)) {
+                console.log('👤 [CourseOutlineTray] User Info:', {
+                  is_staff: data.is_staff,
+                  username: data.username,
+                  role: data.is_staff ? 'staff' : 'student'
+                });
+                setDebugInfo(prev => ({
+                  ...prev,
+                  userRole: data.is_staff ? 'staff' : 'student',
+                  courseId: courseId
+                }));
+              }
+            } catch (jsonError) {
+              console.warn('⚠️ [CourseOutlineTray] JSON parsing failed, using fallback user role');
               setDebugInfo(prev => ({
                 ...prev,
-                userRole: data.is_staff ? 'staff' : 'student',
+                userRole: 'student', // Default fallback
                 courseId: courseId
               }));
             }
