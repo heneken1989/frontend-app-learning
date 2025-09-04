@@ -311,13 +311,22 @@ const CourseOutlineTray = ({ intl }) => {
             )}
 
             <ol className="outline-tray-content">
-              {sequences[activeSequenceId] && (
+              {sequences[activeSequenceId] ? (
                 <SidebarSequence
                   courseId={courseId}
                   sequence={sequences[activeSequenceId]}
                   defaultOpen
                   activeUnitId={unitId}
                 />
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+                  <p>No active sequence found</p>
+                  <p style={{ fontSize: '12px' }}>
+                    Active Sequence ID: {activeSequenceId || 'null'}<br/>
+                    Available Sequences: {Object.keys(sequences || {}).length}<br/>
+                    Sequence IDs: {Object.keys(sequences || {}).join(', ')}
+                  </p>
+                </div>
               )}
             </ol>
           </div>
