@@ -387,8 +387,8 @@ const NavigationMenu = ({ courses }) => {
       if (result.success) {
         alert(`🎉 Thành công!\n\n✅ Đã đăng ký ${result.enrolled_count} khóa học mới\n📚 Tổng cộng có ${result.total_available_courses} khóa học khả dụng\n👤 User: ${result.user}\n\n${result.message}`);
         
-        // Reload page to refresh enrollment status
-        window.location.reload();
+        // DISABLED: No auto-reload after enrollment
+        console.log('ℹ️ [LearningHeader] Auto-reload disabled - enrollment success logged only');
       } else {
         throw new Error(result.error || 'Unknown error occurred');
       }

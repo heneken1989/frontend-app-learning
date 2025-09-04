@@ -96,9 +96,8 @@ const Sequence = ({
     function receiveMessage(event) {
       const { type } = event.data;
       if (type === 'entranceExam.passed') {
-        // I know this seems (is) intense. It is implemented this way since we need to refetch the underlying
-        // course blocks that were originally hidden because the Entrance Exam was not passed.
-        global.location.reload();
+        // DISABLED: No auto-reload after entrance exam passed
+        console.log('ℹ️ [Sequence] Auto-reload disabled - entrance exam passed logged only');
       }
     }
     global.addEventListener('message', receiveMessage);

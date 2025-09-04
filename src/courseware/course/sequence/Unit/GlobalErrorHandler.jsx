@@ -34,19 +34,8 @@ const GlobalErrorHandler = ({
         event.filename.includes('unit')
       );
       
-      if (isCriticalError && retryCount < maxRetries && enableAutoReload) {
-        retryCount++;
-        console.log(`🔄 [GlobalErrorHandler] Auto-reloading due to critical error (attempt ${retryCount}/${maxRetries})`);
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      } else if (!isCriticalError) {
-        console.log('ℹ️ [GlobalErrorHandler] Non-critical error, not reloading');
-      } else if (!enableAutoReload) {
-        console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled, not reloading');
-      } else {
-        console.error('❌ [GlobalErrorHandler] Max retries reached, stopping auto-reload');
-      }
+      // DISABLED: No auto-reload at all
+      console.log('ℹ️ [GlobalErrorHandler] Auto-reload completely disabled - error logged only');
     };
 
     // Handle unhandled promise rejections
@@ -68,17 +57,8 @@ const GlobalErrorHandler = ({
         )
       );
       
-      if (isCriticalRejection && retryCount < maxRetries && enableAutoReload) {
-        retryCount++;
-        console.log(`🔄 [GlobalErrorHandler] Auto-reloading due to critical promise rejection (attempt ${retryCount}/${maxRetries})`);
-        setTimeout(() => {
-          window.location.reload();
-        }, 3000);
-      } else if (!isCriticalRejection) {
-        console.log('ℹ️ [GlobalErrorHandler] Non-critical promise rejection, not reloading');
-      } else if (!enableAutoReload) {
-        console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled, not reloading');
-      }
+      // DISABLED: No auto-reload at all
+      console.log('ℹ️ [GlobalErrorHandler] Auto-reload completely disabled - promise rejection logged only');
     };
 
     // Handle network errors
@@ -88,11 +68,8 @@ const GlobalErrorHandler = ({
 
     const handleOnline = () => {
       console.log('✅ [GlobalErrorHandler] Network back online');
-      // Reload when network comes back online after being offline
-      if (retryCount > 0) {
-        console.log('🔄 [GlobalErrorHandler] Reloading after network recovery');
-        window.location.reload();
-      }
+      // DISABLED: No auto-reload on network recovery
+      console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled - network recovery logged only');
     };
 
     // Add event listeners
@@ -107,15 +84,8 @@ const GlobalErrorHandler = ({
       if (loadingElements.length > 0) {
         console.log('🔍 [GlobalErrorHandler] Loading elements detected:', loadingElements.length);
         
-        // Check if loading has been stuck for too long
-        setTimeout(() => {
-          const stillLoading = document.querySelectorAll('.loading, [class*="loading"], .spinner, [class*="spinner"]');
-          if (stillLoading.length > 0 && retryCount < maxRetries) {
-            console.warn('⚠️ [GlobalErrorHandler] Stuck loading state detected, auto-reloading');
-            retryCount++;
-            window.location.reload();
-          }
-        }, 20000); // 20 seconds
+        // DISABLED: No auto-reload on stuck loading
+        console.log('ℹ️ [GlobalErrorHandler] Auto-reload disabled - stuck loading state logged only');
       }
     };
 

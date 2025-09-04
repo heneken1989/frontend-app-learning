@@ -74,16 +74,16 @@ const Unit = ({
     <div className="unit">
       {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
       
-      {/* Page Load Monitor for auto-reload on quiz content issues */}
+      {/* Page Load Monitor - monitoring only, no auto-reload */}
       <PageLoadMonitor 
         courseId={courseId} 
         unitId={id} 
         maxLoadTime={30000}
         maxRetries={2}
-        enableAutoReload={true}
+        enableAutoReload={false}
       />
       
-      {/* Global Error Handler for auto-reload on critical errors */}
+      {/* Global Error Handler - monitoring only, no auto-reload */}
       <GlobalErrorHandler 
         courseId={courseId} 
         unitId={id} 
@@ -102,7 +102,7 @@ const Unit = ({
         title={unit.title}
         courseId={courseId}
         hasQuiz={hasQuiz}
-        enableAutoReload={true}
+        enableAutoReload={false}
       />
     </div>
   );

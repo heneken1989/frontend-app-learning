@@ -26,48 +26,17 @@ const PageLoadMonitor = ({
       timestamp: new Date().toISOString()
     });
 
-    // Check if this is a quiz unit
-    const isQuizUnit = () => {
-      // Check URL patterns that indicate quiz content
-      const currentUrl = window.location.href;
-      const isQuiz = currentUrl.includes('quiz') || 
-                    currentUrl.includes('problem') || 
-                    currentUrl.includes('xblock') ||
-                    unitId.includes('quiz') ||
-                    unitId.includes('problem');
+    // Check if Unit ID exists (main condition for reload)
+    const hasUnitId = () => {
+      const hasId = unitId && unitId.length > 0;
       
-      // Also check if iframe contains quiz elements
-      const iframe = document.querySelector('#unit-iframe');
-      if (iframe && iframe.contentDocument) {
-        const quizElements = iframe.contentDocument.querySelectorAll(
-          '.problem, .xblock, .quiz, [data-block-type="problem"], [data-block-type="quiz"]'
-        );
-        return isQuiz || quizElements.length > 0;
-      }
+      console.log('🔍 [PageLoadMonitor] Unit ID check:', {
+        hasId,
+        unitId,
+        unitIdLength: unitId ? unitId.length : 0
+      });
       
-      return isQuiz;
-    };
-
-    // Check if quiz content is actually loaded
-    const hasQuizContent = () => {
-      const iframe = document.querySelector('#unit-iframe');
-      if (!iframe || !iframe.contentDocument) return false;
-      
-      const iframeDoc = iframe.contentDocument;
-      
-      // Check for quiz-specific content
-      const quizContent = iframeDoc.querySelectorAll(
-        '.problem, .xblock, .quiz, .problem-header, .problem-progress, ' +
-        '[data-block-type="problem"], [data-block-type="quiz"], ' +
-        '.submit-attempt-container, .action, .btn-primary'
-      );
-      
-      // Check for any meaningful content (not just empty page)
-      const hasContent = iframeDoc.body && 
-                        iframeDoc.body.children.length > 0 &&
-                        iframeDoc.body.textContent.trim().length > 50;
-      
-      return quizContent.length > 0 || hasContent;
+      return hasId;
     };
 
     // Monitor page load completion
@@ -77,11 +46,7 @@ const PageLoadMonitor = ({
       
       // Check if page is still loading after max time AND we haven't loaded successfully
       if (loadDuration > maxLoadTime && isMonitoring) {
-        const iframe = document.querySelector('#unit-iframe');
-        const hasIframe = !!iframe;
-        const iframeLoaded = iframe && iframe.contentDocument;
-        const isQuiz = isQuizUnit();
-        const hasContent = hasQuizContent();
+        const unitIdExists = hasUnitId();
         
         console.log('🔍 [PageLoadMonitor] Checking page load status:', {
           loadDuration: `${loadDuration}ms`,
@@ -89,31 +54,21 @@ const PageLoadMonitor = ({
           retryCount,
           courseId,
           unitId,
-          hasIframe,
-          iframeLoaded,
-          isQuiz,
-          hasContent
+          unitIdExists,
+          currentUrl: window.location.href
         });
         
-        // Only reload if:
-        // 1. Iframe doesn't exist or isn't loaded, OR
-        // 2. It's a quiz unit but has no quiz content
-        const shouldReload = (!hasIframe || !iframeLoaded) || (isQuiz && !hasContent);
+        // Only reload if Unit ID is missing
+        const shouldReload = !unitIdExists;
         
-        if (shouldReload && retryCount < maxRetries && enableAutoReload) {
-          console.warn('⚠️ [PageLoadMonitor] Quiz content missing or iframe not loaded, auto-reloading...');
-          setRetryCount(prev => prev + 1);
-          window.location.reload();
-        } else if (!enableAutoReload) {
-          console.log('ℹ️ [PageLoadMonitor] Auto-reload disabled, not reloading');
-          setIsMonitoring(false);
-        } else if (!shouldReload) {
-          console.log('✅ [PageLoadMonitor] Content loaded properly, stopping monitoring');
-          setIsMonitoring(false);
-        } else {
-          console.error('❌ [PageLoadMonitor] Max retries reached, stopping auto-reload');
-          setIsMonitoring(false);
-        }
+        console.log('🔍 [PageLoadMonitor] Reload decision:', {
+          shouldReload,
+          reason: shouldReload ? 'Unit ID not found' : 'Unit ID exists - no reload needed'
+        });
+        
+        // DISABLED: No auto-reload at all
+        console.log('ℹ️ [PageLoadMonitor] Auto-reload completely disabled - monitoring only');
+        setIsMonitoring(false);
       }
     };
 
@@ -133,22 +88,16 @@ const PageLoadMonitor = ({
       clearInterval(interval);
     };
 
-    // Check if iframe is already loaded and stop monitoring early
+    // Check if Unit ID exists and stop monitoring early
     const checkEarlyLoad = () => {
-      const iframe = document.querySelector('#unit-iframe');
-      if (iframe && iframe.contentDocument) {
-        const isQuiz = isQuizUnit();
-        const hasContent = hasQuizContent();
-        
-        // For quiz units, make sure content is actually loaded
-        if (isQuiz && !hasContent) {
-          console.log('⏳ [PageLoadMonitor] Quiz unit detected but content not ready, continuing monitoring');
-          return;
-        }
-        
-        console.log('✅ [PageLoadMonitor] Iframe already loaded with proper content, stopping monitoring early');
+      const unitIdExists = hasUnitId();
+      
+      if (unitIdExists) {
+        console.log('✅ [PageLoadMonitor] Unit ID found, stopping monitoring early');
         setIsMonitoring(false);
         clearInterval(interval);
+      } else {
+        console.log('⏳ [PageLoadMonitor] Unit ID not found yet, continuing monitoring');
       }
     };
 
@@ -179,13 +128,8 @@ const PageLoadMonitor = ({
         unitId
       });
       
-      // Auto-reload on critical errors
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          console.log('🔄 [PageLoadMonitor] Auto-reloading due to JavaScript error');
-          window.location.reload();
-        }, 3000);
-      }
+      // DISABLED: No auto-reload on errors
+      console.log('ℹ️ [PageLoadMonitor] Auto-reload disabled - JavaScript error logged only');
     };
 
     window.addEventListener('error', handleError);
@@ -204,13 +148,8 @@ const PageLoadMonitor = ({
         unitId
       });
       
-      // Auto-reload on critical promise rejections
-      if (retryCount < maxRetries) {
-        setTimeout(() => {
-          console.log('🔄 [PageLoadMonitor] Auto-reloading due to unhandled promise rejection');
-          window.location.reload();
-        }, 3000);
-      }
+      // DISABLED: No auto-reload on promise rejections
+      console.log('ℹ️ [PageLoadMonitor] Auto-reload disabled - promise rejection logged only');
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);

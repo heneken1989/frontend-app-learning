@@ -20,7 +20,8 @@ export const MasqueradeUserNameInput: React.FC<Props> = ({ onSubmit, onError, ..
     };
     onSubmit(payload).then((data) => {
       if (data && data.success) {
-        global.location.reload();
+        // DISABLED: No auto-reload after masquerade
+        console.log('ℹ️ [MasqueradeUserNameInput] Auto-reload disabled - masquerade success logged only');
       } else {
         const error = (data && data.error) || '';
         onError(error);

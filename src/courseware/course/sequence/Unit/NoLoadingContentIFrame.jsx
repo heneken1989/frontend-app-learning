@@ -13,7 +13,7 @@ const NoLoadingContentIFrame = ({
   loadingMessage = '',
   courseId = '',
   hasQuiz = false,
-  enableAutoReload = true, // Enable auto-reload for quiz content issues
+  enableAutoReload = false, // Disable auto-reload - only PageLoadMonitor handles Unit ID reload
   ...otherProps
 }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -66,13 +66,8 @@ const NoLoadingContentIFrame = ({
 
   const handleError = () => {
     console.error('❌ [NoLoadingContentIFrame] Iframe load error detected');
-    // Only auto-reload on iframe error if enabled and we've had multiple failures
-    if (enableAutoReload && loadAttempts >= 2) {
-      setTimeout(() => {
-        console.log('🔄 [NoLoadingContentIFrame] Auto-reload triggered - iframe error after multiple attempts');
-        window.location.reload();
-      }, 3000);
-    }
+    // DISABLED: No auto-reload at all
+    console.log('ℹ️ [NoLoadingContentIFrame] Auto-reload completely disabled - error logged only');
   };
 
   return (

@@ -25,7 +25,8 @@ function useEnrollClickHandler(courseId, orgId, successText) {
         org_key: orgId,
         courserun_key: courseId,
       });
-      global.location.reload();
+      // DISABLED: No auto-reload after enrollment
+      console.log('ℹ️ [EnrollmentAlert] Auto-reload disabled - enrollment success logged only');
     });
   }, [addFlash, courseId, orgId, successText]);
 

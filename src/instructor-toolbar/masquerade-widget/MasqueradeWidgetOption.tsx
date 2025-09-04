@@ -50,7 +50,8 @@ export const MasqueradeWidgetOption: React.FC<Props> = ({
       payload.user_partition_id = userPartitionId!;
     }
     props.onSubmit(payload).then(() => {
-      global.location.reload();
+      // DISABLED: No auto-reload after masquerade
+      console.log('ℹ️ [MasqueradeWidget] Auto-reload disabled - masquerade success logged only');
     });
     return true;
   }, []);
