@@ -11,6 +11,7 @@ import { usePluginsCallback } from '@src/generic/plugin-store';
 
 import messages from '../messages';
 import ContentIFrame from './ContentIFrame';
+import NoLoadingContentIFrame from './NoLoadingContentIFrame';
 import UnitSuspense from './UnitSuspense';
 import { modelKeys, views } from './constants';
 import { useExamAccess, useShouldDisplayHonorCode } from './hooks';
@@ -73,7 +74,7 @@ const Unit = ({
       {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
 
       <UnitSuspense {...{ courseId, id }} />
-      <ContentIFrame
+      <NoLoadingContentIFrame
         elementId="unit-iframe"
         id={id}
         iframeUrl={iframeUrl}
@@ -82,6 +83,7 @@ const Unit = ({
         shouldShowContent={!shouldDisplayHonorCode && !examAccess.blockAccess}
         title={unit.title}
         courseId={courseId}
+        hasQuiz={hasQuiz}
       />
     </div>
   );

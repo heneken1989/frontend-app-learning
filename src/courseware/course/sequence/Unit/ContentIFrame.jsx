@@ -15,7 +15,7 @@ import * as hooks from './hooks';
  * We must use the wildcard (*) origin for each feature, as courseware content
  * may be embedded in external iframes. Notably, xblock-lti-consumer is a popular
  * block that iframes external course content.
-
+ *
  * This policy was selected in conference with the edX Security Working Group.
  * Changes to it should be vetted by them (security@edx.org).
  */
@@ -55,6 +55,8 @@ const ContentIFrame = ({
     handleModalClose,
   } = hooks.useModalIFrameData();
 
+  const shouldShowLoading = !hasLoaded;
+
   const contentIFrameProps = {
     id: elementId,
     src: iframeUrl,
@@ -83,7 +85,7 @@ const ContentIFrame = ({
 
   return (
     <>
-      {(shouldShowContent && !hasLoaded) && (
+      {(shouldShowContent && shouldShowLoading) && (
         showError ? <ErrorPage /> : (
           <PluginSlot
             id="content_iframe_loader_slot"

@@ -1,4 +1,4 @@
-import { logError, logInfo } from '@edx/frontend-platform/logging';
+import { logInfo } from '@edx/frontend-platform/logging';
 import { getCourseHomeCourseMetadata } from '../../course-home/data/api';
 import {
   addModel, addModelsMap, updateModel, updateModels, updateModelsMap,
@@ -103,17 +103,17 @@ export function fetchCourse(courseId) {
           // We'll redirect them in a moment to the outline tab by calling fetchCourseDenied() below.
           logInfo(learningSequencesOutlineResult.reason);
         } else {
-          logError(learningSequencesOutlineResult.reason);
+          console.error('Learning sequences outline error:', learningSequencesOutlineResult.reason);
         }
       }
       if (!fetchedMetadata) {
-        logError(courseMetadataResult.reason);
+        console.error('Course metadata error:', courseMetadataResult.reason);
       }
       if (!fetchedCourseHomeMetadata) {
-        logError(courseHomeMetadataResult.reason);
+        console.error('Course home metadata error:', courseHomeMetadataResult.reason);
       }
       if (!fetchedCoursewareOutlineSidebarTogglesResult) {
-        logError(coursewareOutlineSidebarTogglesResult.reason);
+        console.error('Courseware outline sidebar toggles error:', coursewareOutlineSidebarTogglesResult.reason);
       }
       if (fetchedMetadata && fetchedCourseHomeMetadata) {
         if (courseHomeMetadataResult.value.courseAccess.hasAccess && fetchedOutline) {
@@ -142,7 +142,7 @@ export function fetchSequence(sequenceId, isPreview) {
         // Some other block types (particularly 'chapter') can be returned
         // by this API. We want to error in that case, since downstream
         // courseware code is written to render Sequences of Units.
-        logError(
+        console.error(
           `Requested sequence '${sequenceId}' `
           + `has block type '${sequence.blockType}'; expected block type 'sequential'.`,
         );
@@ -164,7 +164,7 @@ export function fetchSequence(sequenceId, isPreview) {
       // about the opaque key structure). In such cases, the backend gives us a 422.
       const sequenceMightBeUnit = error?.response?.status === 422;
       if (!sequenceMightBeUnit) {
-        logError(error);
+        console.error('Sequence fetch error:', error);
       }
       dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit }));
     }
@@ -190,7 +190,7 @@ export function checkBlockCompletion(courseId, sequenceId, unitId) {
       dispatch(updateCourseOutlineCompletion({ sequenceId, unitId, isComplete }));
       return isComplete;
     } catch (error) {
-      logError(error);
+      console.error('Sequence fetch error:', error);
     }
     return {};
   };
@@ -220,7 +220,7 @@ export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
         },
       }));
     } catch (error) {
-      logError(error);
+      console.error('Sequence fetch error:', error);
       dispatch(updateModel({
         modelType: 'sequences',
         model: {
@@ -249,7 +249,7 @@ export function saveIntegritySignature(courseId, isMasquerading) {
         },
       }));
     } catch (error) {
-      logError(error);
+      console.error('Sequence fetch error:', error);
     }
   };
 }
@@ -269,69 +269,19 @@ export function getCourseDiscussionTopics(courseId) {
         }));
       }
     } catch (error) {
-      logError(error);
+      console.error('Sequence fetch error:', error);
     }
   };
 }
 
 export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
-    const startTime = Date.now();
-    console.log('📡 [Thunk] getCourseOutlineStructure started', {
-      courseId,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent.slice(0, 100),
-      connectionType: navigator.connection?.effectiveType || 'unknown',
-      onlineStatus: navigator.onLine
-    });
-
     dispatch(fetchCourseOutlineRequest());
-    
     try {
-      console.log('🔄 [Thunk] Calling getCourseOutline API', {
-        courseId,
-        timestamp: new Date().toISOString()
-      });
-      
       const courseOutline = await getCourseOutline(courseId);
-      const duration = Date.now() - startTime;
-      
-      console.log('✅ [Thunk] getCourseOutline API success', {
-        courseId,
-        duration: `${duration}ms`,
-        dataSize: JSON.stringify(courseOutline).length,
-        sequenceCount: Object.keys(courseOutline?.sequences || {}).length,
-        sectionCount: Object.keys(courseOutline?.sections || {}).length,
-        unitCount: Object.keys(courseOutline?.units || {}).length,
-        data: courseOutline,
-        timestamp: new Date().toISOString()
-      });
-      
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
-      
-      // Additional debugging for empty results
-      if (!courseOutline || Object.keys(courseOutline?.sequences || {}).length === 0) {
-        console.warn('⚠️ [Thunk] Course outline returned empty or no sequences', {
-          courseId,
-          outline: courseOutline,
-          timestamp: new Date().toISOString()
-        });
-      }
-      
     } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error('❌ [Thunk] getCourseOutline API failed', {
-        courseId,
-        duration: `${duration}ms`,
-        error: error.message,
-        stack: error.stack,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        responseData: error.response?.data,
-        timestamp: new Date().toISOString()
-      });
-      
-      logError(error);
+      console.error('Sequence fetch error:', error);
       dispatch(fetchCourseOutlineFailure());
     }
   };

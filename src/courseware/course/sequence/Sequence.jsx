@@ -21,6 +21,7 @@ import { NotificationsDiscussionsSidebarSlot } from '../../../plugin-slots/Notif
 import messages from './messages';
 import HiddenAfterDue from './hidden-after-due';
 import { SequenceNavigation, UnitNavigation } from './sequence-navigation';
+import PersistentNavigationBar from './sequence-navigation/PersistentNavigationBar';
 import SequenceContent from './SequenceContent';
 
 const Sequence = ({
@@ -209,6 +210,22 @@ const Sequence = ({
   if (sequenceStatus === 'loaded') {
     return (
       <div>
+        {/* Persistent Navigation Bar - rendered outside main content flow */}
+        <PersistentNavigationBar
+          courseId={courseId}
+          sequenceId={sequenceId}
+          unitId={unitId}
+          onClickPrevious={() => {
+            logEvent('edx.ui.lms.sequence.previous_selected', 'persistent');
+            handlePrevious();
+          }}
+          onClickNext={() => {
+            logEvent('edx.ui.lms.sequence.next_selected', 'persistent');
+            handleNext();
+          }}
+          isAtTop={false}
+        />
+        
         <SequenceExamWrapper
           sequence={sequence}
           courseId={courseId}

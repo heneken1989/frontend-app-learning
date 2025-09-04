@@ -94,28 +94,7 @@ export const useCourseOutlineSidebar = () => {
 
   useEffect(() => {
     if ((isEnabledSidebar && courseOutlineStatus !== LOADED) || courseOutlineShouldUpdate) {
-      console.log('🚀 [CourseOutlineHook] Dispatching getCourseOutlineStructure', {
-        courseId,
-        currentStatus: courseOutlineStatus,
-        shouldUpdate: courseOutlineShouldUpdate,
-        isEnabledSidebar,
-        timestamp: new Date().toISOString()
-      });
-      
-      dispatch(getCourseOutlineStructure(courseId)).then((result) => {
-        console.log('✅ [CourseOutlineHook] getCourseOutlineStructure completed', {
-          courseId,
-          result,
-          timestamp: new Date().toISOString()
-        });
-      }).catch((error) => {
-        console.error('❌ [CourseOutlineHook] getCourseOutlineStructure failed', {
-          courseId,
-          error: error.message,
-          stack: error.stack,
-          timestamp: new Date().toISOString()
-        });
-      });
+      dispatch(getCourseOutlineStructure(courseId));
     }
   }, [courseId, isEnabledSidebar, courseOutlineShouldUpdate]);
 
