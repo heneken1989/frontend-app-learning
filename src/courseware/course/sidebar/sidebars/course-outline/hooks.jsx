@@ -106,18 +106,6 @@ export const useCourseOutlineSidebar = () => {
       dispatch(getCourseOutlineStructure(courseId));
     } else {
       console.log('⏭️ [CourseOutlineSidebar] Skipping API call - conditions not met');
-      
-      // Force refresh if we have sequences but some have 0 units (potential cache issue)
-      if (sequences && Object.keys(sequences).length > 0) {
-        const hasEmptySequences = Object.values(sequences).some(seq => 
-          seq.unitIds && seq.unitIds.length === 0 && seq.title && seq.title.includes('ID')
-        );
-        
-        if (hasEmptySequences) {
-          console.log('🔄 [CourseOutlineSidebar] Force refresh - detected empty sequences, likely cache issue');
-          dispatch(getCourseOutlineStructure(courseId));
-        }
-      }
     }
   }, [courseId, isEnabledSidebar, courseOutlineShouldUpdate]);
 

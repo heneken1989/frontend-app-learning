@@ -191,13 +191,44 @@ const CourseOutlineTray = ({ intl }) => {
               {/* Debug toggle button */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
-                  onClick={() => {
-                    console.log('🔄 [CourseOutlineTray] Manual refresh triggered');
-                    // Force refresh course outline
-                    window.location.reload();
+                  onClick={async () => {
+                    console.log('🔍 [CourseOutlineTray] Manual API check triggered');
+                    try {
+                      const response = await fetch(`/api/course_home/v1/navigation/${courseId}`);
+                      const data = await response.json();
+                      
+                      console.log('🔍 [CourseOutlineTray] Direct API Response:', {
+                        courseId,
+                        sequences: Object.keys(data.sequences || {}).length,
+                        units: Object.keys(data.units || {}).length,
+                        blocks: Object.keys(data.blocks || {}).length,
+                        timestamp: new Date().toISOString()
+                      });
+                      
+                      // Check ID65 specifically
+                      const id65Seq = Object.entries(data.sequences || {}).find(([id, seq]) => 
+                        seq.title === 'ID65' || id.includes('83020c34')
+                      );
+                      
+                      if (id65Seq) {
+                        const [id, seq] = id65Seq;
+                        console.log('🔍 [CourseOutlineTray] ID65 Direct Check:', {
+                          fullId: id,
+                          title: seq.title,
+                          unitIds: seq.unitIds,
+                          unitCount: seq.unitIds?.length || 0,
+                          rawData: seq
+                        });
+                      } else {
+                        console.log('❌ [CourseOutlineTray] ID65 not found in direct API response');
+                      }
+                      
+                    } catch (error) {
+                      console.error('❌ [CourseOutlineTray] Direct API check failed:', error);
+                    }
                   }}
                   style={{
-                    background: '#51cf66',
+                    background: '#ffa500',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
@@ -205,9 +236,112 @@ const CourseOutlineTray = ({ intl }) => {
                     padding: '2px 6px',
                     cursor: 'pointer'
                   }}
-                  title="Force Refresh Course Outline"
+                  title="Check API Directly"
                 >
-                  REFRESH
+                  CHECK API
+                </button>
+                <button
+                  onClick={async () => {
+                    console.log('🗄️ [CourseOutlineTray] Database check triggered');
+                    try {
+                      // Check course blocks API
+                      const blocksResponse = await fetch(`/api/courses/v1/blocks/?course_id=${courseId}&depth=all&all_blocks=true`);
+                      const blocksData = await blocksResponse.json();
+                      
+                      console.log('🗄️ [CourseOutlineTray] Database Blocks Response:', {
+                        courseId,
+                        blocksCount: blocksData.blocks ? Object.keys(blocksData.blocks).length : 0,
+                        timestamp: new Date().toISOString()
+                      });
+                      
+                      // Find ID65 sequence in blocks
+                      const id65Block = Object.entries(blocksData.blocks || {}).find(([id, block]) => 
+                        block.display_name === 'ID65' || id.includes('83020c34')
+                      );
+                      
+                      if (id65Block) {
+                        const [id, block] = id65Block;
+                        console.log('🗄️ [CourseOutlineTray] ID65 Database Check:', {
+                          fullId: id,
+                          displayName: block.display_name,
+                          children: block.children,
+                          childrenCount: block.children?.length || 0,
+                          blockType: block.type,
+                          rawBlock: block
+                        });
+                      } else {
+                        console.log('❌ [CourseOutlineTray] ID65 not found in database blocks');
+                      }
+                      
+                    } catch (error) {
+                      console.error('❌ [CourseOutlineTray] Database check failed:', error);
+                    }
+                  }}
+                  style={{
+                    background: '#9c27b0',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    cursor: 'pointer'
+                  }}
+                  title="Check Database Directly"
+                >
+                  CHECK DB
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('🔄 [CourseOutlineTray] Cache check triggered');
+                    
+                    // Check current Redux state
+                    console.log('🔄 [CourseOutlineTray] Current Redux State:', {
+                      courseOutlineStatus,
+                      sequencesCount: Object.keys(sequences || {}).length,
+                      activeSequenceId,
+                      unitId,
+                      timestamp: new Date().toISOString()
+                    });
+                    
+                    // Check ID65 in current state
+                    if (sequences) {
+                      const id65Seq = Object.entries(sequences).find(([id, seq]) => 
+                        seq.title === 'ID65' || id.includes('83020c34')
+                      );
+                      
+                      if (id65Seq) {
+                        const [id, seq] = id65Seq;
+                        console.log('🔄 [CourseOutlineTray] ID65 Current State:', {
+                          fullId: id,
+                          title: seq.title,
+                          unitIds: seq.unitIds,
+                          unitCount: seq.unitIds?.length || 0,
+                          rawSequence: seq
+                        });
+                      } else {
+                        console.log('❌ [CourseOutlineTray] ID65 not found in current Redux state');
+                      }
+                    }
+                    
+                    // Check browser cache
+                    console.log('🔄 [CourseOutlineTray] Browser Cache Info:', {
+                      localStorage: Object.keys(localStorage).filter(key => key.includes('course')),
+                      sessionStorage: Object.keys(sessionStorage).filter(key => key.includes('course')),
+                      timestamp: new Date().toISOString()
+                    });
+                  }}
+                  style={{
+                    background: '#2196f3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    padding: '2px 6px',
+                    cursor: 'pointer'
+                  }}
+                  title="Check Cache Status"
+                >
+                  CHECK CACHE
                 </button>
                 {process.env.NODE_ENV === 'development' && (
                   <button
