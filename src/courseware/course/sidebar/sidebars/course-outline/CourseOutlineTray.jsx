@@ -19,7 +19,12 @@ const CourseOutlineTray = ({ intl }) => {
     lastLoadTime: null,
     errors: [],
     sequenceCount: 0,
-    loadingDuration: 0
+    loadingDuration: 0,
+    userRole: null,
+    courseId: null,
+    apiResponse: null,
+    permissions: null,
+    cacheStatus: null
   });
   const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
 
@@ -39,21 +44,73 @@ const CourseOutlineTray = ({ intl }) => {
   // Debug monitoring
   useEffect(() => {
     const startTime = Date.now();
+    
+    // Get user role and permissions
+    const getUserInfo = async () => {
+      try {
+        // Try multiple endpoints to get user info
+        const endpoints = [
+          '/api/user/v1/me',
+          '/api/mobile/v1/users/me',
+          '/api/mobile/v0.5/users/me'
+        ];
+        
+        let userData = null;
+        for (const endpoint of endpoints) {
+          try {
+            const response = await fetch(endpoint);
+            if (response.ok) {
+              const data = await response.json();
+              if (data && (data.is_staff !== undefined || data.username)) {
+                userData = data;
+                break;
+              }
+            }
+          } catch (e) {
+            continue;
+          }
+        }
+        
+        if (userData) {
+          setDebugInfo(prev => ({
+            ...prev,
+            userRole: userData.is_staff ? 'staff' : 'student',
+            courseId: courseId
+          }));
+        } else {
+          // Fallback: try to get user info from window object or other sources
+          const fallbackRole = window.user || window.global || window.edx;
+          setDebugInfo(prev => ({
+            ...prev,
+            userRole: fallbackRole ? 'detected' : 'unknown',
+            courseId: courseId
+          }));
+        }
+      } catch (error) {
+        setDebugInfo(prev => ({
+          ...prev,
+          userRole: 'unknown',
+          errors: [...prev.errors, `User info error: ${error.message}`]
+        }));
+      }
+    };
+
     setDebugInfo(prev => ({
       ...prev,
       loadAttempts: prev.loadAttempts + 1,
       lastLoadTime: new Date().toISOString()
     }));
 
+    getUserInfo();
 
     if (courseOutlineStatus !== LOADING) {
       const duration = Date.now() - startTime;
       setDebugInfo(prev => ({
         ...prev,
         loadingDuration: duration,
-        sequenceCount: Object.keys(sequences || {}).length
+        sequenceCount: Object.keys(sequences || {}).length,
+        apiResponse: sequences ? 'success' : 'failed'
       }));
-
     }
   }, [courseOutlineStatus, courseId, sequences]);
 
@@ -126,53 +183,100 @@ const CourseOutlineTray = ({ intl }) => {
             {/* Debug Info Overlay */}
             {showDebug && (
               <div style={{
-                background: 'rgba(0, 0, 0, 0.9)',
-                color: '#00ff00',
+                position: 'fixed',
+                top: '10px',
+                right: '10px',
+                background: 'rgba(0,0,0,0.9)',
+                color: 'white',
+                padding: '15px',
+                borderRadius: '8px',
+                fontSize: '12px',
                 fontFamily: 'monospace',
-                fontSize: '11px',
-                padding: '8px',
-                margin: '4px',
-                borderRadius: '4px',
-                border: '1px solid #333',
-                maxHeight: '150px',
+                zIndex: 9999,
+                maxWidth: '400px',
+                maxHeight: '80vh',
                 overflow: 'auto'
               }}>
-                <div style={{ fontWeight: 'bold', color: '#ffff00', marginBottom: '4px' }}>
-                  🔍 COURSE OUTLINE DEBUG
+                <h4 style={{ margin: '0 0 10px 0', color: '#51cf66' }}>🔍 Course Outline Debug</h4>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>User Role:</strong> {debugInfo.userRole || 'loading...'}
                 </div>
-                <div>Course ID: <span style={{ color: '#ff6b6b' }}>{courseId}</span></div>
-                <div>Status: <span style={{ color: courseOutlineStatus === LOADING ? '#ffa500' : '#00ff00' }}>
-                  {courseOutlineStatus}
-                </span></div>
-                <div>Load Attempts: <span style={{ color: '#87ceeb' }}>{debugInfo.loadAttempts}</span></div>
-                <div>Sequences: <span style={{ color: '#87ceeb' }}>
-                  {Object.keys(sequences || {}).length}
-                </span></div>
-                <div>Active Sequence: <span style={{ color: '#ff6b6b' }}>{activeSequenceId}</span></div>
-                <div>Unit ID: <span style={{ color: '#ff6b6b' }}>{unitId}</span></div>
-                <div>Last Load: <span style={{ color: '#87ceeb' }}>
-                  {debugInfo.lastLoadTime ? new Date(debugInfo.lastLoadTime).toLocaleTimeString() : 'N/A'}
-                </span></div>
-                <div>Duration: <span style={{ color: '#87ceeb' }}>{debugInfo.loadingDuration}ms</span></div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Course ID:</strong> {debugInfo.courseId || 'loading...'}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Load Attempts:</strong> {debugInfo.loadAttempts}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Sequences Count:</strong> {debugInfo.sequenceCount}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>API Response:</strong> {debugInfo.apiResponse || 'pending...'}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Course Outline Status:</strong> {courseOutlineStatus}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Active Sequence ID:</strong> {activeSequenceId || 'none'}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Current Unit ID:</strong> {unitId || 'none'}
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Loading Duration:</strong> {debugInfo.loadingDuration}ms
+                </div>
+                
+                <div style={{ marginBottom: '8px' }}>
+                  <strong>Last Load:</strong> {debugInfo.lastLoadTime ? new Date(debugInfo.lastLoadTime).toLocaleTimeString() : 'never'}
+                </div>
+                
+                {debugInfo.errors.length > 0 && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong style={{ color: '#ff6b6b' }}>Errors:</strong>
+                    <ul style={{ margin: '5px 0', paddingLeft: '15px' }}>
+                      {debugInfo.errors.map((error, index) => (
+                        <li key={index} style={{ color: '#ff6b6b' }}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 
                 {sequences && Object.keys(sequences).length > 0 && (
-                  <details style={{ marginTop: '8px' }}>
-                    <summary style={{ color: '#ffff00', cursor: 'pointer' }}>Sequences Data</summary>
-                    <div style={{ marginLeft: '8px', fontSize: '10px' }}>
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#51cf66', cursor: 'pointer', fontSize: '11px' }}>
+                      📋 View Sequences ({Object.keys(sequences).length})
+                    </summary>
+                    <div style={{ marginTop: '5px', fontSize: '10px', maxHeight: '150px', overflow: 'auto' }}>
                       {Object.entries(sequences).map(([seqId, seq]) => (
-                        <div key={seqId} style={{ margin: '2px 0' }}>
-                          <span style={{ color: '#ffa500' }}>{seqId.slice(-8)}</span>: 
-                          <span style={{ color: '#87ceeb' }}> {seq.title}</span>
-                          {seqId === activeSequenceId && <span style={{ color: '#00ff00' }}> [ACTIVE]</span>}
+                        <div key={seqId} style={{ 
+                          margin: '2px 0', 
+                          padding: '2px',
+                          background: seqId === activeSequenceId ? 'rgba(81, 207, 102, 0.2)' : 'transparent',
+                          borderRadius: '2px'
+                        }}>
+                          <span style={{ color: '#ff6b6b' }}>{seqId.slice(-8)}</span>: 
+                          <span style={{ color: '#87ceeb' }}> {seq.title || 'No title'}</span>
+                          {seqId === activeSequenceId && <span style={{ color: '#51cf66' }}> [ACTIVE]</span>}
+                          <div style={{ fontSize: '9px', color: '#aaa', marginLeft: '10px' }}>
+                            Units: {seq.unitIds ? seq.unitIds.length : 0}
+                          </div>
                         </div>
                       ))}
                     </div>
                   </details>
                 )}
                 
-                <div style={{ marginTop: '8px', fontSize: '10px', color: '#888' }}>
-                  Network: {navigator.connection?.effectiveType || 'unknown'} | 
-                  Online: {navigator.onLine ? '✅' : '❌'}
+                <div style={{ marginTop: '10px', fontSize: '10px', color: '#aaa' }}>
+                  💡 Compare this info between admin and regular user to find the issue
                 </div>
               </div>
             )}

@@ -265,9 +265,34 @@ export function getCourseOutlineStructure(courseId) {
   return async (dispatch) => {
     dispatch(fetchCourseOutlineRequest());
     try {
+      // Debug: Log API call details
+      const startTime = Date.now();
       const courseOutline = await getCourseOutline(courseId);
+      const duration = Date.now() - startTime;
+      
+      // Debug info for course outline loading
+      if (process.env.NODE_ENV === 'development') {
+        console.group('🔍 Course Outline Debug');
+        console.log('Course ID:', courseId);
+        console.log('API Duration:', duration + 'ms');
+        console.log('Sequences Count:', Object.keys(courseOutline?.sequences || {}).length);
+        console.log('Units Count:', Object.keys(courseOutline?.units || {}).length);
+        console.log('Sections Count:', Object.keys(courseOutline?.sections || {}).length);
+        console.log('Full Response:', courseOutline);
+        console.groupEnd();
+      }
+      
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
+      // Debug: Log error details
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Course Outline API Error:', {
+          courseId,
+          error: error.message,
+          status: error.response?.status,
+          data: error.response?.data
+        });
+      }
       dispatch(fetchCourseOutlineFailure());
     }
   };

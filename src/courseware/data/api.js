@@ -97,8 +97,30 @@ export async function getCourseTopics(courseId) {
  * @returns {Promise<{units: {}, sequences: {}, sections: {}}|null>}
  */
 export async function getCourseOutline(courseId) {
+  const url = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`;
+  
+  // Debug: Log API call
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🌐 Course Outline API Call:', {
+      url,
+      courseId,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
   const { data } = await getAuthenticatedHttpClient()
-    .get(`${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`);
+    .get(url);
+
+  // Debug: Log response details
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📊 Course Outline API Response:', {
+      courseId,
+      blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
+      hasBlocks: !!data.blocks,
+      responseKeys: Object.keys(data),
+      fullResponse: data
+    });
+  }
 
   return data.blocks ? normalizeOutlineBlocks(courseId, data.blocks) : null;
 }
