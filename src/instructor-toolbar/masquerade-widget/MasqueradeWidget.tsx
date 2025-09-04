@@ -56,7 +56,6 @@ export const MasqueradeWidget: React.FC<Props> = ({ courseId, onError }) => {
       // if we can't fetch masquerade options,
       // assume it's disabled/unavailable.
       // eslint-disable-next-line no-console
-      console.error('Unable to get masquerade options', response);
     });
   }, [courseId, onError]);
 

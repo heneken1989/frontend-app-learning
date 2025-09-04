@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 /**
  * Simple UnitTimer component that just shows the time
  */
-const UnitTimer = ({ unitId, initialTimeByProblemType, onTimeExpired }) => {
+const UnitTimer = ({ unitId, initialTimeByProblemType = null, onTimeExpired = () => {} }) => {
   const storageKey = `unit_timer_${unitId}`;
   const [timeLeft, setTimeLeft] = useState(
     typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0
@@ -97,9 +97,5 @@ UnitTimer.propTypes = {
   onTimeExpired: PropTypes.func,
 };
 
-UnitTimer.defaultProps = {
-  initialTimeByProblemType: null,
-  onTimeExpired: () => {},
-};
 
 export default UnitTimer;

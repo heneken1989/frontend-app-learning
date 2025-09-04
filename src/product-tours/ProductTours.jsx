@@ -173,7 +173,7 @@ const ProductTours = ({
 
 ProductTours.propTypes = {
   activeTab: PropTypes.string.isRequired,
-  courseId: PropTypes.string.isRequired,
+  courseId: PropTypes.string,
   isStreakCelebrationOpen: PropTypes.bool.isRequired,
   org: PropTypes.string.isRequired,
 };

@@ -10,10 +10,10 @@ import { Link } from 'react-router-dom';
 import messages from './messages';
 
 const CourseLockUp = ({
-  outlineLink,
-  org,
-  number,
-  title,
+  outlineLink = null,
+  org = null,
+  number = null,
+  title = null,
   // injected
   intl,
 }) => (
@@ -46,11 +46,5 @@ CourseLockUp.propTypes = {
   intl: intlShape.isRequired,
 };
 
-CourseLockUp.defaultProps = {
-  number: null,
-  org: null,
-  title: null,
-  outlineLink: null,
-};
 
 export default injectIntl(CourseLockUp);

@@ -234,26 +234,19 @@ const NavigationMenu = ({ courses }) => {
     }
 
     try {
-      console.log('[AutoEnroll] Starting auto enrollment process...');
       
       // Get the correct base URL based on current environment
       let baseUrl;
       if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
         // Development - LMS runs on port 8000
         baseUrl = 'http://local.openedx.io:8000';
-        console.log('[AutoEnroll] Development environment detected');
       } else {
         // Production - LMS runs on subdomain lms.nihongodrill.com
         baseUrl = 'https://lms.nihongodrill.com';
-        console.log('[AutoEnroll] Production environment detected');
       }
       
-      console.log('[AutoEnroll] Current hostname:', window.location.hostname);
-      console.log('[AutoEnroll] Current port:', window.location.port);
-      console.log('[AutoEnroll] Using LMS baseUrl:', baseUrl);
 
       // Step 1: Test if payment API exists on production
-      console.log('[AutoEnroll] Testing payment API availability...');
       
       // Try different URL patterns on production LMS
       let testResponse;
@@ -270,11 +263,9 @@ const NavigationMenu = ({ courses }) => {
         // Track which pattern worked for proper URL construction
         let workingPattern = null;
         
-        console.log('[AutoEnroll] Testing URL patterns:', urlPatterns);
         
         for (const url of urlPatterns) {
           try {
-            console.log('[AutoEnroll] Testing URL:', url);
             testResponse = await fetch(url, {
               method: 'GET',
               credentials: 'include',
@@ -284,25 +275,20 @@ const NavigationMenu = ({ courses }) => {
               // Track which pattern worked
               workingPattern = url;
               workingUrl = baseUrl;
-              console.log('[AutoEnroll] Found working pattern:', workingPattern);
-              console.log('[AutoEnroll] Using base URL:', workingUrl);
               break;
             }
           } catch (e) {
-            console.log('[AutoEnroll] URL failed:', url, e.message);
             continue;
           }
         }
         
         if (!workingUrl) {
-          console.warn('[AutoEnroll] No working payment API found on production');
           alert('⚠️ Tính năng Auto Enroll chưa có sẵn trên production server.\n\nVui lòng liên hệ admin để deploy payment app hoặc sử dụng tính năng này trên development server.');
           return;
         }
         
         // Update baseUrl to working URL
         baseUrl = workingUrl;
-        console.log('[AutoEnroll] Updated baseUrl to:', baseUrl);
         
         // Store the working pattern for URL construction
         window.workingPaymentPattern = workingPattern;
@@ -314,17 +300,13 @@ const NavigationMenu = ({ courses }) => {
         });
       }
       
-      console.log('[AutoEnroll] Test API status:', testResponse.status);
-      console.log('[AutoEnroll] Test API headers:', Object.fromEntries(testResponse.headers.entries()));
       
       if (!testResponse.ok) {
-        console.warn('[AutoEnroll] Payment app not available');
         alert('⚠️ Tính năng Auto Enroll chưa có sẵn.\n\nVui lòng liên hệ admin để deploy payment app.');
         return;
       }
       
       // Step 2: Get CSRF token from Django backend
-      console.log('[AutoEnroll] Getting CSRF token...');
       
       // Use the working pattern to construct the correct URL
       let csrfUrl;
@@ -336,43 +318,35 @@ const NavigationMenu = ({ courses }) => {
         csrfUrl = `${baseUrl}/api/payment/csrf-token/`;
       }
       
-      console.log('[AutoEnroll] CSRF URL:', csrfUrl);
       
       const csrfResponse = await fetch(csrfUrl, {
         method: 'GET',
         credentials: 'include',
       });
 
-      console.log('[AutoEnroll] CSRF Response status:', csrfResponse.status);
-      console.log('[AutoEnroll] CSRF Response headers:', Object.fromEntries(csrfResponse.headers.entries()));
 
       if (!csrfResponse.ok) {
         const errorText = await csrfResponse.text();
-        console.error('[AutoEnroll] CSRF Error response:', errorText);
         throw new Error(`Failed to get CSRF token: ${csrfResponse.status} - ${errorText}`);
       }
 
       const responseText = await csrfResponse.text();
-      console.log('[AutoEnroll] CSRF Response text:', responseText);
       
       let csrfData;
       try {
         csrfData = JSON.parse(responseText);
       } catch (e) {
-        console.error('[AutoEnroll] CSRF JSON parse error:', e);
         throw new Error(`Invalid JSON response: ${responseText}`);
       }
       
       const csrfToken = csrfData.csrf_token;
 
-      console.log('[AutoEnroll] CSRF Token received:', csrfToken ? 'Yes' : 'No');
 
       if (!csrfToken) {
         throw new Error('CSRF token not received from backend');
       }
 
       // Step 2: Call the auto enrollment API
-      console.log('[AutoEnroll] Calling auto-enroll API...');
       
       // Use the working pattern to construct the correct URL
       let autoEnrollUrl;
@@ -384,7 +358,6 @@ const NavigationMenu = ({ courses }) => {
         autoEnrollUrl = `${baseUrl}/api/payment/auto-enroll-all/`;
       }
       
-      console.log('[AutoEnroll] Auto-enroll URL:', autoEnrollUrl);
       
       const response = await fetch(autoEnrollUrl, {
         method: 'POST',
@@ -395,27 +368,21 @@ const NavigationMenu = ({ courses }) => {
         credentials: 'include',
       });
 
-      console.log('[AutoEnroll] Response status:', response.status);
-      console.log('[AutoEnroll] Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[AutoEnroll] Error response:', errorText);
         throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
       }
 
       const autoEnrollResponseText = await response.text();
-      console.log('[AutoEnroll] Response text:', autoEnrollResponseText);
       
       let result;
       try {
         result = JSON.parse(autoEnrollResponseText);
       } catch (e) {
-        console.error('[AutoEnroll] JSON parse error:', e);
         throw new Error(`Invalid JSON response: ${autoEnrollResponseText}`);
       }
       
-      console.log('[AutoEnroll] Success result:', result);
 
       if (result.success) {
         alert(`🎉 Thành công!\n\n✅ Đã đăng ký ${result.enrolled_count} khóa học mới\n📚 Tổng cộng có ${result.total_available_courses} khóa học khả dụng\n👤 User: ${result.user}\n\n${result.message}`);
@@ -427,7 +394,6 @@ const NavigationMenu = ({ courses }) => {
       }
 
     } catch (error) {
-      console.error('[AutoEnroll] Error:', error);
       
       // Show user-friendly error message
       let errorMessage = 'Có lỗi xảy ra khi đăng ký khóa học!';
@@ -568,16 +534,14 @@ const NavigationMenu = ({ courses }) => {
 };
 
 const LearningHeader = ({
-  courseOrg, courseNumber, courseTitle, intl, showUserDropdown, courseId, unitId,
+  courseOrg = null, 
+  courseNumber = null, 
+  courseTitle = null, 
+  intl, 
+  showUserDropdown = true, 
+  courseId = null, 
+  unitId = null,
 }) => {
-  console.log('[LearningHeader] Props:', {
-    courseOrg,
-    courseNumber,
-    courseTitle,
-    showUserDropdown,
-    courseId,
-    unitId,
-  });
 
   const { authenticatedUser } = useContext(AppContext);
   const [timeLimit, setTimeLimit] = useState(null);
@@ -592,29 +556,22 @@ const LearningHeader = ({
 
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
-  console.log('[LearningHeader] Unit from model:', unit);
 
   useEffect(() => {
     let didCancel = false;
     async function fetchTimeLimit() {
       if (unitId) {
-        console.log('[LearningHeader] Fetching time limit for unitId:', unitId);
         // Prefer time_limit from model if available
         if (unit && unit.time_limit) {
-          console.log('[LearningHeader] Found time_limit in model:', unit.time_limit);
           setTimeLimit(unit.time_limit);
         } else {
-          console.log('[LearningHeader] No time_limit in model, fetching from API...');
           // Fallback: fetch directly
           try {
             const unitData = await fetchUnitById(unitId);
-            console.log('[LearningHeader] API response:', unitData);
             if (!didCancel) {
               if (unitData.time_limit) {
-                console.log('[LearningHeader] Found time_limit in API:', unitData.time_limit);
                 setTimeLimit(unitData.time_limit);
               } else {
-                console.log('[LearningHeader] No time_limit in API response, setting to 0');
                 setTimeLimit(0);
               }
               if (unitData.html && unitData.html.includes('paragraph_quiz.html')) {
@@ -623,12 +580,10 @@ const LearningHeader = ({
             }
           } catch (error) {
             if (!didCancel) {
-              console.error('[LearningHeader] Error fetching unit for time limit:', error);
             }
           }
         }
       } else {
-        console.log('[LearningHeader] No unitId provided');
       }
     }
     fetchTimeLimit();
@@ -638,24 +593,15 @@ const LearningHeader = ({
   useEffect(() => {
     fetchAllCourses()
       .then(data => {
-        console.log('[LearningHeader] Fetched courses:', data);
         setCourses(data);
       })
       .catch(err => {
-        console.error('[LearningHeader] Error fetching courses:', err);
       });
   }, []);
 
   const handleTimeExpired = () => {
-    console.log('[LearningHeader] Time expired for unit:', unitId);
+    // Handle time expiration logic here
   };
-
-  console.log('[LearningHeader] Current state:', {
-    timeLimit,
-    hasQuiz,
-    isAuthenticated: !!authenticatedUser,
-    unitData: unit,
-  });
 
   return (
     <header className="learning-header">
@@ -664,16 +610,13 @@ const LearningHeader = ({
         {/* Logo removed */}
         <NavigationMenu courses={courses} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
-          {console.log('[LearningHeader] Rendering timer section. unitId:', unitId, 'timeLimit:', timeLimit)}
           {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
               unitId={unitId}
               initialTimeByProblemType={timeLimit}
               onTimeExpired={handleTimeExpired}
             />
-          ) : (
-            console.log('[LearningHeader] Timer not rendered. unitId:', unitId, 'timeLimit:', timeLimit)
-          )}
+          ) : null}
         </div>
         {showUserDropdown && authenticatedUser && (
         <>
@@ -715,13 +658,5 @@ LearningHeader.propTypes = {
   unitId: PropTypes.string,
 };
 
-LearningHeader.defaultProps = {
-  courseOrg: null,
-  courseNumber: null,
-  courseTitle: null,
-  showUserDropdown: true,
-  courseId: null,
-  unitId: null,
-};
 
 export default injectIntl(LearningHeader);

@@ -27,7 +27,6 @@ const SubscriptionStatus = () => {
       const data = await response.json();
       setSubscriptionData(data);
     } catch (err) {
-      console.error('Error fetching subscription details:', err);
       setError(err.message);
     } finally {
       setLoading(false);

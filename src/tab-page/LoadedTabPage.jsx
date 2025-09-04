@@ -17,10 +17,10 @@ import ProductTours from '../product-tours/ProductTours';
 
 const LoadedTabPage = ({
   activeTabSlug,
-  children,
+  children = null,
   courseId,
-  metadataModel,
-  unitId,
+  metadataModel = 'courseHomeMeta',
+  unitId = null,
 }) => {
   const {
     celebrations,
@@ -37,7 +37,7 @@ const LoadedTabPage = ({
   const logistrationAlert = useLogistrationAlert(courseId);
   const enrollmentAlert = useEnrollmentAlert(courseId);
 
-  const activeTab = tabs.filter(tab => tab.slug === activeTabSlug)[0];
+  const activeTab = tabs?.filter(tab => tab.slug === activeTabSlug)[0];
 
   const streakLengthToCelebrate = celebrations && celebrations.streakLengthToCelebrate;
   const streakDiscountCouponEnabled = celebrations && celebrations.streakDiscountEnabled && verifiedMode;
@@ -92,15 +92,10 @@ const LoadedTabPage = ({
 LoadedTabPage.propTypes = {
   activeTabSlug: PropTypes.string.isRequired,
   children: PropTypes.node,
-  courseId: PropTypes.string.isRequired,
+  courseId: PropTypes.string,
   metadataModel: PropTypes.string,
   unitId: PropTypes.string,
 };
 
-LoadedTabPage.defaultProps = {
-  children: null,
-  metadataModel: 'courseHomeMeta',
-  unitId: null,
-};
 
 export default LoadedTabPage;

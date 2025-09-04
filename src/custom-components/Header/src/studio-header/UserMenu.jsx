@@ -8,12 +8,12 @@ import NavDropdownMenu from './NavDropdownMenu';
 import getUserMenuItems from './utils';
 
 const UserMenu = ({
-  username,
+  username = null,
   studioBaseUrl,
   logoutUrl,
-  authenticatedUserAvatar,
-  isMobile,
-  isAdmin,
+  authenticatedUserAvatar = null,
+  isMobile = false,
+  isAdmin = false,
   // injected
   intl,
 }) => {
@@ -59,11 +59,5 @@ UserMenu.propTypes = {
   intl: intlShape.isRequired,
 };
 
-UserMenu.defaultProps = {
-  isMobile: false,
-  isAdmin: false,
-  authenticatedUserAvatar: null,
-  username: null,
-};
 
 export default injectIntl(UserMenu);

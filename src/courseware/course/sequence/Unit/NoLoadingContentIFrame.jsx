@@ -4,7 +4,17 @@ import React, { useState, useEffect } from 'react';
 /**
  * Iframe component with dark transition effect during loading
  */
-const NoLoadingContentIFrame = (props) => {
+const NoLoadingContentIFrame = ({
+  iframeUrl = '',
+  title = '',
+  elementId = '',
+  onLoaded = null,
+  shouldShowContent = true,
+  loadingMessage = '',
+  courseId = '',
+  hasQuiz = false,
+  ...otherProps
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showContent, setShowContent] = useState(false);
 
@@ -12,16 +22,14 @@ const NoLoadingContentIFrame = (props) => {
     // Reset loading state when URL changes
     setIsLoading(true);
     setShowContent(false);
-  }, [props.iframeUrl]);
+  }, [iframeUrl]);
 
   const handleLoad = () => {
-    console.log('Iframe loaded - starting transition');
-    
     // Short delay to ensure content is ready, then reveal
     setTimeout(() => {
       setIsLoading(false);
       setShowContent(true);
-      if (props.onLoaded) props.onLoaded();
+      if (onLoaded) onLoaded();
     }, 300);
   };
 
@@ -148,9 +156,9 @@ const NoLoadingContentIFrame = (props) => {
         )}
         
         <iframe
-          id={props.elementId}
-          src={props.iframeUrl}
-          title={props.title}
+          id={elementId}
+          src={iframeUrl}
+          title={title}
           allow="microphone *; camera *; midi *; geolocation *; encrypted-media *; clipboard-write *; autoplay *"
           allowFullScreen
           height="700"
@@ -183,15 +191,5 @@ NoLoadingContentIFrame.propTypes = {
   hasQuiz: PropTypes.bool,
 };
 
-NoLoadingContentIFrame.defaultProps = {
-  iframeUrl: '',
-  title: '',
-  elementId: '',
-  onLoaded: null,
-  shouldShowContent: true,
-  loadingMessage: '',
-  courseId: '',
-  hasQuiz: false,
-};
 
 export default NoLoadingContentIFrame;

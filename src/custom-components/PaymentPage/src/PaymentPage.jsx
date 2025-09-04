@@ -32,7 +32,6 @@ const PaymentPage = ({ intl }) => {
         return data.csrfToken;
       }
     } catch (error) {
-      console.error('Error fetching CSRF token:', error);
     }
     return null;
   };
@@ -54,7 +53,6 @@ const PaymentPage = ({ intl }) => {
         useSimulator,
       };
 
-      console.log('Sending payment data:', paymentData);
 
       // Lấy CSRF token từ LMS backend
       const csrfToken = await getCSRFToken();
@@ -71,26 +69,21 @@ const PaymentPage = ({ intl }) => {
         credentials: 'include',
       });
 
-      console.log('Response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Response error:', errorText);
         throw new Error(`Payment creation failed: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('Payment response:', data);
 
       if (data.success && data.paymentUrl) {
-        console.log('Redirecting to:', data.paymentUrl);
         // Redirect đến VNPay hoặc simulator
         window.location.href = data.paymentUrl;
       } else {
         throw new Error(data.error || 'No payment URL received');
       }
     } catch (error) {
-      console.error('Payment error:', error);
       alert('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại.');
     } finally {
       setIsProcessing(false);

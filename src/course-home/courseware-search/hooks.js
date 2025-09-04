@@ -30,7 +30,6 @@ export function useElementBoundingBox(elementId) {
   const element = document.getElementById(elementId);
 
   if (!element) {
-    console.warn(`useElementBoundingBox(): Unable to find element with id='${elementId}' in the document.`); // eslint-disable-line no-console
     return undefined;
   }
 

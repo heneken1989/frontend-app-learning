@@ -18,7 +18,7 @@ const NextButton = ({
   variant,
   buttonStyle,
   disabled,
-  hasEffortEstimate,
+  hasEffortEstimate = false,
   isAtTop,
 }) => {
   const navigate = useNavigate();
@@ -72,9 +72,6 @@ const NextButton = ({
   );
 };
 
-NextButton.defaultProps = {
-  hasEffortEstimate: false,
-};
 
 NextButton.propTypes = {
   onClickHandler: PropTypes.func.isRequired,
@@ -84,7 +81,7 @@ NextButton.propTypes = {
   buttonStyle: PropTypes.string.isRequired,
   disabled: PropTypes.bool.isRequired,
   hasEffortEstimate: PropTypes.bool,
-  isAtTop: PropTypes.bool.isRequired,
+  isAtTop: PropTypes.bool,
 };
 
 export default NextButton;

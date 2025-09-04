@@ -17,13 +17,16 @@ import LoadedTabPage from './LoadedTabPage';
 import { setCallToActionToast } from '../course-home/data/slice';
 import LaunchCourseHomeTourButton from '../product-tours/newUserCourseHomeTour/LaunchCourseHomeTourButton';
 
-const TabPage = ({ intl, ...props }) => {
+const TabPage = ({ 
+  intl, 
+  courseId = null, 
+  unitId = null, 
+  ...props 
+}) => {
   const {
     activeTabSlug,
-    courseId,
     courseStatus,
     metadataModel,
-    unitId,
   } = props;
   const {
     toastBodyLink,
@@ -86,10 +89,6 @@ const TabPage = ({ intl, ...props }) => {
   );
 };
 
-TabPage.defaultProps = {
-  courseId: null,
-  unitId: null,
-};
 
 TabPage.propTypes = {
   activeTabSlug: PropTypes.string.isRequired,

@@ -53,7 +53,6 @@ export const fetchAllCourses = () => fetch(`${getConfig().LMS_BASE_URL}/api/all_
   });
 
 export const fetchSectionsByCourseId = (courseId) => {
-  console.log('[fetchSectionsByCourseId] courseId:', courseId);
   return fetch(`${getConfig().LMS_BASE_URL}/api/all_courses/${courseId}/sections/`)
     .then((response) => {
       if (!response.ok) {
@@ -67,7 +66,6 @@ export const fetchSectionsByCourseId = (courseId) => {
 };
 
 export const fetchSequencesBySectionId = (sectionId) => {
-  console.log('[fetchSequencesBySectionId] sectionId:', sectionId);
   return fetch(`${getConfig().LMS_BASE_URL}/api/sections/${encodeURIComponent(sectionId)}/sequences/`)
     .then((response) => {
       if (!response.ok) {

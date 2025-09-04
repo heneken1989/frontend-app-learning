@@ -17,7 +17,6 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     // Log transaction data
-    console.log('Payment Success - Transaction Data:', transactionData);
   }, [transactionData]);
 
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN', {

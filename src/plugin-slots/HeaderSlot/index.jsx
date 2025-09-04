@@ -4,7 +4,12 @@ import { PluginSlot } from '@openedx/frontend-plugin-framework';
 import Header from '../../custom-components/Header/src/learning-header/LearningHeader';
 
 const HeaderSlot = ({
-  courseOrg, courseNumber, courseTitle, showUserDropdown, courseId, unitId,
+  courseOrg = null, 
+  courseNumber = null, 
+  courseTitle = null, 
+  showUserDropdown = true, 
+  courseId = null, 
+  unitId,
 }) => (
   <PluginSlot
     id="header_slot"
@@ -39,12 +44,5 @@ HeaderSlot.propTypes = {
   courseId: PropTypes.string,
 };
 
-HeaderSlot.defaultProps = {
-  courseOrg: null,
-  courseNumber: null,
-  courseTitle: null,
-  showUserDropdown: true,
-  courseId: null,
-};
 
 export default HeaderSlot;

@@ -27,7 +27,6 @@ const EnrollmentStatus = () => {
       const data = await response.json();
       setEnrollmentData(data);
     } catch (err) {
-      console.error('Error fetching enrollment status:', err);
       setError(err.message);
     } finally {
       setLoading(false);

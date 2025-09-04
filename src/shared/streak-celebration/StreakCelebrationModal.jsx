@@ -246,7 +246,7 @@ StreakModal.defaultProps = {
 };
 
 StreakModal.propTypes = {
-  courseId: PropTypes.string.isRequired,
+  courseId: PropTypes.string,
   metadataModel: PropTypes.string.isRequired,
   streakLengthToCelebrate: PropTypes.number,
   intl: intlShape.isRequired,

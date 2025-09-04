@@ -21,8 +21,8 @@ import UnitTimer from './UnitTimer';
 
 const Unit = ({
   courseId,
-  format,
-  onLoaded,
+  format = null,
+  onLoaded = undefined,
   id,
   isOriginalUserStaff,
   isEnabledOutlineSidebar,
@@ -50,7 +50,6 @@ const Unit = ({
   const iframeUrl = getUrl();
   const handleTimeExpired = () => {
     // Logic to handle when the timer expires
-    console.log('Time has expired for unit:', id);
     // You can add additional logic here, such as showing an alert or redirecting the user
   };
   const [time_limit, setTime_limit] = useState(null);
@@ -65,7 +64,7 @@ const Unit = ({
         }
       })
       .catch((error) => {
-        console.error('Error fetching problem ID:', error);
+        // Error fetching unit data
       });
   }, [id]);
 
@@ -99,9 +98,5 @@ Unit.propTypes = {
   renderUnitNavigation: PropTypes.func.isRequired,
 };
 
-Unit.defaultProps = {
-  format: null,
-  onLoaded: undefined,
-};
 
 export default Unit;

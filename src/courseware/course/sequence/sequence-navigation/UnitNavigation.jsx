@@ -17,10 +17,10 @@ import { CourseOutlineSidebarSlot } from '../../../../plugin-slots/CourseOutline
 
 const UnitNavigation = ({
   sequenceId,
-  unitId,
+  unitId = null,
   onClickPrevious,
   onClickNext,
-  isAtTop,
+  isAtTop = false,
   courseId,
 }) => {
   const intl = useIntl();
@@ -41,7 +41,6 @@ const UnitNavigation = ({
         try {
           iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
         } catch (e) {
-          console.error('Error sending message:', e);
         }
       }
     };
@@ -63,18 +62,14 @@ const UnitNavigation = ({
 
   const handleSubmit = () => {
     const iframe = document.getElementById('unit-iframe');
-    console.log('Submit clicked', { isSubmitting, answerShown });
 
     if (!iframe || isSubmitting) {
-      console.log('Submit blocked', { isSubmitting });
       return;
     }
 
     try {
-      console.log('Sending check');
       iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
     } catch (e) {
-      console.error('Error sending message:', e);
     }
   };
 
@@ -85,7 +80,6 @@ const UnitNavigation = ({
       return;
     }
 
-    console.log('Message received:', event.data.type);
 
     switch (event.data.type) {
       case 'problem.ready':
@@ -115,7 +109,6 @@ const UnitNavigation = ({
       return null;
     }
 
-    console.log('Render button', { isSubmitting, answerShown, isSubmitEnabled });
 
     const buttonText = isSubmitting ? 'Checking...' : (answerShown ? 'Try New' : 'Check');
 
@@ -284,9 +277,5 @@ UnitNavigation.propTypes = {
   isAtTop: PropTypes.bool,
 };
 
-UnitNavigation.defaultProps = {
-  unitId: null,
-  isAtTop: false,
-};
 
 export default UnitNavigation;

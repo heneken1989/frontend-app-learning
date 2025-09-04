@@ -190,7 +190,6 @@ export function searchCourseContent(courseId, searchKeyword) {
     } catch (e) {
       // TODO: Remove when publishing to prod. Just temporary for performance debugging.
       // eslint-disable-next-line no-console
-      console.error('Error on Courseware Search: ', e.message);
       errors = e.message;
     }
 
@@ -213,13 +212,5 @@ export function searchCourseContent(courseId, searchKeyword) {
 
     // TODO: Remove when publishing to prod. Just temporary for performance debugging.
     // eslint-disable-next-line no-console
-    console.table({
-      'Search Keyword': searchKeyword,
-      'Client time (ms)': clientMs,
-      'Server time (ms)': took,
-      'Total matches': total,
-      'Max score': maxScore,
-      'Access denied count': accessDeniedCount,
-    });
   };
 }

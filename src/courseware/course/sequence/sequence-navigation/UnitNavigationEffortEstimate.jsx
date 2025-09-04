@@ -23,10 +23,10 @@ import messages from './messages';
  */
 
 const UnitNavigationEffortEstimate = ({
-  children,
+  children = null,
   intl,
   sequenceId,
-  unitId,
+  unitId = null,
 }) => {
   const sequenceIds = useSelector(sequenceIdsSelector);
   const sequenceIndex = sequenceIds.indexOf(sequenceId);
@@ -60,13 +60,9 @@ const UnitNavigationEffortEstimate = ({
 UnitNavigationEffortEstimate.propTypes = {
   children: PropTypes.node,
   intl: intlShape.isRequired,
-  sequenceId: PropTypes.string.isRequired,
+  sequenceId: PropTypes.string,
   unitId: PropTypes.string,
 };
 
-UnitNavigationEffortEstimate.defaultProps = {
-  children: null,
-  unitId: null,
-};
 
 export default injectIntl(UnitNavigationEffortEstimate);

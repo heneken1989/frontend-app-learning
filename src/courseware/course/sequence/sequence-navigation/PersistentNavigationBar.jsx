@@ -70,7 +70,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         return;
       }
 
-      console.log('Message received:', event.data.type);
 
       switch (event.data.type) {
         case 'problem.ready':
@@ -96,7 +95,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   // Reset button state when unit changes - always back to "Check"
   useEffect(() => {
     if (unitId) {
-      console.log(`🔄 [PersistentNav] Unit changed to ${unitId} - resetting button to "Check"`);
       setCurrentButtonState('Check');
     }
   }, [unitId]);
@@ -109,7 +107,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         try {
           iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
         } catch (e) {
-          console.error('Error sending message:', e);
         }
       }
     };
@@ -128,27 +125,21 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const handleSubmit = () => {
     const iframe = document.getElementById('unit-iframe');
-    console.log('Submit clicked', { isSubmitting, currentButtonState, unitId });
 
     if (!iframe || isSubmitting) {
-      console.log('Submit blocked', { isSubmitting });
       return;
     }
 
     try {
-      console.log('Sending check for unit:', unitId);
       iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
       
       // Toggle button state manually - ONLY on user click
       if (currentButtonState === 'Check') {
-        console.log(`✅ [PersistentNav] Check clicked - changing to "Try New"`);
         setCurrentButtonState('Try New');
       } else {
-        console.log(`🔄 [PersistentNav] Try New clicked - changing to "Check"`);
         setCurrentButtonState('Check');
       }
     } catch (e) {
-      console.error('Error sending message:', e);
     }
   };
 
@@ -156,11 +147,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     // Simple button state - only changes on manual clicks
     const buttonText = isSubmitting ? 'Checking...' : currentButtonState;
     
-    console.log(`🎯 [PersistentNav] Render button for unit ${unitId}:`, {
-      currentButtonState,
-      isSubmitting,
-      buttonText
-    });
 
     return (
       <Button

@@ -45,12 +45,6 @@ const CourseOutlineTray = ({ intl }) => {
       lastLoadTime: new Date().toISOString()
     }));
 
-    console.log('🔍 [CourseOutlineTray] Loading started', {
-      courseId,
-      status: courseOutlineStatus,
-      timestamp: new Date().toISOString(),
-      attempt: debugInfo.loadAttempts + 1
-    });
 
     if (courseOutlineStatus !== LOADING) {
       const duration = Date.now() - startTime;
@@ -60,25 +54,12 @@ const CourseOutlineTray = ({ intl }) => {
         sequenceCount: Object.keys(sequences || {}).length
       }));
 
-      console.log('✅ [CourseOutlineTray] Loading completed', {
-        courseId,
-        status: courseOutlineStatus,
-        duration: `${duration}ms`,
-        sequenceCount: Object.keys(sequences || {}).length,
-        sequences: sequences
-      });
     }
   }, [courseOutlineStatus, courseId, sequences]);
 
   // Monitor sequences changes
   useEffect(() => {
     if (sequences && Object.keys(sequences).length > 0) {
-      console.log('📊 [CourseOutlineTray] Sequences updated', {
-        count: Object.keys(sequences).length,
-        sequenceIds: Object.keys(sequences),
-        activeSequenceId,
-        sequences
-      });
     }
   }, [sequences, activeSequenceId]);
 

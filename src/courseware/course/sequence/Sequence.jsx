@@ -25,8 +25,8 @@ import PersistentNavigationBar from './sequence-navigation/PersistentNavigationB
 import SequenceContent from './SequenceContent';
 
 const Sequence = ({
-  unitId,
-  sequenceId,
+  unitId = null,
+  sequenceId = null,
   courseId,
   unitNavigationHandler,
   nextSequenceHandler,
@@ -257,9 +257,5 @@ Sequence.propTypes = {
   previousSequenceHandler: PropTypes.func.isRequired,
 };
 
-Sequence.defaultProps = {
-  sequenceId: null,
-  unitId: null,
-};
 
 export default Sequence;

@@ -37,7 +37,11 @@ const AuthenticatedUserDropdown = ({ intl, username }) => {
 
   return (
     <Dropdown className="user-dropdown ml-3">
-      <Dropdown.Toggle variant="outline-primary" aria-label={intl.formatMessage(messages.userOptionsDropdownLabel)}>
+      <Dropdown.Toggle 
+        id="user-dropdown-toggle"
+        variant="outline-primary" 
+        aria-label={intl.formatMessage(messages.userOptionsDropdownLabel)}
+      >
         <FontAwesomeIcon icon={faUserCircle} className="d-md-none" size="lg" />
         <span data-hj-suppress className="d-none d-md-inline">
           {username}

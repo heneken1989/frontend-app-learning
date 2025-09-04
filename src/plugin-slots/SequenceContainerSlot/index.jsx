@@ -1,7 +1,7 @@
 import PropTypes from 'prop-types';
 import { PluginSlot } from '@openedx/frontend-plugin-framework';
 
-const SequenceContainerSlot = ({ courseId, unitId }) => (
+const SequenceContainerSlot = ({ courseId, unitId = null }) => (
   <PluginSlot
     id="sequence_container_slot"
     pluginProps={{
@@ -16,8 +16,5 @@ SequenceContainerSlot.propTypes = {
   unitId: PropTypes.string,
 };
 
-SequenceContainerSlot.defaultProps = {
-  unitId: null,
-};
 
 export default SequenceContainerSlot;

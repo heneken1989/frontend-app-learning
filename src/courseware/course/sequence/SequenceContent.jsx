@@ -13,7 +13,7 @@ const SequenceContent = ({
   gated,
   courseId,
   sequenceId,
-  unitId,
+  unitId = null,
   unitLoadedHandler,
   isOriginalUserStaff,
   isEnabledOutlineSidebar,
@@ -80,8 +80,5 @@ SequenceContent.propTypes = {
   renderUnitNavigation: PropTypes.func.isRequired,
 };
 
-SequenceContent.defaultProps = {
-  unitId: null,
-};
 
 export default SequenceContent;

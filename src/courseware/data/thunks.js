@@ -103,17 +103,13 @@ export function fetchCourse(courseId) {
           // We'll redirect them in a moment to the outline tab by calling fetchCourseDenied() below.
           logInfo(learningSequencesOutlineResult.reason);
         } else {
-          console.error('Learning sequences outline error:', learningSequencesOutlineResult.reason);
         }
       }
       if (!fetchedMetadata) {
-        console.error('Course metadata error:', courseMetadataResult.reason);
       }
       if (!fetchedCourseHomeMetadata) {
-        console.error('Course home metadata error:', courseHomeMetadataResult.reason);
       }
       if (!fetchedCoursewareOutlineSidebarTogglesResult) {
-        console.error('Courseware outline sidebar toggles error:', coursewareOutlineSidebarTogglesResult.reason);
       }
       if (fetchedMetadata && fetchedCourseHomeMetadata) {
         if (courseHomeMetadataResult.value.courseAccess.hasAccess && fetchedOutline) {
@@ -142,10 +138,6 @@ export function fetchSequence(sequenceId, isPreview) {
         // Some other block types (particularly 'chapter') can be returned
         // by this API. We want to error in that case, since downstream
         // courseware code is written to render Sequences of Units.
-        console.error(
-          `Requested sequence '${sequenceId}' `
-          + `has block type '${sequence.blockType}'; expected block type 'sequential'.`,
-        );
         dispatch(fetchSequenceFailure({ sequenceId }));
       } else {
         dispatch(updateModel({
@@ -164,7 +156,6 @@ export function fetchSequence(sequenceId, isPreview) {
       // about the opaque key structure). In such cases, the backend gives us a 422.
       const sequenceMightBeUnit = error?.response?.status === 422;
       if (!sequenceMightBeUnit) {
-        console.error('Sequence fetch error:', error);
       }
       dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit }));
     }
@@ -190,7 +181,6 @@ export function checkBlockCompletion(courseId, sequenceId, unitId) {
       dispatch(updateCourseOutlineCompletion({ sequenceId, unitId, isComplete }));
       return isComplete;
     } catch (error) {
-      console.error('Sequence fetch error:', error);
     }
     return {};
   };
@@ -220,7 +210,6 @@ export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
         },
       }));
     } catch (error) {
-      console.error('Sequence fetch error:', error);
       dispatch(updateModel({
         modelType: 'sequences',
         model: {
@@ -249,7 +238,6 @@ export function saveIntegritySignature(courseId, isMasquerading) {
         },
       }));
     } catch (error) {
-      console.error('Sequence fetch error:', error);
     }
   };
 }
@@ -269,7 +257,6 @@ export function getCourseDiscussionTopics(courseId) {
         }));
       }
     } catch (error) {
-      console.error('Sequence fetch error:', error);
     }
   };
 }
@@ -281,7 +268,6 @@ export function getCourseOutlineStructure(courseId) {
       const courseOutline = await getCourseOutline(courseId);
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
-      console.error('Sequence fetch error:', error);
       dispatch(fetchCourseOutlineFailure());
     }
   };

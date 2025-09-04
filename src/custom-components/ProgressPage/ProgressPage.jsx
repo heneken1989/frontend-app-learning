@@ -20,18 +20,12 @@ const ProgressPage = () => {
   useEffect(() => {
     const fetchProgress = async () => {
       if (!subsequenceId) {
-        console.error('Missing subsequence ID');
         setError('Missing subsequence ID');
         return;
       }
 
       try {
         // Log configuration
-        console.log('Config:', {
-          LMS_BASE_URL: getConfig().LMS_BASE_URL,
-          courseId,
-          subsequenceId,
-        });
 
         const apiUrl = `${getConfig().LMS_BASE_URL}/api/courseware/v1/subsequence/${courseId}/${subsequenceId}/progress`;
         const response = await fetch(apiUrl, {
@@ -42,7 +36,6 @@ const ProgressPage = () => {
         });
         if (!response.ok) {
           const errorData = await response.json();
-          console.error('API Error:', errorData);
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
@@ -50,7 +43,6 @@ const ProgressPage = () => {
 
         setProgressData(data);
       } catch (err) {
-        console.error('Error fetching progress:', err);
         setError(err.message);
       }
     };
@@ -95,12 +87,6 @@ const ProgressPage = () => {
     const completeCount = progressData.complete_count || 0;
     const incompleteCount = progressData.incomplete_count || 0;
     const lockedCount = progressData.locked_count || 0;
-    console.log('Progress Data:', {
-      completeCount,
-      incompleteCount,
-      lockedCount,
-      rawProgressData: progressData,
-    });
     const totalUnits = progressData.total_units || 0;
     const remainingCount = totalUnits - completeCount;
 

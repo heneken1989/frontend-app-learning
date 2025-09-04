@@ -13,7 +13,6 @@ const PaymentCancel = () => {
 
   useEffect(() => {
     // Log transaction data
-    console.log('Payment Cancel - Transaction Data:', transactionData);
   }, [transactionData]);
 
   const getErrorMessage = (error) => {
