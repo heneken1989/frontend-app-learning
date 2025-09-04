@@ -97,12 +97,15 @@ export async function getCourseTopics(courseId) {
  * @returns {Promise<{units: {}, sequences: {}, sections: {}}|null>}
  */
 export async function getCourseOutline(courseId) {
-  const url = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`;
+  // Add cache busting parameter to force fresh data
+  const cacheBuster = Date.now();
+  const url = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}?t=${cacheBuster}`;
   
   // Debug: Log API call - ALWAYS log for production debugging
   console.log('🌐 [getCourseOutline] API Call:', {
     url,
     courseId,
+    cacheBuster,
     timestamp: new Date().toISOString()
   });
   

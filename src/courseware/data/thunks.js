@@ -291,9 +291,25 @@ export function getCourseOutlineStructure(courseId) {
             id: id.slice(-8), // Show last 8 chars for readability
             title: seq.title || 'No title',
             unitCount: seq.unitIds?.length || 0,
-            hasUnits: !!seq.unitIds
+            hasUnits: !!seq.unitIds,
+            rawUnitIds: seq.unitIds // Show raw unitIds for debugging
           }))
         );
+        
+        // Special debug for ID65 sequence
+        const id65Sequence = Object.entries(courseOutline.sequences).find(([id, seq]) => 
+          seq.title === 'ID65' || id.includes('83020c34')
+        );
+        if (id65Sequence) {
+          const [id, seq] = id65Sequence;
+          console.log('🔍 [getCourseOutlineStructure] ID65 Debug:', {
+            fullId: id,
+            title: seq.title,
+            unitIds: seq.unitIds,
+            unitIdsLength: seq.unitIds?.length,
+            rawSequence: seq
+          });
+        }
       }
       
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));

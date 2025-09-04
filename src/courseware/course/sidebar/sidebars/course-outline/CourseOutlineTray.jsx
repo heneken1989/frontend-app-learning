@@ -189,24 +189,44 @@ const CourseOutlineTray = ({ intl }) => {
                 onClick={handleToggle}
               />
               {/* Debug toggle button */}
-              {process.env.NODE_ENV === 'development' && (
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
-                  onClick={() => setShowDebug(!showDebug)}
+                  onClick={() => {
+                    console.log('🔄 [CourseOutlineTray] Manual refresh triggered');
+                    // Force refresh course outline
+                    window.location.reload();
+                  }}
                   style={{
-                    background: showDebug ? '#ff6b6b' : '#51cf66',
+                    background: '#51cf66',
+                    color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    color: 'white',
                     fontSize: '10px',
                     padding: '2px 6px',
-                    marginLeft: '8px',
                     cursor: 'pointer'
                   }}
-                  title="Toggle Debug Info"
+                  title="Force Refresh Course Outline"
                 >
-                  DEBUG
+                  REFRESH
                 </button>
-              )}
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={() => setShowDebug(!showDebug)}
+                    style={{
+                      background: showDebug ? '#ff6b6b' : '#51cf66',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '10px',
+                      padding: '2px 6px',
+                      cursor: 'pointer'
+                    }}
+                    title="Toggle Debug Info"
+                  >
+                    DEBUG
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Debug Info Overlay */}
