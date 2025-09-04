@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import classNames from 'classnames';
 import { IconButton } from '@openedx/paragon';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
@@ -27,6 +27,8 @@ const CourseOutlineTray = ({ intl }) => {
     cacheStatus: null
   });
   const [showDebug, setShowDebug] = useState(process.env.NODE_ENV === 'development');
+  const userInfoFetched = useRef(false);
+  const lastLogTime = useRef(0);
 
   const {
     courseId,
@@ -41,66 +43,57 @@ const CourseOutlineTray = ({ intl }) => {
 
   const handleToggle = () => setIsOpen(!isOpen);
 
-  // Debug monitoring
+  // Debug monitoring - Only run once on mount
   useEffect(() => {
     const startTime = Date.now();
     
-    // Console log for production debugging
-    console.log('🔍 [CourseOutlineTray] Debug Info:', {
-      courseOutlineStatus,
-      courseId,
-      sequencesCount: Object.keys(sequences || {}).length,
-      activeSequenceId,
-      unitId,
-      timestamp: new Date().toISOString()
-    });
+    // Console log for production debugging - Debounced
+    const now = Date.now();
+    if (now - lastLogTime.current > 2000) { // Only log every 2 seconds
+      lastLogTime.current = now;
+      console.log('🔍 [CourseOutlineTray] Debug Info:', {
+        courseOutlineStatus,
+        courseId,
+        sequencesCount: Object.keys(sequences || {}).length,
+        activeSequenceId,
+        unitId,
+        timestamp: new Date().toISOString()
+      });
+    }
     
-    // Get user role and permissions
+    // Get user role and permissions - Only once
     const getUserInfo = async () => {
       try {
-        // Try multiple endpoints to get user info
-        const endpoints = [
-          '/api/user/v1/me',
-          '/api/mobile/v1/users/me',
-          '/api/mobile/v0.5/users/me'
-        ];
-        
-        let userData = null;
-        for (const endpoint of endpoints) {
-          try {
-            const response = await fetch(endpoint);
-            if (response.ok) {
-              const data = await response.json();
-              if (data && (data.is_staff !== undefined || data.username)) {
-                userData = data;
-                break;
-              }
-            }
-          } catch (e) {
-            continue;
-          }
+        // Use fallback first to avoid API calls
+        const fallbackRole = window.user || window.global || window.edx;
+        if (fallbackRole) {
+          console.log('👤 [CourseOutlineTray] Using fallback user role:', fallbackRole);
+          setDebugInfo(prev => ({
+            ...prev,
+            userRole: 'detected',
+            courseId: courseId
+          }));
+          return;
         }
         
-        if (userData) {
-          console.log('👤 [CourseOutlineTray] User Info:', {
-            is_staff: userData.is_staff,
-            username: userData.username,
-            role: userData.is_staff ? 'staff' : 'student'
-          });
-          setDebugInfo(prev => ({
-            ...prev,
-            userRole: userData.is_staff ? 'staff' : 'student',
-            courseId: courseId
-          }));
-        } else {
-          // Fallback: try to get user info from window object or other sources
-          const fallbackRole = window.user || window.global || window.edx;
-          console.log('⚠️ [CourseOutlineTray] Fallback user role:', fallbackRole);
-          setDebugInfo(prev => ({
-            ...prev,
-            userRole: fallbackRole ? 'detected' : 'unknown',
-            courseId: courseId
-          }));
+        // Only try API if fallback fails and we haven't tried before
+        if (!debugInfo.userRole) {
+          const response = await fetch('/api/user/v1/me');
+          if (response.ok) {
+            const data = await response.json();
+            if (data && (data.is_staff !== undefined || data.username)) {
+              console.log('👤 [CourseOutlineTray] User Info:', {
+                is_staff: data.is_staff,
+                username: data.username,
+                role: data.is_staff ? 'staff' : 'student'
+              });
+              setDebugInfo(prev => ({
+                ...prev,
+                userRole: data.is_staff ? 'staff' : 'student',
+                courseId: courseId
+              }));
+            }
+          }
         }
       } catch (error) {
         console.error('❌ [CourseOutlineTray] User info error:', error);
@@ -118,7 +111,11 @@ const CourseOutlineTray = ({ intl }) => {
       lastLoadTime: new Date().toISOString()
     }));
 
-    getUserInfo();
+    // Only get user info once
+    if (!debugInfo.userRole && !userInfoFetched.current) {
+      userInfoFetched.current = true;
+      getUserInfo();
+    }
 
     if (courseOutlineStatus !== LOADING) {
       const duration = Date.now() - startTime;
@@ -135,7 +132,7 @@ const CourseOutlineTray = ({ intl }) => {
         apiResponse: sequences ? 'success' : 'failed'
       }));
     }
-  }, [courseOutlineStatus, courseId, sequences]);
+  }, [courseOutlineStatus, courseId, sequences, debugInfo.userRole]); // Add debugInfo.userRole to prevent re-running
 
   // Monitor sequences changes
   useEffect(() => {

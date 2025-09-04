@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * Iframe component with dark transition effect during loading
@@ -13,30 +13,66 @@ const NoLoadingContentIFrame = ({
   loadingMessage = '',
   courseId = '',
   hasQuiz = false,
+  enableAutoReload = false, // Disable auto-reload by default
   ...otherProps
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showContent, setShowContent] = useState(false);
+  const [loadAttempts, setLoadAttempts] = useState(0);
+  const [lastLoadTime, setLastLoadTime] = useState(Date.now());
+  const hideTimeoutRef = useRef(null);
 
   useEffect(() => {
+    // Clear any existing timeout
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+    }
+    
     // Reset loading state when URL changes
     setIsLoading(true);
     setShowContent(false);
+    setLoadAttempts(prev => prev + 1);
+    setLastLoadTime(Date.now());
     
-    // Hide loading message quickly - don't wait for full load
-    const quickHideTimeout = setTimeout(() => {
+    console.log('🔄 [NoLoadingContentIFrame] URL changed, starting load:', iframeUrl);
+    
+    // Hide loading message after a short delay
+    hideTimeoutRef.current = setTimeout(() => {
+      console.log('⏰ [NoLoadingContentIFrame] Hiding loading message');
       setIsLoading(false);
       setShowContent(true);
-    }, 800); // Hide after 800ms regardless of load status
+    }, 1000); // Hide after 1 second
     
-    return () => clearTimeout(quickHideTimeout);
+    return () => {
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+    };
   }, [iframeUrl]);
 
   const handleLoad = () => {
-    // Hide loading message immediately when iframe starts loading
+    console.log('✅ [NoLoadingContentIFrame] Iframe loaded successfully');
+    
+    // Clear the hide timeout since iframe loaded
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    
     setIsLoading(false);
     setShowContent(true);
     if (onLoaded) onLoaded();
+  };
+
+  const handleError = () => {
+    console.error('❌ [NoLoadingContentIFrame] Iframe load error detected');
+    // Only auto-reload on iframe error if enabled and we've had multiple failures
+    if (enableAutoReload && loadAttempts >= 2) {
+      setTimeout(() => {
+        console.log('🔄 [NoLoadingContentIFrame] Auto-reload triggered - iframe error after multiple attempts');
+        window.location.reload();
+      }, 3000);
+    }
   };
 
   return (
@@ -68,14 +104,31 @@ const NoLoadingContentIFrame = ({
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
           z-index: 10;
           pointer-events: none;
-          opacity: ${isLoading ? '1' : '0'};
-          visibility: ${isLoading ? 'visible' : 'hidden'};
+          opacity: 1;
+          visibility: visible;
           transition: all 0.4s ease-in-out;
           display: flex;
           align-items: center;
           gap: 1rem;
           backdrop-filter: blur(10px);
-          animation: ${isLoading ? 'fadeInScale 0.4s ease-out' : 'fadeOutScale 0.3s ease-in'};
+          animation: fadeInScale 0.4s ease-out, autoHide 1s ease-in-out 1s forwards;
+        }
+
+        .loading-message.hidden {
+          opacity: 0;
+          visibility: hidden;
+          animation: fadeOutScale 0.3s ease-in;
+        }
+
+        @keyframes autoHide {
+          0% {
+            opacity: 1;
+            visibility: visible;
+          }
+          100% {
+            opacity: 0;
+            visibility: hidden;
+          }
         }
 
         .loading-spinner {
@@ -150,17 +203,15 @@ const NoLoadingContentIFrame = ({
       `}</style>
 
       <div className="iframe-container">
-        {isLoading && (
-          <div className="loading-message">
-            <div className="loading-spinner"></div>
-            <span>データを読み込んでいます</span>
-            <div className="loading-dots">
-              <div className="loading-dot"></div>
-              <div className="loading-dot"></div>
-              <div className="loading-dot"></div>
-            </div>
+        <div className={`loading-message ${!isLoading ? 'hidden' : ''}`}>
+          <div className="loading-spinner"></div>
+          <span>データを読み込んでいます</span>
+          <div className="loading-dots">
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
+            <div className="loading-dot"></div>
           </div>
-        )}
+        </div>
         
         <iframe
           id={elementId}
@@ -180,6 +231,7 @@ const NoLoadingContentIFrame = ({
             background: '#ffffff'
           }}
           onLoad={handleLoad}
+          onError={handleError}
         />
       </div>
     </>
@@ -195,6 +247,7 @@ NoLoadingContentIFrame.propTypes = {
   loadingMessage: PropTypes.string,
   courseId: PropTypes.string,
   hasQuiz: PropTypes.bool,
+  enableAutoReload: PropTypes.bool,
 };
 
 

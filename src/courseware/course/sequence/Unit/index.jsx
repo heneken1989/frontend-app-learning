@@ -13,6 +13,8 @@ import messages from '../messages';
 import ContentIFrame from './ContentIFrame';
 import NoLoadingContentIFrame from './NoLoadingContentIFrame';
 import UnitSuspense from './UnitSuspense';
+import PageLoadMonitor from './PageLoadMonitor';
+import GlobalErrorHandler from './GlobalErrorHandler';
 import { modelKeys, views } from './constants';
 import { useExamAccess, useShouldDisplayHonorCode } from './hooks';
 import { getIFrameUrl, fetchUnitById } from './urls';
@@ -71,6 +73,21 @@ const Unit = ({
   return (
     <div className="unit">
       {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
+      
+      {/* Page Load Monitor for auto-reload on issues */}
+      <PageLoadMonitor 
+        courseId={courseId} 
+        unitId={id} 
+        maxLoadTime={30000}
+        maxRetries={2}
+      />
+      
+      {/* Global Error Handler for auto-reload on critical errors */}
+      <GlobalErrorHandler 
+        courseId={courseId} 
+        unitId={id} 
+        maxRetries={2}
+      />
 
       <UnitSuspense {...{ courseId, id }} />
       <NoLoadingContentIFrame
@@ -83,6 +100,7 @@ const Unit = ({
         title={unit.title}
         courseId={courseId}
         hasQuiz={hasQuiz}
+        enableAutoReload={false}
       />
     </div>
   );
