@@ -20,7 +20,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const [isSubmitEnabled, setIsSubmitEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitButton, setShowSubmitButton] = useState(true); // Always show Check button
-  const [currentButtonState, setCurrentButtonState] = useState('Check'); // 'Check' or 'Try New'
+  const [currentButtonState, setCurrentButtonState] = useState('確認'); // '確認' or 'やり直し'
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
@@ -95,10 +95,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Reset button state when unit changes - always back to "Check"
+  // Reset button state when unit changes - always back to "確認"
   useEffect(() => {
     if (unitId) {
-      setCurrentButtonState('Check');
+      setCurrentButtonState('確認');
     }
   }, [unitId]);
 
@@ -137,10 +137,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
       
       // Toggle button state manually - ONLY on user click
-      if (currentButtonState === 'Check') {
-        setCurrentButtonState('Try New');
+      if (currentButtonState === '確認') {
+        setCurrentButtonState('やり直し');
       } else {
-        setCurrentButtonState('Check');
+        setCurrentButtonState('確認');
       }
     } catch (e) {
     }
@@ -148,7 +148,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const renderSubmitButton = () => {
     // Simple button state - only changes on manual clicks
-    const buttonText = isSubmitting ? 'Checking...' : currentButtonState;
+    const buttonText = isSubmitting ? '確認中...' : currentButtonState;
     
 
     return (

@@ -110,7 +110,7 @@ const UnitNavigation = ({
     }
 
 
-    const buttonText = isSubmitting ? 'Checking...' : (answerShown ? 'Try New' : 'Check');
+    const buttonText = isSubmitting ? '確認中...' : (answerShown ? 'やり直し' : '確認');
 
     return (
       <Button

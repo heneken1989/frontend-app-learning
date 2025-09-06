@@ -19,7 +19,6 @@ import LogoSlot from '../plugin-slots/LogoSlot';
 import CourseInfoSlot from '../plugin-slots/CourseInfoSlot';
 import { courseInfoDataShape } from './LearningHeaderCourseInfo';
 import messages from './messages';
-import LearningHelpSlot from '../plugin-slots/LearningHelpSlot';
 import EnrollmentStatus from '../../../EnrollmentStatus/src/EnrollmentStatus';
 import './NavigationMenu.scss';
 
@@ -448,7 +447,7 @@ const NavigationMenu = ({ courses }) => {
             e.target.style.transform = 'translateY(0)';
           }}
         >
-          💳 Thanh toán
+          💳 Buy Courses
         </div>
         <div
           className="nav-item auto-enroll-link"
@@ -619,12 +618,9 @@ const LearningHeader = ({
           ) : null}
         </div>
         {showUserDropdown && authenticatedUser && (
-        <>
-          <LearningHelpSlot />
           <AuthenticatedUserDropdown
             username={authenticatedUser.username}
           />
-        </>
         )}
         {showUserDropdown && !authenticatedUser && (
         <AnonymousUserMenu />
