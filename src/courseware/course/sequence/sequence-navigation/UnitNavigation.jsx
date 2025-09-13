@@ -80,6 +80,11 @@ const UnitNavigation = ({
       return;
     }
 
+    // BLOCK problem.complete to prevent reload
+    if (event.data.type === 'problem.complete') {
+      console.log('problem.complete message BLOCKED in Learning MFE - preventing reload');
+      return;
+    }
 
     switch (event.data.type) {
       case 'problem.ready':
@@ -153,6 +158,8 @@ const UnitNavigation = ({
       
       setIsNavigating(true);
       
+      // No need to save answers when navigating - only when user clicks Check button
+      
       // Add a longer delay to show loading effect clearly
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -195,17 +202,7 @@ const UnitNavigation = ({
 
   return (
     <>
-      <div className="unit-navigation-bar d-flex align-items-center justify-content-center">
-        {renderPreviousButton()}
-        {renderSubmitButton()}
-        {renderNextButton()}
-        <CourseOutlineSidebarTriggerSlot
-          courseId={courseId}
-          sequenceId={sequenceId}
-          unitId={unitId}
-        />
-        <CourseOutlineSidebarSlot />
-      </div>
+      {/* Bottom navigation bar completely removed */}
       
       {/* Loading Overlay */}
       {isNavigating && (

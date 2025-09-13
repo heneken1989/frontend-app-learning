@@ -9,6 +9,36 @@
 @import "~@edx/frontend-component-footer/dist/footer";
 @import "~@edx/frontend-component-header/dist/index";
 
+/* Simple Quiz Status */
+.quiz-completed {
+  background-color: #e8f5e8 !important;
+}
+
+.quiz-incomplete {
+  background-color: #fff3cd !important;
+}
+
+.current-quiz {
+  background-color: #F5F5DC !important;
+}
+
+/* Remove ALL borders from Course Outline */
+.outline-tray *,
+.outline-tray li,
+.outline-tray li *,
+.outline-tray .list-group-item,
+.outline-tray .card,
+.outline-tray .unit-list,
+.outline-tray .unit-list * {
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 
 #root {
   display: flex;
@@ -509,35 +539,7 @@
 }
 
 
-// Unit Navigation Bar (Footer) - Fixed height
-.unit-navigation-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1050;
-  background: rgba(238, 230, 230, 0.95);
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 50px;
-  height: 50px;
-  pointer-events: auto;
-  
-  .submit-answer-button {
-    background: #e53935 !important;
-    color: #fff !important;
-    border: none !important;
-    box-shadow: 0 2px 4px rgba(229,57,53,0.08);
-    &:hover, &:focus {
-      background: #b71c1c !important;
-      color: #fff !important;
-    }
-  }
-}
+// Bottom navigation bar completely removed from code
 
 // Loading Overlay Styles
 .loading-overlay {
@@ -566,9 +568,10 @@
   }
 }
 
-// Thêm margin-bottom cho body để nội dung không bị footer che
+// Thêm margin cho body để tránh bị che bởi thanh bar cố định
 body {
-  margin-bottom: 80px;
+  margin-top: 0; // No top margin since top bar moved to bottom
+  margin-bottom: 80px; // Space for top navigation bar (now at bottom)
 }
 
 .unit-navigation-bar .previous-button.btn,
@@ -585,6 +588,631 @@ body {
 .unit-navigation-bar .next-button.btn:focus {
   background: #006978 !important;
   color: #fff !important;
+}
+
+
+/* Position popup right above the Course Outline icon */
+.outline-tray-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.outline-tray-wrapper .outline-tray-overlay {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  background-color: transparent;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 8px;
+  padding-left: 0;
+  width: auto;
+  height: auto;
+  transform: translateY(-100%);
+  margin-top: -40px;
+}
+
+.outline-tray {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  max-height: 240px;
+  overflow: hidden;
+  z-index: 10001;
+  position: relative;
+  border: 1px solid #e9ecef;
+}
+
+.outline-tray-content {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Force no horizontal scroll */
+.outline-tray * {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+/* Hide the sequence title (ID18) */
+.outline-tray .card-header,
+.outline-tray .collapsible-title,
+.outline-tray .card-lg .card-header,
+.outline-tray .collapsible-trigger {
+  display: none !important;
+}
+
+/* Hide the collapsible wrapper and show only units */
+.outline-tray .collapsible {
+  border: none !important;
+  box-shadow: none !important;
+  background: white !important;
+}
+
+.outline-tray .collapsible .card-body {
+  padding: 0 !important;
+  border: none !important;
+  background: white !important;
+}
+
+/* Remove all backgrounds from list items */
+.outline-tray .list-group-item {
+  background: white !important;
+  border: none !important;
+  padding: 8px 0 !important;
+}
+
+.outline-tray .card {
+  background: white !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.outline-tray .card-body {
+  background: white !important;
+  padding: 0 !important;
+}
+
+/* Only show completion icons, hide everything else */
+.outline-tray .completion-icon {
+  display: inline-block !important;
+}
+
+.outline-tray .completion-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* Show basic content with white background */
+.outline-tray .list-group-item {
+  background: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.outline-tray .list-group-item:last-child {
+  border-bottom: none !important;
+}
+
+.outline-tray .card {
+  background: white !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.outline-tray .card-body {
+  background: white !important;
+  padding: 0 !important;
+}
+
+/* Current quiz highlighted in red - unified color */
+.outline-tray .list-group-item.active,
+.outline-tray .list-group-item.current,
+.outline-tray .list-group-item[aria-current="true"],
+.outline-tray .list-group-item.current-quiz,
+.outline-tray .list-group-item[data-current="true"],
+.outline-tray .list-group-item[data-active="true"],
+.outline-tray li.current-quiz {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+  border: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 8px 16px !important;
+  box-shadow: none !important;
+}
+
+.outline-tray .list-group-item.active .text-dark-500,
+.outline-tray .list-group-item.current .text-dark-500,
+.outline-tray .list-group-item[aria-current="true"] .text-dark-500,
+.outline-tray .list-group-item.current-quiz .text-dark-500,
+.outline-tray .list-group-item[data-current="true"] .text-dark-500,
+.outline-tray .list-group-item[data-active="true"] .text-dark-500,
+.outline-tray li.current-quiz .text-dark-500,
+.outline-tray li.current-quiz .align-middle {
+  color: #333 !important;
+  font-weight: 600 !important;
+}
+
+/* Force sky blue background for current quiz even with white override */
+.outline-tray .list-group-item.active *,
+.outline-tray .list-group-item.current *,
+.outline-tray .list-group-item[aria-current="true"] *,
+.outline-tray .list-group-item.current-quiz *,
+.outline-tray .list-group-item[data-current="true"] *,
+.outline-tray .list-group-item[data-active="true"] *,
+.outline-tray li.current-quiz * {
+  background: #F5F5DC !important;
+}
+
+/* Override white background for current quiz elements */
+.outline-tray li.current-quiz .col-auto,
+.outline-tray li.current-quiz .col-10,
+.outline-tray li.current-quiz .p-0,
+.outline-tray li.current-quiz .ml-3,
+.outline-tray li.current-quiz .text-break,
+.outline-tray li.current-quiz .align-middle,
+.outline-tray li.current-quiz .completion-indicator {
+  background: #F5F5DC !important;
+}
+
+/* Hide icons inside outline-tray content only - but NOT the trigger button */
+/* TEMPORARILY COMMENTED OUT TO DEBUG
+.outline-tray-content svg,
+.outline-tray-content .pgn__icon,
+.outline-tray-content .icon,
+.outline-tray-content .fa,
+.outline-tray-content .fas,
+.outline-tray-content .far,
+.outline-tray-content .fab,
+.outline-tray-content .material-icons,
+.outline-tray-content .collapsible-icon,
+.outline-tray-content .arrow-icon,
+.outline-tray-content .expand-icon,
+.outline-tray-content .col-auto svg,
+.outline-tray-content .col-auto .pgn__icon {
+  display: none !important;
+}
+*/
+
+/* Ensure trigger button icon is always visible */
+.course-outline-navbar-trigger .outline-tray-toggle svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Show only completed checkmarks (green) - more specific */
+.outline-tray svg[data-testid="completion-solid-icon"],
+.outline-tray .completion-icon svg[data-testid="completion-solid-icon"],
+.outline-tray .col-auto svg[data-testid="completion-solid-icon"] {
+  display: inline-block !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin-right: 8px !important;
+}
+
+/* Show text content */
+.outline-tray .text-dark-500,
+.outline-tray .align-middle {
+  display: inline-block !important;
+  color: #333 !important;
+  font-size: 14px !important;
+}
+
+/* Force white background everywhere except current quiz */
+.outline-tray *:not(.active):not(.current):not([aria-current="true"]):not([data-current="true"]):not([data-active="true"]) {
+  background: white 
+}
+
+/* Remove current-quiz from the not selector to allow bar color */
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz * {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Force sky blue for current quiz - override everything including white */
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz *,
+.outline-tray li.current-quiz div,
+.outline-tray li.current-quiz span,
+.outline-tray li.current-quiz a,
+.outline-tray li.current-quiz p,
+.outline-tray li.current-quiz .col-auto,
+.outline-tray li.current-quiz .col-10,
+.outline-tray li.current-quiz .p-0,
+.outline-tray li.current-quiz .ml-3,
+.outline-tray li.current-quiz .text-break,
+.outline-tray li.current-quiz .align-middle,
+.outline-tray li.current-quiz .completion-indicator {
+  background: #F5F5DC !important;
+}
+
+/* Force sky blue background for current quiz - override everything */
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz div,
+.outline-tray li.current-quiz span,
+.outline-tray li.current-quiz a,
+.outline-tray li.current-quiz p {
+  background: #F5F5DC !important;
+}
+
+/* Ultimate override for current quiz - force sky blue everywhere */
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz * {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Nuclear option - force sky blue with maximum specificity */
+.outline-tray .outline-tray li.current-quiz,
+.outline-tray .outline-tray li.current-quiz *,
+.outline-tray li.current-quiz li,
+.outline-tray li.current-quiz li * {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Override any inline styles or other CSS */
+.outline-tray li.current-quiz[style*="background"],
+.outline-tray li.current-quiz *[style*="background"] {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Force red for current quiz with maximum specificity */
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz *,
+.outline-tray li.current-quiz div,
+.outline-tray li.current-quiz span,
+.outline-tray li.current-quiz a,
+.outline-tray li.current-quiz p {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Override any green backgrounds */
+.outline-tray .bg-light,
+.outline-tray .bg-success,
+.outline-tray .bg-primary,
+.outline-tray .bg-info {
+  background: white
+}
+
+/* FINAL OVERRIDE - Force red for current quiz with maximum specificity */
+.outline-tray .outline-tray li.current-quiz,
+.outline-tray .outline-tray li.current-quiz *,
+.outline-tray li.current-quiz,
+.outline-tray li.current-quiz *,
+.outline-tray li.current-quiz div,
+.outline-tray li.current-quiz span,
+.outline-tray li.current-quiz a,
+.outline-tray li.current-quiz p,
+.outline-tray li.current-quiz .col-auto,
+.outline-tray li.current-quiz .col-10,
+.outline-tray li.current-quiz .p-0,
+.outline-tray li.current-quiz .ml-3,
+.outline-tray li.current-quiz .text-break,
+.outline-tray li.current-quiz .align-middle,
+.outline-tray li.current-quiz .completion-indicator {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Test with simpler selector */
+li.current-quiz {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Test with active class */
+.outline-tray li.bg-info-100 {
+  background: #F5F5DC !important;
+  background-color: #F5F5DC !important;
+}
+
+/* Hide all other icons and elements */
+/* TEMPORARILY COMMENTED OUT TO DEBUG
+.outline-tray .pgn__icon,
+.outline-tray .icon,
+.outline-tray .fa,
+.outline-tray .fas,
+.outline-tray .far,
+.outline-tray .fab,
+.outline-tray .material-icons,
+.outline-tray .collapsible-icon,
+.outline-tray .arrow-icon,
+.outline-tray .expand-icon {
+  display: none !important;
+}
+
+.outline-tray svg:not([data-testid="completion-solid-icon"]),
+.outline-tray .col-auto:not(:has(svg[data-testid="completion-solid-icon"])),
+.outline-tray .col-auto svg:not([data-testid="completion-solid-icon"]),
+.outline-tray .pgn__icon:not([data-testid="completion-solid-icon"]),
+.outline-tray .icon:not([data-testid="completion-solid-icon"]) {
+  display: none !important;
+}
+*/
+
+/* Style for unit title */
+.outline-tray .unit-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+  display: block;
+  padding: 8px 12px;
+  line-height: 1.4;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  margin: 2px 0;
+}
+
+/* Style for Course Outline trigger button */
+.course-outline-navbar-trigger .outline-tray-toggle {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #333;
+  font-size: 12px;
+  font-weight: 500;
+  
+  &:hover {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+  }
+
+  svg {
+    width: 20px !important;
+    height: 20px !important;
+    margin-right: 8px !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Force visibility for trigger button icon with maximum specificity */
+.course-outline-navbar-trigger .outline-tray-toggle svg,
+.course-outline-navbar-trigger button svg,
+.course-outline-navbar-trigger svg {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Nuclear option - force icon visibility with maximum specificity */
+.course-outline-navbar-trigger .outline-tray-toggle svg[class*="svg"],
+.course-outline-navbar-trigger button svg[class*="svg"],
+.course-outline-navbar-trigger svg[class*="svg"],
+.course-outline-navbar-trigger .outline-tray-toggle svg[data-testid],
+.course-outline-navbar-trigger button svg[data-testid],
+.course-outline-navbar-trigger svg[data-testid] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+/* Hide completion icons in outline-tray content */
+/* TEMPORARILY COMMENTED OUT TO DEBUG
+.outline-tray-content svg:not([data-testid="completion-solid-icon"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+.outline-tray-content svg[data-testid="completion-icon"],
+.outline-tray-content .completion-icon svg:not([data-testid="completion-solid-icon"]),
+.outline-tray-content .col-auto svg:not([data-testid="completion-solid-icon"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+*/
+
+
+.simple-course-outline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+  
+  h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      color: #333;
+      background-color: #e9ecef;
+      border-radius: 4px;
+    }
+  }
+}
+
+.simple-course-outline-content {
+  max-height: 300px;
+  overflow-y: auto;
+  
+  .loading {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .unit-list {
+    .unit-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f3f4;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: #f8f9fa;
+      }
+      
+      &.active {
+        background-color: #e3f2fd;
+        border-left: 3px solid #2196f3;
+      }
+      
+      &.completed {
+        background-color: #e8f5e8;
+        
+        .completion-indicator {
+          color: #28a745;
+        }
+      }
+      
+      &.quiz {
+        font-weight: 500;
+      }
+      
+      .unit-number {
+        width: 24px;
+        height: 24px;
+        background-color: #e9ecef;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 600;
+        color: #666;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      
+      .unit-title {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .completion-indicator {
+        font-size: 16px;
+        margin-left: 8px;
+        flex-shrink: 0;
+      }
+    }
+  }
+}
+
+/* Scrollbar styling */
+.simple-course-outline-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.simple-course-outline-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.simple-course-outline-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.simple-course-outline-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Course Outline Icon */
+.course-outline-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+  
+  &:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  &.active {
+    background-color: #e3f2fd;
+    color: #2196f3;
+  }
+  
+  svg {
+    display: block;
+  }
+  
+  &.course-outline-icon-small {
+    padding: 6px;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+  
+  &.course-outline-icon-medium {
+    padding: 8px;
+    
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  &.course-outline-icon-large {
+    padding: 10px;
+    
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
 }
 
 

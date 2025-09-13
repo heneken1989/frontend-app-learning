@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import PropTypes from 'prop-types';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { Button } from '@openedx/paragon';
+import { useModel } from '@src/generic/model-store';
 import { GetCourseExitNavigation } from '../../course-exit';
 import { useSequenceNavigationMetadata } from './hooks';
 import messages from './messages';
@@ -28,6 +29,37 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const {
     isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink,
   } = useSequenceNavigationMetadata(sequenceId, unitId);
+
+  // Get unit data from model store
+  const unit = useModel('units', unitId);
+
+  // Get unit title for display
+  const getUnitTitle = () => {
+    // Try to get title from unit data first
+    if (unit && unit.title) {
+      // Extract number from title (e.g., "Unit 109" -> "109")
+      const numberMatch = unit.title.match(/(\d+)/);
+      if (numberMatch) {
+        return numberMatch[1]; // Return just the number like 109, 110, 111
+      }
+      // If no number found, return the full title
+      return unit.title;
+    }
+    
+    // Fallback: extract from unitId
+    if (unitId) {
+      const match = unitId.match(/block@([a-f0-9]+)/);
+      if (match) {
+        const blockId = match[1];
+        const numberMatch = blockId.match(/(\d{3})/);
+        if (numberMatch) {
+          return numberMatch[1];
+        }
+        return blockId.substring(0, 3);
+      }
+    }
+    return 'Unit';
+  };
 
   const courseExitNav = GetCourseExitNavigation(courseId, intl);
 
@@ -73,6 +105,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         return;
       }
 
+      // BLOCK problem.complete to prevent reload
+      if (event.data.type === 'problem.complete') {
+        console.log('problem.complete message BLOCKED in PersistentNavigationBar - preventing reload');
+        return;
+      }
 
       switch (event.data.type) {
         case 'problem.ready':
@@ -188,6 +225,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
     const handleNextClick = () => {
+      // No need to save answers when navigating - only when user clicks Check button
       if (onClickNext) {
         onClickNext();
       }
@@ -232,16 +270,35 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   // Render into the persistent container
   return createPortal(
     <>
-      <div className="unit-navigation-bar d-flex align-items-center justify-content-center" style={{ padding: '1rem' }}>
+      <div className="unit-navigation-bar d-flex align-items-center justify-content-center" style={{ 
+        padding: '1rem',
+        position: 'fixed',
+        bottom: '0', // Move to bottom to cover bottom bar
+        left: '0',
+        right: '0',
+        zIndex: 10000, // Higher than bottom bar
+        background: '#F5EEEE', // Light pink color
+        borderTop: '1px solid #eee', // Change to top border
+        boxShadow: '0 -2px 4px rgba(0,0,0,0.1)', // Shadow above
+        width: '100%',
+        height: '80px' // Fixed height to cover bottom bar
+      }}>
         {renderPreviousButton()}
         {renderSubmitButton()}
         {renderNextButton()}
-        <CourseOutlineSidebarTriggerSlot
-          courseId={courseId}
-          sequenceId={sequenceId}
-          unitId={unitId}
-        />
-        <CourseOutlineSidebarSlot />
+                  {/* Unit title display */}
+                  <div style={{ 
+                    marginLeft: '16px',
+                    padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#333'
+                  }}>
+                    {getUnitTitle()}
+                  </div>
+                  <CourseOutlineSidebarSlot />
       </div>
       
 

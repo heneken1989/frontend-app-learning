@@ -48,6 +48,12 @@ const useIFrameBehavior = ({
   }, [id, onLoaded, iframeHeight, hasLoaded]);
 
   const receiveMessage = React.useCallback(({ data }) => {
+    // BLOCK problem.complete messages to prevent parent reload
+    if (data && data.type === 'problem.complete') {
+      console.log('problem.complete message BLOCKED in useIFrameBehavior - preventing reload');
+      return;
+    }
+    
     const { type, payload } = data;
     if (type === messageTypes.resize) {
       setIframeHeight(payload.height);

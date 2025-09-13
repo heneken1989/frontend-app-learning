@@ -28,6 +28,23 @@ const CourseOutlineTray = ({ intl }) => {
 
   const handleToggle = () => setIsOpen(!isOpen);
 
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen && !event.target.closest('.outline-tray-wrapper')) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
 
 
   if (!isEnabledSidebar || isActiveEntranceExam || currentSidebar !== ID) {
@@ -57,21 +74,8 @@ const CourseOutlineTray = ({ intl }) => {
         onClick={handleToggle}
       />
       {isOpen && (
-        <div className="outline-tray-overlay">
-          <div className="outline-tray">
-            <div className="outline-tray-header">
-              <span className="outline-tray-title">
-                {intl.formatMessage(messages.courseOutlineTitle)}
-              </span>
-              <IconButton
-                alt={intl.formatMessage(messages.toggleCourseOutlineTrigger)}
-                className="outline-tray-close"
-                iconAs={MenuOpenIcon}
-                onClick={handleToggle}
-              />
-            </div>
-            
-
+        <div className="outline-tray-overlay" onClick={handleToggle}>
+          <div className="outline-tray" onClick={(e) => e.stopPropagation()}>
             <ol className="outline-tray-content">
               {sequences[activeSequenceId] ? (
                 <SidebarSequence
