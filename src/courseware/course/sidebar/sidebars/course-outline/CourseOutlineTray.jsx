@@ -14,6 +14,7 @@ import messages from './messages';
 
 const CourseOutlineTray = ({ intl }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const trayRef = useRef(null);
 
   const {
     courseId,
@@ -28,20 +29,116 @@ const CourseOutlineTray = ({ intl }) => {
 
   const handleToggle = () => setIsOpen(!isOpen);
 
-  // Close popup when clicking outside
+  // Close popup when clicking anywhere
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isOpen && !event.target.closest('.outline-tray-wrapper')) {
+    const handleClickAnywhere = (event) => {
+      if (isOpen) {
+        // Only check if click is inside the tray content (not the overlay)
+        const isClickInsideTrayContent = trayRef.current && 
+          trayRef.current.contains(event.target) && 
+          !event.target.classList.contains('outline-tray-overlay');
+        
+        if (!isClickInsideTrayContent) {
+          setIsOpen(false);
+        }
+      }
+    };
+
+    // Handle iframe clicks by listening to focus events
+    const handleIframeFocus = () => {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    // Handle window blur (when clicking into iframe)
+    const handleWindowBlur = () => {
+      if (isOpen) {
+        // Small delay to allow iframe to load
+        setTimeout(() => {
+          setIsOpen(false);
+        }, 100);
+      }
+    };
+
+    // Handle postMessage from iframes
+    const handlePostMessage = (event) => {
+      if (event.data === 'close-popup' && isOpen) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('mousedown', handleClickAnywhere);
+      window.addEventListener('mousedown', handleClickAnywhere);
+      document.addEventListener('click', handleClickAnywhere);
+      window.addEventListener('click', handleClickAnywhere);
+      
+      // Add iframe focus listener to handle iframe clicks
+      window.addEventListener('focus', handleIframeFocus);
+      window.addEventListener('blur', handleWindowBlur);
+      
+      // Add postMessage listener for iframe communication
+      window.addEventListener('message', handlePostMessage);
+      
+      // Find all iframes and add click listeners to them
+      const iframes = document.querySelectorAll('iframe');
+      
+      iframes.forEach((iframe) => {
+        try {
+          // Try to access iframe content
+          if (iframe.contentDocument) {
+            iframe.contentDocument.addEventListener('click', handleClickAnywhere);
+            iframe.contentDocument.addEventListener('mousedown', handleClickAnywhere);
+          }
+        } catch (e) {
+          // For cross-origin iframes, we can't access their content
+          // So we'll use focus events instead
+        }
+      });
+
+      // Add interval checking for iframe clicks
+      const iframeClickInterval = setInterval(() => {
+        if (isOpen) {
+          // Check if any iframe is focused
+          const activeElement = document.activeElement;
+          if (activeElement && activeElement.tagName === 'IFRAME') {
+            setIsOpen(false);
+          }
+        }
+      }, 100);
+      
+      // Store interval ID for cleanup
+      window.iframeClickInterval = iframeClickInterval;
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickAnywhere);
+      window.removeEventListener('mousedown', handleClickAnywhere);
+      document.removeEventListener('click', handleClickAnywhere);
+      window.removeEventListener('click', handleClickAnywhere);
+      window.removeEventListener('focus', handleIframeFocus);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('message', handlePostMessage);
+      
+      // Clear iframe click interval
+      if (window.iframeClickInterval) {
+        clearInterval(window.iframeClickInterval);
+        window.iframeClickInterval = null;
+      }
+      
+      // Remove iframe listeners
+      const iframes = document.querySelectorAll('iframe');
+      iframes.forEach((iframe) => {
+        try {
+          if (iframe.contentDocument) {
+            iframe.contentDocument.removeEventListener('click', handleClickAnywhere);
+            iframe.contentDocument.removeEventListener('mousedown', handleClickAnywhere);
+          }
+        } catch (e) {
+          // Cross-origin iframe, can't remove listeners
+        }
+      });
     };
   }, [isOpen]);
 
@@ -66,7 +163,7 @@ const CourseOutlineTray = ({ intl }) => {
   }
 
   return (
-    <div className="outline-tray-wrapper">
+    <div className="outline-tray-wrapper" ref={trayRef}>
       <IconButton
         alt={intl.formatMessage(messages.toggleCourseOutlineTrigger)}
         className="outline-tray-toggle"
@@ -74,8 +171,14 @@ const CourseOutlineTray = ({ intl }) => {
         onClick={handleToggle}
       />
       {isOpen && (
-        <div className="outline-tray-overlay" onClick={handleToggle}>
-          <div className="outline-tray" onClick={(e) => e.stopPropagation()}>
+        <div 
+          className="outline-tray-overlay" 
+          onClick={handleToggle}
+        >
+          <div 
+            className="outline-tray" 
+            onClick={(e) => e.stopPropagation()}
+          >
             <ol className="outline-tray-content">
               {sequences[activeSequenceId] ? (
                 <SidebarSequence

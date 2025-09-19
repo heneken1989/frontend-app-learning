@@ -11,6 +11,7 @@ import messages from './messages';
 import { LOADING } from '@src/constants';
 
 const CourseOutlineTrigger = ({ intl, isMobileView }) => {
+  console.log('🔍 DEBUG - CourseOutlineTrigger component called');
   const [isOpen, setIsOpen] = useState(false);
 
   const {
@@ -34,7 +35,34 @@ const CourseOutlineTrigger = ({ intl, isMobileView }) => {
   //   unitId
   // });
 
-  const handleToggle = () => setIsOpen(!isOpen);
+  const handleToggle = () => {
+    console.log('🔍 DEBUG - CourseOutlineTrigger handleToggle called, current isOpen:', isOpen);
+    setIsOpen(!isOpen);
+  };
+
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isOpen) {
+        const trigger = document.querySelector('.course-outline-navbar-trigger');
+        const tray = document.querySelector('.outline-tray');
+        
+        if (trigger && !trigger.contains(event.target) && 
+            tray && !tray.contains(event.target)) {
+          console.log('🔍 DEBUG - Click outside detected, closing popup');
+          setIsOpen(false);
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   // Debug DOM after render (can be removed later)
   // useEffect(() => {
@@ -66,6 +94,8 @@ const CourseOutlineTrigger = ({ intl, isMobileView }) => {
 
   // Get current unit title
   const currentUnitTitle = sequences[activeSequenceId]?.blocks?.find(block => block.id === unitId)?.display_name || 'Unit';
+
+  console.log('🔍 DEBUG - CourseOutlineTrigger render, isOpen:', isOpen);
 
   return (
     <div className="course-outline-navbar-trigger">
