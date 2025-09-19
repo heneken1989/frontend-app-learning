@@ -123,6 +123,24 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           setIsSubmitting(false);
           // DON'T change button state here - only manual clicks should change it
           break;
+        case 'quiz.data.ready':
+          // Handle quiz data directly from quiz iframe
+          console.log('🔍 DEBUG - Received quiz data from quiz iframe:', event.data.quizData);
+          console.log('🔍 DEBUG - Template config:', event.data.templateConfig);
+          console.log('🔍 DEBUG - Full event data:', event.data);
+          
+          // Check if template wants to show popup
+          if (event.data.templateConfig && event.data.templateConfig.showPopup === false) {
+            console.log('🔍 DEBUG - Template disabled popup, skipping showTestPopup');
+            return;
+          }
+          
+          // If no templateConfig or showPopup is true/undefined, show popup
+          if (event.data.quizData) {
+            console.log('🔍 DEBUG - Showing popup for quiz data');
+            showTestPopup(event.data.quizData);
+          }
+          break;
         default:
           break;
       }
@@ -170,17 +188,198 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       return;
     }
 
-    try {
-      iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
+    // Check if popup is already open
+    const existingPopup = document.getElementById('test-popup');
+    if (existingPopup) {
+      // Close popup if it's open
+      existingPopup.remove();
+      // Clean up any existing styles
+      const existingStyle = document.querySelector('style[data-popup-style]');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      setCurrentButtonState('確認');
       
+      // Send reset message to iframe
+      try {
+        iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
+        console.log('🔄 Sent reset message to iframe');
+      } catch (e) {
+        console.error('Error sending reset message:', e);
+      }
+      return;
+    }
+
+    try {
       // Toggle button state manually - ONLY on user click
       if (currentButtonState === '確認') {
+        console.log('🔄 Sending problem.submit message to iframe');
+        iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
         setCurrentButtonState('やり直し');
       } else {
+        console.log('🔄 Sending reset message to iframe');
+        iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'reset' }, '*');
         setCurrentButtonState('確認');
       }
+      
+      // Don't show popup here - let message listener handle it based on templateConfig
+      console.log('🔍 DEBUG - handleSubmit completed, waiting for quiz.data.ready message');
     } catch (e) {
+      console.error('Error sending message to iframe:', e);
     }
+  };
+
+  // Function to show test popup with data from localStorage
+  const showTestPopup = (quizData = null) => {
+    // Remove existing popup if any
+    const existingPopup = document.getElementById('test-popup');
+    if (existingPopup) {
+      existingPopup.remove();
+    }
+
+    // If no data provided, try to get from localStorage
+    if (!quizData) {
+      try {
+        const storedData = localStorage.getItem('quizGradeSubmitted');
+        const timestamp = localStorage.getItem('quizGradeSubmittedTimestamp');
+        
+        if (storedData && timestamp) {
+          const timeDiff = Date.now() - parseInt(timestamp);
+          if (timeDiff < 10000) { // Only if data is less than 10 seconds old
+            quizData = JSON.parse(storedData);
+            console.log('🔍 DEBUG - Found quiz data in localStorage:', quizData);
+          }
+        }
+      } catch (error) {
+        console.error('🔍 DEBUG - Error parsing localStorage data:', error);
+      }
+    }
+
+    // Create answer paragraph container (like in quiz iframe)
+    const popup = document.createElement('div');
+    popup.id = 'test-popup';
+    popup.style.cssText = `
+      position: fixed;
+      bottom: 80px;
+      left: 0;
+      right: 0;
+      padding: 20px 0;
+      background-color: rgba(99, 97, 97, 0.95);
+      z-index: 9999;
+      transition: transform 0.3s ease;
+      max-height: 460px;
+      overflow-y: auto;
+    `;
+
+    // Create inner content wrapper
+    const innerWrapper = document.createElement('div');
+    innerWrapper.style.cssText = `
+      max-width: 70%;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      border: 1px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-height: 400px;
+      overflow-y: auto;
+      padding: 1.5rem;
+    `;
+    
+    // Generate popup content based on data availability
+    let popupContent = '';
+    
+    if (quizData && quizData.options && quizData.options.length > 0) {
+      // Create answer comparison layout like in quiz iframe
+      popupContent = `
+        <div class="answer-comparison" style="display: flex; gap: 30px; margin-bottom: 20px;">
+          <!-- Correct Answer Column -->
+          <div class="answer-column" style="flex: 1;">
+            <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: normal;">Correct answer</div>
+            <div id="correct-answers" style="display: flex; flex-direction: column; gap: 8px;">
+              ${quizData.options.map(option => `
+                <div class="answer-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+                  <div style="width: 16px; height: 16px; border: 1px solid #ccc; border-radius: 2px; display: flex; align-items: center; justify-content: center; background: ${option.isCorrect ? '#666' : 'white'};">
+                    ${option.isCorrect ? '✓' : ''}
+                  </div>
+                  <span style="font-size: 14px; color: #333;">${option.text}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          
+          <!-- Your Answer Column -->
+          <div class="answer-column" style="flex: 1;">
+            <div class="answer-column-title" id="your-answer-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: normal;">Your answer: ${quizData.score || 0}/1</div>
+            <div id="your-answers" style="display: flex; flex-direction: column; gap: 8px;">
+              ${quizData.options.map(option => `
+                <div class="answer-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
+                  <div style="width: 16px; height: 16px; border: 1px solid #ccc; border-radius: 2px; display: flex; align-items: center; justify-content: center; background: ${option.isSelected ? '#666' : 'white'};">
+                    ${option.isSelected ? '✓' : ''}
+                  </div>
+                  <span style="font-size: 14px; color: #333;">${option.text}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      // Show fallback content
+      popupContent = `
+        <div style="text-align: center; color: #666;">
+          <p>No quiz data available</p>
+        </div>
+      `;
+    }
+    
+    innerWrapper.innerHTML = popupContent;
+    
+    // Add inner wrapper to popup
+    popup.appendChild(innerWrapper);
+    
+    // Add responsive styles
+    const style = document.createElement('style');
+    style.setAttribute('data-popup-style', 'true');
+    style.textContent = `
+      @media (max-width: 768px) {
+        #test-popup .inner-wrapper {
+          max-width: 85% !important;
+        }
+      }
+      @media (max-width: 480px) {
+        #test-popup .inner-wrapper {
+          max-width: 95% !important;
+          padding: 1rem !important;
+        }
+        #test-popup .answer-comparison {
+          flex-direction: column !important;
+          gap: 15px !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Add class to inner wrapper for responsive targeting
+    innerWrapper.className = 'inner-wrapper';
+    
+    // Add popup to body
+    document.body.appendChild(popup);
+    console.log('🔍 DEBUG - Test popup created from PersistentNavigationBar with data:', quizData);
+    
+    // Auto remove after 15 seconds
+    setTimeout(() => {
+      if (popup.parentNode) {
+        popup.remove();
+        // Clean up style
+        if (style.parentNode) {
+          style.remove();
+        }
+        setCurrentButtonState('確認');
+      }
+    }, 15000);
   };
 
   const renderSubmitButton = () => {
