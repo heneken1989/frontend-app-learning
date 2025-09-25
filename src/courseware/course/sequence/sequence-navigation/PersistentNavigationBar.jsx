@@ -159,26 +159,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   // Reset when unit changes but keep the navigation bar persistent
   useEffect(() => {
-    const sendCheck = () => {
-      const iframe = document.getElementById('unit-iframe');
-      if (iframe) {
-        try {
-          iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
-        } catch (e) {
-        }
-      }
-    };
-
     setIsSubmitEnabled(true);
     setIsSubmitting(false);
     // Keep showSubmitButton as true - always show Check button
 
-    sendCheck();
-    const retryTimeout = setTimeout(sendCheck, 1000);
-
-    return () => {
-      clearTimeout(retryTimeout);
-    };
+    // Don't send any automatic messages - only when user clicks submit
+    console.log('🔄 Unit changed, ready for user interaction:', unitId);
   }, [unitId]);
 
   const handleSubmit = () => {
@@ -188,41 +174,31 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       return;
     }
 
-    // Check if popup is already open
-    const existingPopup = document.getElementById('test-popup');
-    if (existingPopup) {
-      // Close popup if it's open
-      existingPopup.remove();
-      // Clean up any existing styles
-      const existingStyle = document.querySelector('style[data-popup-style]');
-      if (existingStyle) {
-        existingStyle.remove();
-      }
-      setCurrentButtonState('確認');
-      
-      // Send reset message to iframe
-      try {
-        iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
-        console.log('🔄 Sent reset message to iframe');
-      } catch (e) {
-        console.error('Error sending reset message:', e);
-      }
-      return;
-    }
-
     try {
       // Toggle button state manually - ONLY on user click
       if (currentButtonState === '確認') {
-        console.log('🔄 Sending problem.submit message to iframe');
+        // First click: Send check message
+        console.log('🔄 User clicked 確認 - sending check message to iframe');
         iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
         setCurrentButtonState('やり直し');
       } else {
-        console.log('🔄 Sending reset message to iframe');
+        // Second click: Send reset message and close popup
+        console.log('🔄 User clicked やり直し - sending reset message to iframe');
         iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'reset' }, '*');
         setCurrentButtonState('確認');
+        
+        // Close popup if it's open
+        const existingPopup = document.getElementById('test-popup');
+        if (existingPopup) {
+          existingPopup.remove();
+          // Clean up any existing styles
+          const existingStyle = document.querySelector('style[data-popup-style]');
+          if (existingStyle) {
+            existingStyle.remove();
+          }
+        }
       }
       
-      // Don't show popup here - let message listener handle it based on templateConfig
       console.log('🔍 DEBUG - handleSubmit completed, waiting for quiz.data.ready message');
     } catch (e) {
       console.error('Error sending message to iframe:', e);

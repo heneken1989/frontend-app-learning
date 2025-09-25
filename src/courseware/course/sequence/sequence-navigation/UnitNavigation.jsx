@@ -28,36 +28,20 @@ const UnitNavigation = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitButton, setShowSubmitButton] = useState(false);
   const [answerShown, setAnswerShown] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
   const {
     isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink,
   } = useSequenceNavigationMetadata(sequenceId, unitId);
 
-  // Check for iframe and send initial message
+  // Reset states when unit changes
   useEffect(() => {
-    const sendCheck = () => {
-      const iframe = document.getElementById('unit-iframe');
-      if (iframe) {
-        try {
-          iframe.contentWindow.postMessage({ type: 'problem.check' }, '*');
-        } catch (e) {
-        }
-      }
-    };
-
     // Reset states
     setIsSubmitEnabled(true);
     setIsSubmitting(false);
     setShowSubmitButton(false);
     setAnswerShown(false);
 
-    // Send initial check and set up a retry if needed
-    sendCheck();
-    const retryTimeout = setTimeout(sendCheck, 1000);
-
-    return () => {
-      clearTimeout(retryTimeout);
-    };
+    // Don't send any automatic messages - only when user clicks submit
+    console.log('🔄 Unit changed in UnitNavigation, ready for user interaction:', unitId);
   }, [unitId]);
 
   const handleSubmit = () => {
@@ -149,21 +133,12 @@ const UnitNavigation = ({
   const renderNextButton = () => {
     const { exitActive, exitText } = GetCourseExitNavigation(courseId, intl);
     const buttonText = (isLastUnitInSequence && exitText) ? exitText : intl.formatMessage(messages.nextButton);
-    const disabled = isLastUnitInSequence || isNavigating;
+    const disabled = isLastUnitInSequence;
     const variant = 'outline-primary';
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
-    const handleNextClick = async () => {
-      if (isNavigating) return;
-      
-      setIsNavigating(true);
-      
+    const handleNextClick = () => {
       // No need to save answers when navigating - only when user clicks Check button
-      
-      // Add a longer delay to show loading effect clearly
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Call the original onClickNext
       if (onClickNext) {
         onClickNext();
       }
@@ -175,7 +150,7 @@ const UnitNavigation = ({
           {...{
             variant,
             buttonStyle,
-            buttonText: isNavigating ? 'Loading...' : buttonText,
+            buttonText: buttonText,
             disabled,
             sequenceId,
             nextLink,
@@ -200,69 +175,7 @@ const UnitNavigation = ({
     );
   };
 
-  return (
-    <>
-      {/* Bottom navigation bar completely removed */}
-      
-      {/* Loading Overlay */}
-      {isNavigating && (
-        <div 
-          className="loading-overlay"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'opacity 0.3s ease-in-out',
-            animation: 'fadeIn 0.3s ease-in-out',
-          }}
-        >
-          <div 
-            style={{
-              background: 'white',
-              padding: '2rem',
-              borderRadius: '8px',
-              textAlign: 'center',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
-            }}
-          >
-            <div 
-              style={{
-                width: '3rem',
-                height: '3rem',
-                border: '4px solid #f3f3f3',
-                borderTop: '4px solid #0097a9',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-            <div className="mt-3" style={{ fontSize: '1.1rem', fontWeight: '500', marginTop: '1rem' }}>
-              Loading next question...
-            </div>
-          </div>
-          
-          <style>
-            {`
-              @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-              }
-              @keyframes spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-              }
-            `}
-          </style>
-        </div>
-      )}
-    </>
-  );
+  return null;
 };
 
 UnitNavigation.propTypes = {
