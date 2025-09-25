@@ -28,7 +28,6 @@ const Unit = ({
   id,
   isOriginalUserStaff,
   isEnabledOutlineSidebar,
-  renderUnitNavigation,
 }) => {
   const { formatMessage } = useIntl();
   const [searchParams] = useSearchParams();
@@ -115,7 +114,6 @@ Unit.propTypes = {
   onLoaded: PropTypes.func,
   isOriginalUserStaff: PropTypes.bool.isRequired,
   isEnabledOutlineSidebar: PropTypes.bool.isRequired,
-  renderUnitNavigation: PropTypes.func.isRequired,
 };
 
 

@@ -9,7 +9,6 @@ const UnitTitleSlot = ({
   unitId,
   unit,
   isEnabledOutlineSidebar,
-  renderUnitNavigation,
 }) => {
   const { formatMessage } = useIntl();
   const isProcessing = unit.bookmarkedUpdateState === 'loading';
@@ -21,7 +20,6 @@ const UnitTitleSlot = ({
         unitId,
         unit,
         isEnabledOutlineSidebar,
-        renderUnitNavigation,
       }}
     >
       <div className="d-flex justify-content-between">

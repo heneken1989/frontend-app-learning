@@ -20,7 +20,7 @@ import CourseLicense from '../course-license';
 import { NotificationsDiscussionsSidebarSlot } from '../../../plugin-slots/NotificationsDiscussionsSidebarSlot';
 import messages from './messages';
 import HiddenAfterDue from './hidden-after-due';
-import { SequenceNavigation, UnitNavigation } from './sequence-navigation';
+import { SequenceNavigation } from './sequence-navigation';
 import PersistentNavigationBar from './sequence-navigation/PersistentNavigationBar';
 import SequenceContent from './SequenceContent';
 
@@ -140,22 +140,6 @@ const Sequence = ({
 
   const gated = sequence && sequence.gatedContent !== undefined && sequence.gatedContent.gated;
 
-  const renderUnitNavigation = (isAtTop) => (
-    <UnitNavigation
-      courseId={courseId}
-      sequenceId={sequenceId}
-      unitId={unitId}
-      isAtTop={isAtTop}
-      onClickPrevious={() => {
-        logEvent('edx.ui.lms.sequence.previous_selected', 'bottom');
-        handlePrevious();
-      }}
-      onClickNext={() => {
-        logEvent('edx.ui.lms.sequence.next_selected', 'bottom');
-        handleNext();
-      }}
-    />
-  );
 
   const defaultContent = (
     <>
@@ -195,9 +179,7 @@ const Sequence = ({
               unitLoadedHandler={handleUnitLoaded}
               isOriginalUserStaff={originalUserIsStaff}
               isEnabledOutlineSidebar={isEnabledOutlineSidebar}
-              renderUnitNavigation={renderUnitNavigation}
             />
-            {unitHasLoaded && renderUnitNavigation(false)}
           </div>
         </div>
         <NotificationsDiscussionsSidebarSlot courseId={courseId} />
