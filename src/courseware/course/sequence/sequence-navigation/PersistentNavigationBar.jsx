@@ -288,11 +288,62 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       padding: 1.5rem;
     `;
     
-    // Generate popup content based on data availability
+    // Generate popup content based on template type
     let popupContent = '';
     
-    if (quizData && quizData.options && quizData.options.length > 0) {
-      // Create answer comparison layout like in quiz iframe
+    if (quizData && quizData.templateId === 22) {
+      // Template 22: Grammar Sentence Rearrangement
+      console.log('🔍 DEBUG - Rendering Template 22 popup:', quizData);
+      
+      const correctWords = quizData.correctWords || [];
+      const userWords = quizData.userWords || [];
+      const wordPositions = quizData.wordPositions || {};
+      
+      popupContent = `
+        <div class="grammar-rearrangement-popup">
+          <div class="answer-comparison" style="display: flex; gap: 30px; margin-bottom: 20px;">
+            <!-- Correct Order Column -->
+            <div class="answer-column" style="flex: 1;">
+              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">正しい順序 (Correct Order)</div>
+              <div class="correct-words" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                ${correctWords.map(word => `
+                  <span class="quiz-word correct" style="display: inline-block; padding: 6px 12px; background: #2e7d32; color: #fff; border-radius: 4px; font-size: 14px; font-weight: bold;">
+                    ${word}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+            
+            <!-- Your Answer Column -->
+            <div class="answer-column" style="flex: 1;">
+              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">あなたの答え (Your Answer)</div>
+              <div class="user-words" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                ${userWords.map((userWord, index) => {
+                  // Check if the word is in the correct absolute position
+                  const isCorrectPosition = userWord && wordPositions[userWord] !== undefined ? 
+                    (wordPositions[userWord] === index) : false;
+                  
+                  if (userWord) {
+                    return `
+                      <span class="quiz-word ${isCorrectPosition ? 'correct' : 'incorrect'}" style="display: inline-block; padding: 6px 12px; background: ${isCorrectPosition ? '#2e7d32' : '#b40000'}; color: #fff; border-radius: 4px; font-size: 14px; font-weight: bold;">
+                        ${userWord}
+                      </span>
+                    `;
+                  } else {
+                    return `
+                      <span class="quiz-word empty" style="display: inline-block; padding: 6px 12px; background: #f0f0f0; color: #666; border: 2px dashed #999; border-radius: 4px; font-size: 14px; font-weight: bold;">
+                        ＿＿＿
+                      </span>
+                    `;
+                  }
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (quizData && quizData.options && quizData.options.length > 0) {
+      // Original template (multiple choice)
       popupContent = `
         <div class="answer-comparison" style="display: flex; gap: 30px; margin-bottom: 20px;">
           <!-- Correct Answer Column -->
@@ -355,6 +406,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           padding: 1rem !important;
         }
         #test-popup .answer-comparison {
+          flex-direction: column !important;
+          gap: 15px !important;
+        }
+        #test-popup .grammar-rearrangement-popup .answer-comparison {
           flex-direction: column !important;
           gap: 15px !important;
         }
