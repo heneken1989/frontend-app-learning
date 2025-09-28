@@ -424,31 +424,8 @@ const NavigationMenu = ({ courses }) => {
             fetchSequencesBySectionId={fetchSequencesBySectionId}
           />
         ))}
-        <div
-          className="nav-item payment-link"
-          style={{
-            position: 'relative',
-            padding: '8px 16px',
-            borderRadius: 4,
-            cursor: 'pointer',
-            background: '#0097a9',
-            color: '#fff',
-            fontWeight: '600',
-            textDecoration: 'none',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={() => window.location.href = '/learning/payment'}
-          onMouseEnter={(e) => {
-            e.target.style.background = '#007a8a';
-            e.target.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = '#0097a9';
-            e.target.style.transform = 'translateY(0)';
-          }}
-        >
-          💳 Buy Courses
-        </div>
+        {/* Hidden Auto Enroll All button */}
+        {/* 
         <div
           className="nav-item auto-enroll-link"
           style={{
@@ -474,7 +451,9 @@ const NavigationMenu = ({ courses }) => {
         >
           🚀 Auto Enroll All
         </div>
-        <EnrollmentStatus />
+        */}
+        {/* Hidden EnrollmentStatus */}
+        {/* <EnrollmentStatus /> */}
       </div>
       <style>{`
         .dropdown-hover-item {
@@ -552,6 +531,7 @@ const LearningHeader = ({
   const [hoveredCourse, setHoveredCourse] = useState(null);
   const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
+  const [timerKey, setTimerKey] = useState(0);
 
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
@@ -589,6 +569,23 @@ const LearningHeader = ({
     return () => { didCancel = true; };
   }, [unitId, unit]);
 
+  // Listen for timer reset events from PersistentNavigationBar
+  useEffect(() => {
+    const handleTimerReset = (event) => {
+      console.log('🔄 Timer reset event received:', event.detail);
+      if (event.detail && event.detail.unitId === unitId) {
+        console.log('🔄 Resetting timer for unit:', unitId);
+        // Force re-render of UnitTimer by updating timerKey
+        setTimerKey(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener('resetTimer', handleTimerReset);
+    return () => {
+      window.removeEventListener('resetTimer', handleTimerReset);
+    };
+  }, [unitId]);
+
   useEffect(() => {
     fetchAllCourses()
       .then(data => {
@@ -608,14 +605,40 @@ const LearningHeader = ({
       <div className="container-xl py-2 d-flex align-items-center">
         {/* Logo removed */}
         <NavigationMenu courses={courses} />
-        <div className="flex-grow-1 course-title-lockup d-flex align-items-center" style={{ lineHeight: 1 }}>
+        <div className="flex-grow-1 course-title-lockup d-flex align-items-center justify-content-end" style={{ lineHeight: 1, gap: '8px' }}>
           {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
+              key={`${unitId}-${timerKey}`}
               unitId={unitId}
               initialTimeByProblemType={timeLimit}
               onTimeExpired={handleTimeExpired}
             />
           ) : null}
+          <div
+            className="nav-item payment-link"
+            style={{
+              position: 'relative',
+              padding: '8px 16px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              background: '#0097a9',
+              color: '#fff',
+              fontWeight: '600',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+            }}
+            onClick={() => window.location.href = '/learning/payment'}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#007a8a';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = '#0097a9';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
+            💳 Buy Courses
+          </div>
         </div>
         {showUserDropdown && authenticatedUser && (
           <AuthenticatedUserDropdown
@@ -629,10 +652,43 @@ const LearningHeader = ({
       <style>
         {`
           .learning-header {
-            background: rgba(238, 230, 230, 0.95);
+            background: white !important;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .learning-header .container-xl {
+            background: white !important;
+          }
+          .learning-header .nav-menu {
+            background: white !important;
+          }
+          .learning-header .nav-links {
+            background: white !important;
           }
           .course-title-lockup {
             justify-content: center;
+            background: white !important;
+          }
+          /* Make user dropdown circular */
+          .learning-header .dropdown-toggle {
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: none !important;
+            background: #00838f !important; /* Teal background */
+            color: white !important; /* White text for the 'h' */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            transition: all 0.2s ease !important;
+          }
+          .learning-header .dropdown-toggle::after {
+            display: none !important; /* Hide dropdown arrow */
+          }
+          .learning-header .dropdown-toggle:hover {
+            background: #006064 !important; /* Darker teal on hover */
+            transform: translateY(-1px) !important;
           }
           /* Hide logo */
           .learning-header .logo {

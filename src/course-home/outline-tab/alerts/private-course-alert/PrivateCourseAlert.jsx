@@ -5,7 +5,6 @@ import { injectIntl, intlShape, FormattedMessage } from '@edx/frontend-platform/
 import { getLoginRedirectUrl } from '@edx/frontend-platform/auth';
 import { Alert, Button, Hyperlink } from '@openedx/paragon';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 import enrollmentMessages from '../../../../alerts/enrollment-alert/messages';
 import genericMessages from '../../../../generic/messages';
@@ -88,7 +87,7 @@ const PrivateCourseAlert = ({ intl, payload }) => {
             <div className="d-flex">
               {enrollNowButton}
               {intl.formatMessage(messages.toAccess)}
-              {loading && <FontAwesomeIcon icon={faSpinner} spin />}
+              {loading && <span>Loading...</span>}
             </div>
           )}
           {!canEnroll && (

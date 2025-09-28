@@ -197,6 +197,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             existingStyle.remove();
           }
         }
+        
+        // Reset timer on header
+        console.log('🔄 Resetting timer on header');
+        window.dispatchEvent(new CustomEvent('resetTimer', { 
+          detail: { 
+            unitId: unitId,
+            timestamp: Date.now()
+          } 
+        }));
       }
       
       console.log('🔍 DEBUG - handleSubmit completed, waiting for quiz.data.ready message');
@@ -424,6 +433,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         className="submit-answer-button mx-2"
         onClick={handleSubmit}
         disabled={isSubmitting}
+        style={{
+          backgroundColor: '#f44336', // Red color like in the image
+          borderColor: '#f44336',
+          color: 'white',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
       >
         <span className="submit-label">{buttonText}</span>
       </Button>
@@ -473,6 +489,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             nextLink,
             onClickHandler: handleNextClick,
             isAtTop,
+            style: {
+              backgroundColor: '#00838f', // Teal color like in the image
+              borderColor: '#00838f',
+              color: 'white',
+              fontWeight: 'bold',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }
           }}
         />
       );
@@ -488,6 +511,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         buttonText={buttonText}
         nextLink={nextLink}
         hasEffortEstimate
+        style={{
+          backgroundColor: '#00838f', // Teal color like in the image
+          borderColor: '#00838f',
+          color: 'white',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+        }}
       />
     );
   };
@@ -507,13 +537,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         left: '0',
         right: '0',
         zIndex: 10000, // Higher than bottom bar
-        background: '#F5EEEE', // Light pink color
-        borderTop: '1px solid #eee', // Change to top border
+        background: '#ebebeb', // Light gray color like in the image
+        borderTop: '1px solid #ddd', // Slightly darker border
         boxShadow: '0 -2px 4px rgba(0,0,0,0.1)', // Shadow above
         width: '100%',
-        height: '80px' // Fixed height to cover bottom bar
+        height: '60px' // Reduced height from 70px to 60px
       }}>
-        {renderPreviousButton()}
         {renderSubmitButton()}
         {renderNextButton()}
                   {/* Unit title display */}

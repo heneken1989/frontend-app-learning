@@ -6,7 +6,6 @@ import { MenuOpen as MenuOpenIcon } from '@openedx/paragon/icons';
 
 import { useModel } from '@src/generic/model-store';
 import { LOADING } from '@src/constants';
-import PageLoading from '@src/generic/PageLoading';
 import SidebarSequence from './components/SidebarSequence';
 import { ID } from './constants';
 import { useCourseOutlineSidebar } from './hooks';
@@ -157,7 +156,9 @@ const CourseOutlineTray = ({ intl }) => {
           iconAs={MenuOpenIcon}
           onClick={handleToggle}
         />
-        <PageLoading srMessage={intl.formatMessage(messages.loading)} />
+        <div style={{ padding: '8px', textAlign: 'center', color: '#666' }}>
+          Loading...
+        </div>
       </div>
     );
   }

@@ -76,10 +76,7 @@ const ProgressPage = () => {
     if (!progressData) {
       return (
         <Card className="p-4 text-center">
-          <div className="spinner-border" role="status">
-            <span className="sr-only">Loading...</span>
-          </div>
-          <p className="mt-2">Loading progress...</p>
+          <p>Loading progress...</p>
         </Card>
       );
     }

@@ -5,7 +5,6 @@ import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import {
   AlertModal,
   Button,
-  Spinner,
   Icon,
 } from '@openedx/paragon';
 import { Check, ArrowForward } from '@openedx/paragon/icons';
@@ -17,13 +16,13 @@ const AccountActivationAlert = ({
   intl,
 }) => {
   const [showModal, setShowModal] = useState(false);
-  const [showSpinner, setShowSpinner] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
   const [showCheck, setShowCheck] = useState(false);
   const handleOnClick = () => {
-    setShowSpinner(true);
+    setShowLoading(true);
     setShowCheck(false);
     sendActivationEmail().then(() => {
-      setShowSpinner(false);
+      setShowLoading(false);
       setShowCheck(true);
     });
   };
@@ -85,20 +84,16 @@ const AccountActivationAlert = ({
       </div>
     );
 
-    if (!showCheck && showSpinner) {
+    if (!showCheck && showLoading) {
       bodyContent = (
         <div>
           {message}
-          <Spinner
-            animation="border"
-            variant="secondary"
-            style={{ height: '1.5rem', width: '1.5rem' }}
-          />
+          <span>Loading...</span>
         </div>
       );
     }
 
-    if (showCheck && !showSpinner) {
+    if (showCheck && !showLoading) {
       bodyContent = (
         <div>
           {message}

@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { sendTrackingLogEvent } from '@edx/frontend-platform/analytics';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import {
-  Alert, Button, Icon, Spinner,
+  Alert, Button, Icon,
 } from '@openedx/paragon';
 import {
   Close,
@@ -144,7 +144,7 @@ const CoursewareSearch = ({ ...sectionProps }) => {
           <div className="courseware-search__results" aria-live="polite" data-testid="courseware-search-results">
             {status === 'loading' ? (
               <div className="courseware-search__spinner" data-testid="courseware-search-spinner">
-                <Spinner animation="border" variant="light" screenReaderText={formatMessage(messages.loading)} />
+                <div>Loading...</div>
               </div>
             ) : null}
             {status === 'error' && (

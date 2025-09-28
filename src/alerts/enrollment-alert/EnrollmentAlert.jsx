@@ -5,7 +5,6 @@ import { Alert, Button } from '@openedx/paragon';
 import { Info, WarningFilled } from '@openedx/paragon/icons';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { useModel } from '../../generic/model-store';
 
 import messages from './messages';
@@ -51,7 +50,7 @@ const EnrollmentAlert = ({ intl, payload }) => {
       <div className="d-flex">
         {text}
         {button}
-        {loading && <FontAwesomeIcon icon={faSpinner} spin />}
+        {loading && <span>Loading...</span>}
       </div>
     </Alert>
   );

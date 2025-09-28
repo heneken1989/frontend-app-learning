@@ -544,10 +544,6 @@
 // Loading Overlay Styles
 .loading-overlay {
   animation: fadeIn 0.3s ease-in-out;
-  
-  .spinner-border {
-    animation: spin 1s linear infinite;
-  }
 }
 
 @keyframes fadeIn {
@@ -556,15 +552,6 @@
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
   }
 }
 
