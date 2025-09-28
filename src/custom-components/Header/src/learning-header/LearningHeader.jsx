@@ -702,7 +702,17 @@ const LearningHeader = ({
           .learning-header .logo {
             display: none !important;
           }
-          /* Force teal background for all user dropdown states */
+          /* Force teal background for all user dropdown states - Higher specificity to override _header.scss */
+          #root .learning-header .user-dropdown button,
+          #root .learning-header .user-dropdown button:focus,
+          #root .learning-header .user-dropdown button:active,
+          #root .learning-header .user-dropdown button:visited,
+          #root .learning-header .user-dropdown button:hover,
+          #root .learning-header .user-dropdown button:not(:disabled):not(.disabled):active,
+          #root .learning-header .user-dropdown button:not(:disabled):not(.disabled):active:focus,
+          #root .learning-header .user-dropdown button.show,
+          #root .learning-header .user-dropdown button.show:focus,
+          #root .learning-header .user-dropdown button.show:active,
           .learning-header .btn.dropdown-toggle,
           .learning-header .btn.dropdown-toggle:focus,
           .learning-header .btn.dropdown-toggle:active,
@@ -718,11 +728,29 @@ const LearningHeader = ({
             border-color: #00838f !important;
             color: white !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+            border-radius: 50% !important;
+            width: 40px !important;
+            height: 40px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border: none !important;
+            text-decoration: none !important;
+            outline: none !important;
+            transition: all 0.2s ease !important;
           }
+          #root .learning-header .user-dropdown button:hover,
           .learning-header .btn.dropdown-toggle:hover {
             background: #006064 !important;
             background-color: #006064 !important;
             border-color: #006064 !important;
+            transform: translateY(-1px) !important;
+          }
+          /* Hide dropdown arrow */
+          #root .learning-header .user-dropdown button::after,
+          .learning-header .btn.dropdown-toggle::after {
+            display: none !important;
           }
         `}
       </style>
