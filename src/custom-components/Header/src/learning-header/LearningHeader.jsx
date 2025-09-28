@@ -669,7 +669,11 @@ const LearningHeader = ({
             background: white !important;
           }
           /* Make user dropdown circular */
-          .learning-header .dropdown-toggle {
+          .learning-header .dropdown-toggle,
+          .learning-header .dropdown-toggle:focus,
+          .learning-header .dropdown-toggle:active,
+          .learning-header .dropdown-toggle:visited,
+          .learning-header .dropdown-toggle:hover {
             border-radius: 50% !important;
             width: 40px !important;
             height: 40px !important;
@@ -679,20 +683,46 @@ const LearningHeader = ({
             justify-content: center !important;
             border: none !important;
             background: #00838f !important; /* Teal background */
+            background-color: #00838f !important; /* Teal background - explicit */
             color: white !important; /* White text for the 'h' */
             box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
             transition: all 0.2s ease !important;
+            text-decoration: none !important;
+            outline: none !important;
           }
           .learning-header .dropdown-toggle::after {
             display: none !important; /* Hide dropdown arrow */
           }
           .learning-header .dropdown-toggle:hover {
             background: #006064 !important; /* Darker teal on hover */
+            background-color: #006064 !important; /* Darker teal on hover - explicit */
             transform: translateY(-1px) !important;
           }
           /* Hide logo */
           .learning-header .logo {
             display: none !important;
+          }
+          /* Force teal background for all user dropdown states */
+          .learning-header .btn.dropdown-toggle,
+          .learning-header .btn.dropdown-toggle:focus,
+          .learning-header .btn.dropdown-toggle:active,
+          .learning-header .btn.dropdown-toggle:visited,
+          .learning-header .btn.dropdown-toggle:hover,
+          .learning-header .btn.dropdown-toggle:not(:disabled):not(.disabled):active,
+          .learning-header .btn.dropdown-toggle:not(:disabled):not(.disabled):active:focus,
+          .learning-header .btn.dropdown-toggle.show,
+          .learning-header .btn.dropdown-toggle.show:focus,
+          .learning-header .btn.dropdown-toggle.show:active {
+            background: #00838f !important;
+            background-color: #00838f !important;
+            border-color: #00838f !important;
+            color: white !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+          }
+          .learning-header .btn.dropdown-toggle:hover {
+            background: #006064 !important;
+            background-color: #006064 !important;
+            border-color: #006064 !important;
           }
         `}
       </style>
