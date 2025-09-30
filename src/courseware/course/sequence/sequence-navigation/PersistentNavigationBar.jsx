@@ -282,46 +282,169 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       const correctWords = quizData.correctWords || [];
       const userWords = quizData.userWords || [];
-      const wordPositions = quizData.wordPositions || {};
+      const paragraphText = quizData.paragraphText || '';
+      const score = quizData.score || 0;
+      const correctCount = quizData.correctCount || 0;
+      const totalQuestions = quizData.totalQuestions || 0;
+      
+      // Process HTML content to extract text and build paragraphs with boxes
+      let processedParagraphText = paragraphText;
+      
+      // Debug: Log original paragraphText
+      console.log('🔍 DEBUG - Original paragraphText:', paragraphText);
+      console.log('🔍 DEBUG - correctWords:', correctWords);
+      console.log('🔍 DEBUG - userWords:', userWords);
+      
+      // If paragraphText contains HTML (like <span class="blank">), process it
+      console.log('🔍 DEBUG - Checking if paragraphText contains spans...');
+      console.log('🔍 DEBUG - paragraphText.includes("<span"):', paragraphText.includes('<span'));
+      console.log('🔍 DEBUG - paragraphText.includes("class=\"blank\""):', paragraphText.includes('class="blank"'));
+      console.log('🔍 DEBUG - paragraphText.includes("blank"):', paragraphText.includes('blank'));
+      
+      if (paragraphText.includes('<span') && paragraphText.includes('blank')) {
+        // Remove ALL content inside blank spans and replace with placeholders
+        // Handle both empty and filled blank spans
+        let tempText = paragraphText;
+        
+        // Debug: Log before processing
+        console.log('🔍 DEBUG - Before processing:', tempText);
+        
+        // First try regex approach for all blank spans (based on Python pattern)
+        const regexPattern = /<span[^>]*id="blank\d+"[^>]*>[\s\S]*?<\/span>/g;
+        tempText = tempText.replace(regexPattern, '___BLANK_PLACEHOLDER___');
+        console.log('🔍 DEBUG - After regex replace:', tempText);
+        
+        // Count how many placeholders we have after regex
+        const placeholderCount = (tempText.match(/___BLANK_PLACEHOLDER___/g) || []).length;
+        console.log(`🔍 DEBUG - Placeholders after regex: ${placeholderCount}`);
+        
+        // If regex didn't work, use manual approach
+        let replaceCount = 0;
+        while (tempText.includes('<span') && (tempText.includes('class="blank"') || tempText.includes('class="blank filled"'))) {
+          const startIndex = tempText.indexOf('<span');
+          const endIndex = tempText.indexOf('</span>', startIndex);
+          if (endIndex !== -1) {
+            tempText = tempText.substring(0, startIndex) + '___BLANK_PLACEHOLDER___' + tempText.substring(endIndex + 7);
+            replaceCount++;
+            console.log(`🔍 DEBUG - Manual replace ${replaceCount}, remaining:`, tempText);
+          } else {
+            break;
+          }
+        }
+        console.log(`🔍 DEBUG - Total replaced: ${replaceCount} spans`);
+        
+        processedParagraphText = tempText
+          .replace(/\s+/g, ' ')
+          .trim();
+        console.log('🔍 DEBUG - Final processed paragraphText:', processedParagraphText);
+      }
+      
+      // Clean up any remaining HTML tags except ruby/rt for furigana
+      processedParagraphText = processedParagraphText
+        .replace(/<div[^>]*>/g, '') // Remove div tags
+        .replace(/<\/div>/g, '') // Remove closing div tags
+        .replace(/<meta[^>]*>/g, '') // Remove meta tags
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      // Clean up any duplicate text that might exist in the template
+      // Remove any repeated words or phrases that could cause duplicates
+      processedParagraphText = processedParagraphText
+        .replace(/(\w+)\s+\1/g, '$1') // Remove consecutive duplicate words
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      // Build correct paragraph with all words highlighted in green
+      let correctParagraph = processedParagraphText;
+      if (correctWords.length > 0) {
+        let blankIndex = 0;
+        correctParagraph = processedParagraphText.replace(/___BLANK_PLACEHOLDER___/g, () => {
+          const correctWord = correctWords[blankIndex] || '';
+          blankIndex++;
+          return `<span style="display: inline-block; padding: 4px 8px; margin: 0 2px; border-radius: 3px; font-weight: bold; background: #2e7d32; color: #fff;">${correctWord}</span>`;
+        });
+      }
+      
+      // Build user answer paragraph with correct/incorrect styling
+      let userAnswerParagraph = processedParagraphText;
+      if (userWords.length > 0) {
+        // Clean up userWords by removing meta tags but preserving furigana
+        const cleanedUserWords = userWords.map(word => {
+          return word
+            .replace(/<meta[^>]*>/g, '') // Remove meta tags
+            .trim();
+        });
+        
+        // Debug: Log userWords and correctWords
+        console.log('🔍 DEBUG - userWords for styling:', userWords);
+        console.log('🔍 DEBUG - cleanedUserWords for styling:', cleanedUserWords);
+        console.log('🔍 DEBUG - correctWords for styling:', correctWords);
+        console.log('🔍 DEBUG - processedParagraphText for styling:', processedParagraphText);
+        console.log('🔍 DEBUG - Placeholder count:', (processedParagraphText.match(/___BLANK_PLACEHOLDER___/g) || []).length);
+        
+        // Replace ___BLANK_PLACEHOLDER___ with user answers
+        let blankIndex = 0;
+        userAnswerParagraph = processedParagraphText.replace(/___BLANK_PLACEHOLDER___/g, () => {
+          const userWord = cleanedUserWords[blankIndex] || '';
+          const correctWord = correctWords[blankIndex] || '';
+          
+          // Compare text content (remove HTML tags for comparison)
+          const userText = userWord.replace(/<[^>]*>/g, '').trim();
+          const correctText = correctWord.replace(/<[^>]*>/g, '').trim();
+          
+          // For sentence rearrangement, we need to check if the word is in the correct position
+          // Use the correctWords array from the actual data
+          const expectedWord = correctWords[blankIndex] ? correctWords[blankIndex].replace(/<[^>]*>/g, '').trim() : '';
+          const isCorrect = userText === expectedWord;
+          
+          console.log(`🔍 DEBUG - Word ${blankIndex}: userText="${userText}", expected="${expectedWord}", isCorrect=${isCorrect}`);
+          
+          blankIndex++;
+          
+          if (userWord) {
+            return `<span style="display: inline-block; padding: 4px 8px; margin: 0 2px; border-radius: 3px; font-weight: bold; background: ${isCorrect ? '#2e7d32' : '#b40000'}; color: #fff;">${userWord}</span>`;
+          } else {
+            return `<span style="display: inline-block; padding: 4px 8px; margin: 0 2px; border-radius: 3px; font-weight: bold; background: #b40000; color: #fff; min-width: 40px; min-height: 20px;"></span>`;
+          }
+        });
+      }
       
       popupContent = `
         <div class="grammar-rearrangement-popup">
-          <div class="answer-comparison" style="display: flex; gap: 30px; margin-bottom: 20px;">
+          <style>
+            .grammar-rearrangement-popup ruby { 
+              font-size: 16px !important; 
+            }
+            .grammar-rearrangement-popup rt { 
+              font-size: 12px !important; 
+              color: #666 !important; 
+            }
+            .grammar-rearrangement-popup .correct-paragraph rt,
+            .grammar-rearrangement-popup .user-answer-paragraph rt {
+              color: #666 !important;
+            }
+            .grammar-rearrangement-popup .correct-paragraph span[style*="background: #2e7d32"] rt,
+            .grammar-rearrangement-popup .user-answer-paragraph span[style*="background: #2e7d32"] rt {
+              color: #fff !important;
+            }
+            .grammar-rearrangement-popup .user-answer-paragraph span[style*="background: #b40000"] rt {
+              color: #fff !important;
+            }
+          </style>
+          <div class="answer-comparison" style="display: flex; gap: 30px;">
             <!-- Correct Order Column -->
             <div class="answer-column" style="flex: 1;">
               <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">正しい順序 (Correct Order)</div>
-              <div class="correct-words" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                ${correctWords.map(word => `
-                  <span class="quiz-word correct" style="display: inline-block; padding: 6px 12px; background: #2e7d32; color: #fff; border-radius: 4px; font-size: 14px; font-weight: bold;">
-                    ${word}
-                  </span>
-                `).join('')}
+              <div class="correct-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333;">
+                ${correctParagraph}
               </div>
             </div>
             
             <!-- Your Answer Column -->
             <div class="answer-column" style="flex: 1;">
               <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">あなたの答え (Your Answer)</div>
-              <div class="user-words" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-                ${userWords.map((userWord, index) => {
-                  // Check if the word is in the correct absolute position
-                  const isCorrectPosition = userWord && wordPositions[userWord] !== undefined ? 
-                    (wordPositions[userWord] === index) : false;
-                  
-                  if (userWord) {
-                    return `
-                      <span class="quiz-word ${isCorrectPosition ? 'correct' : 'incorrect'}" style="display: inline-block; padding: 6px 12px; background: ${isCorrectPosition ? '#2e7d32' : '#b40000'}; color: #fff; border-radius: 4px; font-size: 14px; font-weight: bold;">
-                        ${userWord}
-                      </span>
-                    `;
-                  } else {
-                    return `
-                      <span class="quiz-word empty" style="display: inline-block; padding: 6px 12px; background: #f0f0f0; color: #666; border: 2px dashed #999; border-radius: 4px; font-size: 14px; font-weight: bold;">
-                        ＿＿＿
-                      </span>
-                    `;
-                  }
-                }).join('')}
+              <div class="user-answer-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333;">
+                ${userAnswerParagraph}
               </div>
             </div>
           </div>
