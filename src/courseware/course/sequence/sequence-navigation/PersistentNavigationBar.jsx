@@ -571,7 +571,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           borderColor: '#f44336',
           color: 'white',
           fontWeight: 'bold',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          minWidth: '120px',
+          height: '40px',
+          padding: '8px 16px',
+          fontSize: '14px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
         }}
       >
         <span className="submit-label">{buttonText}</span>
