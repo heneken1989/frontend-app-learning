@@ -392,11 +392,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       popupContent = `
         <div class="grammar-rearrangement-popup">
           <style>
+            .grammar-rearrangement-popup { 
+              font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+              font-size: 1.2rem !important;
+            }
             .grammar-rearrangement-popup ruby { 
-              font-size: 16px !important; 
+              font-size: 1.2rem !important; 
             }
             .grammar-rearrangement-popup rt { 
-              font-size: 12px !important; 
+              font-size: 0.6em !important; 
               color: #666 !important; 
             }
             .grammar-rearrangement-popup .correct-paragraph rt,
@@ -414,16 +418,16 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           <div class="answer-comparison" style="display: flex; gap: 30px;">
             <!-- Correct Order Column -->
             <div class="answer-column" style="flex: 1;">
-              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">正しい順序 (Correct Order)</div>
-              <div class="correct-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333;">
+              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 1.2rem; font-weight: bold;">正しい順序 (Correct Order)</div>
+              <div class="correct-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 1.2rem; line-height: 1.6; color: #333;">
                 ${correctParagraph}
               </div>
             </div>
             
             <!-- Your Answer Column -->
             <div class="answer-column" style="flex: 1;">
-              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: bold;">あなたの答え (Your Answer)</div>
-              <div class="user-answer-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333;">
+              <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 1.2rem; font-weight: bold;">あなたの答え (Your Answer)</div>
+              <div class="user-answer-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 1.2rem; line-height: 1.6; color: #333;">
                 ${userAnswerParagraph}
               </div>
             </div>
@@ -444,11 +448,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       popupContent = `
         <div class="grammar-single-select-popup">
           <style>
+            .grammar-single-select-popup { 
+              font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+              font-size: 1.2rem !important;
+            }
             .grammar-single-select-popup ruby { 
-              font-size: 16px !important; 
+              font-size: 1.2rem !important; 
             }
             .grammar-single-select-popup rt { 
-              font-size: 12px !important; 
+              font-size: 0.6em !important; 
               color: #666 !important; 
             }
             .grammar-single-select-popup .script-text rt {
@@ -458,8 +466,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 16px; font-weight: bold; text-align: center;">スクリプト (Script)</div>
-            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333; text-align: center;">
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: center;">
               ${processedScriptText}
             </div>
           </div>
@@ -471,14 +479,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         <div class="answer-comparison" style="display: flex; gap: 30px; margin-bottom: 20px;">
           <!-- Correct Answer Column -->
           <div class="answer-column" style="flex: 1;">
-            <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: normal;">Correct answer</div>
+            <div class="answer-column-title" style="margin: 0 0 15px 0; color: #666; font-size: 1.2rem; font-weight: normal; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;">Correct answer</div>
             <div id="correct-answers" style="display: flex; flex-direction: column; gap: 8px;">
               ${quizData.options.map(option => `
                 <div class="answer-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
                   <div style="width: 16px; height: 16px; border: 1px solid #ccc; border-radius: 2px; display: flex; align-items: center; justify-content: center; background: ${option.isCorrect ? '#666' : 'white'};">
                     ${option.isCorrect ? '✓' : ''}
                   </div>
-                  <span style="font-size: 14px; color: #333;">${option.text}</span>
+                  <span style="font-size: 1.2rem; color: #333; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;">${option.text}</span>
                 </div>
               `).join('')}
             </div>
@@ -486,14 +494,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Your Answer Column -->
           <div class="answer-column" style="flex: 1;">
-            <div class="answer-column-title" id="your-answer-title" style="margin: 0 0 15px 0; color: #666; font-size: 14px; font-weight: normal;">Your answer: ${quizData.score || 0}/1</div>
+            <div class="answer-column-title" id="your-answer-title" style="margin: 0 0 15px 0; color: #666; font-size: 1.2rem; font-weight: normal; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;">Your answer: ${quizData.score || 0}/1</div>
             <div id="your-answers" style="display: flex; flex-direction: column; gap: 8px;">
               ${quizData.options.map(option => `
                 <div class="answer-option" style="display: flex; align-items: center; gap: 8px; padding: 8px 0;">
                   <div style="width: 16px; height: 16px; border: 1px solid #ccc; border-radius: 2px; display: flex; align-items: center; justify-content: center; background: ${option.isSelected ? '#666' : 'white'};">
                     ${option.isSelected ? '✓' : ''}
                   </div>
-                  <span style="font-size: 14px; color: #333;">${option.text}</span>
+                  <span style="font-size: 1.2rem; color: #333; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;">${option.text}</span>
                 </div>
               `).join('')}
             </div>
@@ -503,7 +511,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     } else {
       // Show fallback content
       popupContent = `
-        <div style="text-align: center; color: #666;">
+        <div style="text-align: center; color: #666; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 1.2rem;">
           <p>No quiz data available</p>
         </div>
       `;
