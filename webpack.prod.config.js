@@ -20,4 +20,30 @@ config.resolve.alias = {
   '@src': path.resolve(__dirname, 'src'),
 };
 
+// Code splitting configuration for production
+config.optimization = {
+  ...config.optimization,
+  splitChunks: {
+    chunks: "all",
+    minSize: 20000,
+    maxSize: 244000,
+    cacheGroups: {
+      vendor: {
+        test: /[\\/]node_modules[\\/]/,
+        name: 'vendors',
+        chunks: 'all',
+        priority: 10,
+      },
+      common: {
+        name: 'common',
+        minChunks: 2,
+        chunks: 'all',
+        priority: 5,
+        reuseExistingChunk: true,
+      },
+    },
+  },
+  runtimeChunk: "single",
+};
+
 module.exports = config;

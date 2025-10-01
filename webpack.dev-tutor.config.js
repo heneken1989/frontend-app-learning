@@ -5,6 +5,7 @@ const devConfig = require('./webpack.dev.config');
 const tutorConfig = {
   output: {
     publicPath: '/',
+    chunkFilename: '[name].[contenthash].chunk.js',
   },
   devServer: {
     host: '0.0.0.0',

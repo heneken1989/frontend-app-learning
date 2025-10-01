@@ -31,6 +31,33 @@ config.output = {
   path: path.resolve(__dirname, 'dist'),
   publicPath: '/',
   filename: '[name].js',
+  chunkFilename: '[name].[contenthash].chunk.js',
+};
+
+// Code splitting configuration
+config.optimization = {
+  ...config.optimization,
+  splitChunks: {
+    chunks: "all",
+    minSize: 20000,
+    maxSize: 244000,
+    cacheGroups: {
+      vendor: {
+        test: /[\\/]node_modules[\\/]/,
+        name: 'vendors',
+        chunks: 'all',
+        priority: 10,
+      },
+      common: {
+        name: 'common',
+        minChunks: 2,
+        chunks: 'all',
+        priority: 5,
+        reuseExistingChunk: true,
+      },
+    },
+  },
+  runtimeChunk: "single",
 };
 
 config.plugins = config.plugins.filter(plugin => !(plugin instanceof HtmlWebpackPlugin));

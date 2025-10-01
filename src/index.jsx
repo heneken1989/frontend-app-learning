@@ -4,7 +4,7 @@ import {
   getConfig,
 } from '@edx/frontend-platform';
 import { AppProvider, ErrorPage, PageWrap } from '@edx/frontend-platform/react';
-import { StrictMode } from 'react';
+import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   Routes, Route, Navigate, BrowserRouter,
@@ -12,39 +12,45 @@ import {
 
 import { Helmet } from 'react-helmet';
 import { fetchDiscussionTab, fetchLiveTab } from './course-home/data/thunks';
-import DiscussionTab from './course-home/discussion-tab/DiscussionTab';
 
 import messages from './i18n';
 import { UserMessagesProvider } from './generic/user-messages';
 
 import './index.scss';
-import OutlineTab from './course-home/outline-tab';
 import { CourseExit } from './courseware/course/course-exit';
-import CoursewareContainer from './courseware';
-import CoursewareRedirectLandingPage from './courseware/CoursewareRedirectLandingPage';
-import DatesTab from './course-home/dates-tab';
-import GoalUnsubscribe from './course-home/goal-unsubscribe';
-import ProgressTab from './course-home/progress-tab/ProgressTab';
-import { TabContainer } from './tab-page';
-import ProgressPage from './custom-components/ProgressPage';
-import LearningHome from './custom-components/LearningHome';
-import PaymentPage from './custom-components/PaymentPage';
-import PaymentSuccess from './custom-components/PaymentSuccess';
-import PaymentCancel from './custom-components/PaymentCancel';
-import EnrollmentStatusRoute from './custom-components/EnrollmentStatus/src/EnrollmentStatusRoute';
+import LoadingSpinner from './components/LoadingSpinner';
+
+// Lazy loaded components
+import {
+  LearningHome,
+  PaymentPage,
+  PaymentSuccess,
+  PaymentCancel,
+  ProgressPage,
+  EnrollmentStatusRoute,
+  CoursewareContainer,
+  CoursewareRedirectLandingPage,
+  OutlineTab,
+  DatesTab,
+  ProgressTab,
+  DiscussionTab,
+  LiveTab,
+  GoalUnsubscribe,
+  PreferencesUnsubscribe,
+  PageNotFound,
+  CourseAccessErrorPage,
+  TabContainer,
+} from './lazyComponents';
 
 import { fetchDatesTab, fetchOutlineTab, fetchProgressTab } from './course-home/data';
 import { fetchCourse } from './courseware/data';
 import { store } from './store';
 import NoticesProvider from './generic/notices';
 import PathFixesProvider from './generic/path-fixes';
-import LiveTab from './course-home/live-tab/LiveTab';
-import CourseAccessErrorPage from './generic/CourseAccessErrorPage';
 import DecodePageRoute from './decode-page-route';
 import { DECODE_ROUTES, ROUTES } from './constants';
-import PreferencesUnsubscribe from './preferences-unsubscribe';
-import PageNotFound from './generic/PageNotFound';
 import PluginProvider from './PluginProvider';
+import { preloadCriticalComponents } from './utils/preloadComponents';
 
 // Simple test component for debugging
 const TestComponent = () => (
@@ -57,6 +63,9 @@ const TestComponent = () => (
 subscribe(APP_READY, () => {
   const root = createRoot(document.getElementById('root'));
 
+  // Start preloading critical components
+  preloadCriticalComponents();
+
   root.render(
     <StrictMode>
       <AppProvider store={store} wrapWithRouter={false}>
@@ -68,7 +77,8 @@ subscribe(APP_READY, () => {
             <PathFixesProvider>
               <NoticesProvider>
                 <UserMessagesProvider>
-                  <Routes>
+                  <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
+                    <Routes>
                     <Route path="/" element={<PageWrap><LearningHome /></PageWrap>} />
                     <Route path="/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
                     <Route
@@ -172,7 +182,8 @@ subscribe(APP_READY, () => {
                     <Route path={ROUTES.REDIRECT} element={<PageWrap><CoursewareRedirectLandingPage /></PageWrap>} />
                     <Route path={ROUTES.PREFERENCES_UNSUBSCRIBE} element={<PageWrap><PreferencesUnsubscribe /></PageWrap>} />
                     <Route path="*" element={<PageWrap><PageNotFound /></PageWrap>} />
-                  </Routes>
+                    </Routes>
+                  </Suspense>
                 </UserMessagesProvider>
               </NoticesProvider>
             </PathFixesProvider>
