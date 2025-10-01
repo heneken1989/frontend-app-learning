@@ -16,7 +16,6 @@ export const CoursewareRedirectLandingPage = lazy(() => import('./courseware/Cou
 export const OutlineTab = lazy(() => import('./course-home/outline-tab'));
 export const DatesTab = lazy(() => import('./course-home/dates-tab'));
 export const ProgressTab = lazy(() => import('./course-home/progress-tab/ProgressTab'));
-export const DiscussionTab = lazy(() => import('./course-home/discussion-tab/DiscussionTab'));
 export const LiveTab = lazy(() => import('./course-home/live-tab/LiveTab'));
 
 // Lazy load utility components

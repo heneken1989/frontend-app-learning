@@ -11,7 +11,7 @@ import {
 } from 'react-router-dom';
 
 import { Helmet } from 'react-helmet';
-import { fetchDiscussionTab, fetchLiveTab } from './course-home/data/thunks';
+import { fetchLiveTab } from './course-home/data/thunks';
 
 import messages from './i18n';
 import { UserMessagesProvider } from './generic/user-messages';
@@ -33,7 +33,6 @@ import {
   OutlineTab,
   DatesTab,
   ProgressTab,
-  DiscussionTab,
   LiveTab,
   GoalUnsubscribe,
   PreferencesUnsubscribe,
@@ -107,16 +106,6 @@ subscribe(APP_READY, () => {
                         <DecodePageRoute>
                           <TabContainer tab="dates" fetch={fetchDatesTab} slice="courseHome">
                             <DatesTab />
-                          </TabContainer>
-                        </DecodePageRoute>
-                  )}
-                    />
-                    <Route
-                      path={DECODE_ROUTES.DISCUSSION}
-                      element={(
-                        <DecodePageRoute>
-                          <TabContainer tab="discussion" fetch={fetchDiscussionTab} slice="courseHome">
-                            <DiscussionTab />
                           </TabContainer>
                         </DecodePageRoute>
                   )}

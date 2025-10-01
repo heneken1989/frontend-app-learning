@@ -1,5 +1,5 @@
 // import * as notifications from './notifications';
-import * as discussions from './discussions';
+// import * as discussions from './discussions';
 
 export const SIDEBARS = {
   // [notifications.ID]: {
@@ -7,11 +7,11 @@ export const SIDEBARS = {
   //  Sidebar: notifications.Sidebar,
   //   Trigger: notifications.Trigger,
   // },
-  [discussions.ID]: {
-    ID: discussions.ID,
-    Sidebar: discussions.Sidebar,
-    Trigger: discussions.Trigger,
-  },
+  // [discussions.ID]: {
+  //   ID: discussions.ID,
+  //   Sidebar: discussions.Sidebar,
+  //   Trigger: discussions.Trigger,
+  // },
 };
 
 export const SIDEBAR_ORDER = [
