@@ -123,15 +123,24 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           // DON'T change button state here - only manual clicks should change it
           break;
         case 'quiz.data.ready':
+          // Debug: Log message from template
+          console.log('🔍 Received quiz.data.ready message:', event.data);
+          console.log('🔍 Event data type:', typeof event.data);
+          console.log('🔍 Event data keys:', Object.keys(event.data || {}));
+          
           // Handle quiz data directly from quiz iframe
           // Check if template wants to show popup
           if (event.data.templateConfig && event.data.templateConfig.showPopup === false) {
+            console.log('🔍 Template config shows popup disabled');
             return;
           }
           
           // If no templateConfig or showPopup is true/undefined, show popup
           if (event.data.quizData) {
+            console.log('🔍 Calling showTestPopup with quizData:', event.data.quizData);
             showTestPopup(event.data.quizData);
+          } else {
+            console.log('🔍 No quizData in event.data');
           }
           break;
         default:
@@ -203,6 +212,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   // Function to show test popup with data from localStorage
   const showTestPopup = (quizData = null) => {
+    // Debug: Log received data
+    console.log('🔍 showTestPopup called with quizData:', quizData);
+    
     // Remove existing popup if any
     const existingPopup = document.getElementById('test-popup');
     if (existingPopup) {
@@ -215,15 +227,27 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         const storedData = localStorage.getItem('quizGradeSubmitted');
         const timestamp = localStorage.getItem('quizGradeSubmittedTimestamp');
         
+        console.log('🔍 localStorage data:', { storedData, timestamp });
+        
         if (storedData && timestamp) {
           const timeDiff = Date.now() - parseInt(timestamp);
+          console.log('🔍 Time diff:', timeDiff);
           if (timeDiff < 10000) { // Only if data is less than 10 seconds old
             quizData = JSON.parse(storedData);
+            console.log('🔍 Parsed quizData from localStorage:', quizData);
           }
         }
       } catch (error) {
-        // Handle error silently
+        console.error('🔍 Error parsing localStorage data:', error);
       }
+    }
+    
+    // Debug: Final quizData
+    console.log('🔍 Final quizData:', quizData);
+    if (quizData && quizData.templateId === 29) {
+      console.log('🔍 Template ID29 scriptText:', quizData.scriptText);
+      console.log('🔍 ScriptText type:', typeof quizData.scriptText);
+      console.log('🔍 ScriptText length:', quizData.scriptText?.length);
     }
 
     // Create answer paragraph container (like in quiz iframe)
@@ -263,6 +287,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Generate popup content based on template type
     let popupContent = '';
+    let processedScriptText = '';
     
     if (quizData && quizData.templateId === 22) {
       // Template 22: Grammar Sentence Rearrangement
@@ -409,29 +434,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Template 29: Grammar Single Select - Show Script Text Only
       const scriptText = quizData.scriptText || '';
       
-      // Function to convert furigana format and underline text in quotes
-      const convertFurigana = (text) => {
-        if (!text || typeof text !== "string") return text;
-        
-        // First underline text in quotes: "text" -> <span style="text-decoration: underline;">text</span>
-        text = text.replace(/"([^"]+)"/g, '<span style="text-decoration: underline;">$1</span>');
-        
-        // Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
-        const reJaParens = /([一-龯ひらがなカタカナ0-9]+)（([^）]+)）/g;
-        text = text.replace(reJaParens, (match, p1, p2) => {
-          return `<ruby>${p1}<rt>${p2}</rt></ruby>`;
-        });
-        
-        // ASCII parentheses: 車(くるま) -> <ruby>車<rt>くるま</rt></ruby>
-        const reAsciiParens = /([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g;
-        text = text.replace(reAsciiParens, (match, p1, p2) => {
-          return `<ruby>${p1}<rt>${p2}</rt></ruby>`;
-        });
-        
-        return text;
-      };
+      // Don't process scriptText again - it's already processed by template
+      processedScriptText = scriptText;
       
-      const processedScriptText = convertFurigana(scriptText);
+      // Debug: Log the processed script text
+      console.log('Original scriptText:', scriptText);
+      console.log('Processed scriptText:', processedScriptText);
       
       popupContent = `
         <div class="grammar-single-select-popup">
@@ -501,6 +509,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       `;
     }
     
+    // Use innerHTML to properly render HTML tags in production
     innerWrapper.innerHTML = popupContent;
     
     // Add inner wrapper to popup
