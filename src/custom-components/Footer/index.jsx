@@ -51,6 +51,24 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
+        <div className="company-info" style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
+          {/* Company Name - Center Top */}
+          <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '12px', fontSize: '14px' }}>
+            Công Ty TNHH MANABI HUB
+          </div>
+          
+          {/* Company Info - Two Columns */}
+          <div style={{ display: 'flex', gap: '20px' }}>
+            <div style={{ flex: 1 }}>
+              <div>Trụ sở chính: Số 15 đường Võ Văn Kiệt, phường Phú Định, Thành phố Hồ Chí Minh.</div>
+              <div>Điện thoại: 0919 695 739</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div>Mã số thuế: 0318916330, do Sở Tài Chính Thành phố Hồ Chí Minh cấp ngày 17 tháng 4 năm 2025</div>
+              <div>Quyết định thành lập trung tâm ngoại ngữ Trạm Học Tập, số 828/ QĐ-SGDĐT do Sở Giáo dục và Đào tạo cấp ngày 24 tháng 7 năm 2025.</div>
+            </div>
+          </div>
+        </div>
 
       </div>
     </footer>

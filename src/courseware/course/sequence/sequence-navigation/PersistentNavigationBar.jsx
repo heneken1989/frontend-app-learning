@@ -107,7 +107,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
       // BLOCK problem.complete to prevent reload
       if (event.data.type === 'problem.complete') {
-        console.log('problem.complete message BLOCKED in PersistentNavigationBar - preventing reload');
         return;
       }
 
@@ -125,19 +124,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           break;
         case 'quiz.data.ready':
           // Handle quiz data directly from quiz iframe
-          console.log('🔍 DEBUG - Received quiz data from quiz iframe:', event.data.quizData);
-          console.log('🔍 DEBUG - Template config:', event.data.templateConfig);
-          console.log('🔍 DEBUG - Full event data:', event.data);
-          
           // Check if template wants to show popup
           if (event.data.templateConfig && event.data.templateConfig.showPopup === false) {
-            console.log('🔍 DEBUG - Template disabled popup, skipping showTestPopup');
             return;
           }
           
           // If no templateConfig or showPopup is true/undefined, show popup
           if (event.data.quizData) {
-            console.log('🔍 DEBUG - Showing popup for quiz data');
             showTestPopup(event.data.quizData);
           }
           break;
@@ -164,7 +157,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     // Keep showSubmitButton as true - always show Check button
 
     // Don't send any automatic messages - only when user clicks submit
-    console.log('🔄 Unit changed, ready for user interaction:', unitId);
   }, [unitId]);
 
   const handleSubmit = () => {
@@ -178,12 +170,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Toggle button state manually - ONLY on user click
       if (currentButtonState === '確認') {
         // First click: Send check message
-        console.log('🔄 User clicked 確認 - sending check message to iframe');
         iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'check' }, '*');
         setCurrentButtonState('やり直し');
       } else {
         // Second click: Send reset message and close popup
-        console.log('🔄 User clicked やり直し - sending reset message to iframe');
         iframe.contentWindow.postMessage({ type: 'problem.submit', action: 'reset' }, '*');
         setCurrentButtonState('確認');
         
@@ -199,7 +189,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         }
         
         // Reset timer on header
-        console.log('🔄 Resetting timer on header');
         window.dispatchEvent(new CustomEvent('resetTimer', { 
           detail: { 
             unitId: unitId,
@@ -207,8 +196,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           } 
         }));
       }
-      
-      console.log('🔍 DEBUG - handleSubmit completed, waiting for quiz.data.ready message');
     } catch (e) {
       console.error('Error sending message to iframe:', e);
     }
@@ -232,11 +219,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           const timeDiff = Date.now() - parseInt(timestamp);
           if (timeDiff < 10000) { // Only if data is less than 10 seconds old
             quizData = JSON.parse(storedData);
-            console.log('🔍 DEBUG - Found quiz data in localStorage:', quizData);
           }
         }
       } catch (error) {
-        console.error('🔍 DEBUG - Error parsing localStorage data:', error);
+        // Handle error silently
       }
     }
 
@@ -245,14 +231,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     popup.id = 'test-popup';
     popup.style.cssText = `
       position: fixed;
-      bottom: 80px;
+      bottom: 60px;
       left: 0;
       right: 0;
-      padding: 20px 0;
+      padding: 0;
       background-color: rgba(99, 97, 97, 0.95);
       z-index: 9999;
       transition: transform 0.3s ease;
-      max-height: 460px;
+      max-height: calc(100vh - 60px);
       overflow-y: auto;
     `;
 
@@ -268,9 +254,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      max-height: 400px;
+      max-height: calc(100vh - 80px);
       overflow-y: auto;
       padding: 1.5rem;
+      margin-top: 0;
+      margin-bottom: 0;
     `;
     
     // Generate popup content based on template type
@@ -278,8 +266,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     if (quizData && quizData.templateId === 22) {
       // Template 22: Grammar Sentence Rearrangement
-      console.log('🔍 DEBUG - Rendering Template 22 popup:', quizData);
-      
       const correctWords = quizData.correctWords || [];
       const userWords = quizData.userWords || [];
       const paragraphText = quizData.paragraphText || '';
@@ -290,33 +276,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Process HTML content to extract text and build paragraphs with boxes
       let processedParagraphText = paragraphText;
       
-      // Debug: Log original paragraphText
-      console.log('🔍 DEBUG - Original paragraphText:', paragraphText);
-      console.log('🔍 DEBUG - correctWords:', correctWords);
-      console.log('🔍 DEBUG - userWords:', userWords);
-      
-      // If paragraphText contains HTML (like <span class="blank">), process it
-      console.log('🔍 DEBUG - Checking if paragraphText contains spans...');
-      console.log('🔍 DEBUG - paragraphText.includes("<span"):', paragraphText.includes('<span'));
-      console.log('🔍 DEBUG - paragraphText.includes("class=\"blank\""):', paragraphText.includes('class="blank"'));
-      console.log('🔍 DEBUG - paragraphText.includes("blank"):', paragraphText.includes('blank'));
-      
       if (paragraphText.includes('<span') && paragraphText.includes('blank')) {
         // Remove ALL content inside blank spans and replace with placeholders
         // Handle both empty and filled blank spans
         let tempText = paragraphText;
         
-        // Debug: Log before processing
-        console.log('🔍 DEBUG - Before processing:', tempText);
-        
         // First try regex approach for all blank spans (based on Python pattern)
         const regexPattern = /<span[^>]*id="blank\d+"[^>]*>[\s\S]*?<\/span>/g;
         tempText = tempText.replace(regexPattern, '___BLANK_PLACEHOLDER___');
-        console.log('🔍 DEBUG - After regex replace:', tempText);
-        
-        // Count how many placeholders we have after regex
-        const placeholderCount = (tempText.match(/___BLANK_PLACEHOLDER___/g) || []).length;
-        console.log(`🔍 DEBUG - Placeholders after regex: ${placeholderCount}`);
         
         // If regex didn't work, use manual approach
         let replaceCount = 0;
@@ -326,17 +293,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           if (endIndex !== -1) {
             tempText = tempText.substring(0, startIndex) + '___BLANK_PLACEHOLDER___' + tempText.substring(endIndex + 7);
             replaceCount++;
-            console.log(`🔍 DEBUG - Manual replace ${replaceCount}, remaining:`, tempText);
           } else {
             break;
           }
         }
-        console.log(`🔍 DEBUG - Total replaced: ${replaceCount} spans`);
         
         processedParagraphText = tempText
           .replace(/\s+/g, ' ')
           .trim();
-        console.log('🔍 DEBUG - Final processed paragraphText:', processedParagraphText);
       }
       
       // Clean up any remaining HTML tags except ruby/rt for furigana
@@ -375,13 +339,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             .trim();
         });
         
-        // Debug: Log userWords and correctWords
-        console.log('🔍 DEBUG - userWords for styling:', userWords);
-        console.log('🔍 DEBUG - cleanedUserWords for styling:', cleanedUserWords);
-        console.log('🔍 DEBUG - correctWords for styling:', correctWords);
-        console.log('🔍 DEBUG - processedParagraphText for styling:', processedParagraphText);
-        console.log('🔍 DEBUG - Placeholder count:', (processedParagraphText.match(/___BLANK_PLACEHOLDER___/g) || []).length);
-        
         // Replace ___BLANK_PLACEHOLDER___ with user answers
         let blankIndex = 0;
         userAnswerParagraph = processedParagraphText.replace(/___BLANK_PLACEHOLDER___/g, () => {
@@ -396,8 +353,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           // Use the correctWords array from the actual data
           const expectedWord = correctWords[blankIndex] ? correctWords[blankIndex].replace(/<[^>]*>/g, '').trim() : '';
           const isCorrect = userText === expectedWord;
-          
-          console.log(`🔍 DEBUG - Word ${blankIndex}: userText="${userText}", expected="${expectedWord}", isCorrect=${isCorrect}`);
           
           blankIndex++;
           
@@ -446,6 +401,58 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               <div class="user-answer-paragraph" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333;">
                 ${userAnswerParagraph}
               </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (quizData && quizData.templateId === 29) {
+      // Template 29: Grammar Single Select - Show Script Text Only
+      const scriptText = quizData.scriptText || '';
+      
+      // Function to convert furigana format and underline text in quotes
+      const convertFurigana = (text) => {
+        if (!text || typeof text !== "string") return text;
+        
+        // First underline text in quotes: "text" -> <span style="text-decoration: underline;">text</span>
+        text = text.replace(/"([^"]+)"/g, '<span style="text-decoration: underline;">$1</span>');
+        
+        // Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
+        const reJaParens = /([一-龯ひらがなカタカナ0-9]+)（([^）]+)）/g;
+        text = text.replace(reJaParens, (match, p1, p2) => {
+          return `<ruby>${p1}<rt>${p2}</rt></ruby>`;
+        });
+        
+        // ASCII parentheses: 車(くるま) -> <ruby>車<rt>くるま</rt></ruby>
+        const reAsciiParens = /([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g;
+        text = text.replace(reAsciiParens, (match, p1, p2) => {
+          return `<ruby>${p1}<rt>${p2}</rt></ruby>`;
+        });
+        
+        return text;
+      };
+      
+      const processedScriptText = convertFurigana(scriptText);
+      
+      popupContent = `
+        <div class="grammar-single-select-popup">
+          <style>
+            .grammar-single-select-popup ruby { 
+              font-size: 16px !important; 
+            }
+            .grammar-single-select-popup rt { 
+              font-size: 12px !important; 
+              color: #666 !important; 
+            }
+            .grammar-single-select-popup .script-text rt {
+              color: #666 !important;
+            }
+          </style>
+          
+          <!-- Script Text Section -->
+          <div class="script-section">
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 16px; font-weight: bold; text-align: center;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 16px; line-height: 1.6; color: #333; text-align: center;">
+              ${processedScriptText}
             </div>
           </div>
         </div>
@@ -521,6 +528,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           flex-direction: column !important;
           gap: 15px !important;
         }
+        #test-popup .grammar-single-select-popup .answer-comparison {
+          flex-direction: column !important;
+          gap: 15px !important;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -530,7 +541,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Add popup to body
     document.body.appendChild(popup);
-    console.log('🔍 DEBUG - Test popup created from PersistentNavigationBar with data:', quizData);
     
     // Auto remove after 15 seconds
     setTimeout(() => {

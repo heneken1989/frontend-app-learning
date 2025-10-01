@@ -387,13 +387,11 @@ const NavigationMenu = ({ courses }) => {
         alert(`🎉 Thành công!\n\n✅ Đã đăng ký ${result.enrolled_count} khóa học mới\n📚 Tổng cộng có ${result.total_available_courses} khóa học khả dụng\n👤 User: ${result.user}\n\n${result.message}`);
         
         // DISABLED: No auto-reload after enrollment
-        console.log('ℹ️ [LearningHeader] Auto-reload disabled - enrollment success logged only');
       } else {
         throw new Error(result.error || 'Unknown error occurred');
       }
 
     } catch (error) {
-      
       // Show user-friendly error message
       let errorMessage = 'Có lỗi xảy ra khi đăng ký khóa học!';
       if (error.message.includes('Failed to fetch')) {
@@ -410,7 +408,19 @@ const NavigationMenu = ({ courses }) => {
 
   return (
     <nav className="nav-menu">
-      <div className="pte-tools">Manabi <span>Hub</span></div>
+      <div 
+        className="pte-tools" 
+        style={{ cursor: 'pointer' }}
+        onClick={() => window.location.href = 'https://nihongodrill.com/'}
+        onMouseEnter={(e) => {
+          e.target.style.opacity = '0.8';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.opacity = '1';
+        }}
+      >
+        Manabi <span>Hub</span>
+      </div>
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         {['聴解', '言葉。漢字', '文法', '読解', '模試テスト'].map((label) => (
           <MultiLevelDropdown
@@ -559,6 +569,7 @@ const LearningHeader = ({
             }
           } catch (error) {
             if (!didCancel) {
+              // Handle error silently
             }
           }
         }
@@ -572,9 +583,7 @@ const LearningHeader = ({
   // Listen for timer reset events from PersistentNavigationBar
   useEffect(() => {
     const handleTimerReset = (event) => {
-      console.log('🔄 Timer reset event received:', event.detail);
       if (event.detail && event.detail.unitId === unitId) {
-        console.log('🔄 Resetting timer for unit:', unitId);
         // Force re-render of UnitTimer by updating timerKey
         setTimerKey(prev => prev + 1);
       }
@@ -592,6 +601,7 @@ const LearningHeader = ({
         setCourses(data);
       })
       .catch(err => {
+        // Handle error silently
       });
   }, []);
 
