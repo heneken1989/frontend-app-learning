@@ -15,6 +15,18 @@ const CourseOutlineButton = ({
   const { isOpen, toggleOutline, closeOutline } = useSimpleCourseOutline();
 
   const handleUnitClick = (unitId) => {
+    // Close popup if it's open when navigating to a different unit
+    const existingPopup = document.getElementById('test-popup');
+    if (existingPopup) {
+      existingPopup.remove();
+      // Clean up any existing styles
+      const existingStyle = document.querySelector('style[data-popup-style]');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      console.log('🔍 CourseOutline navigation: Popup closed');
+    }
+    
     if (onUnitClick) {
       onUnitClick(unitId);
     }

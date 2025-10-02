@@ -62,6 +62,18 @@ export const useCourseOutlineSidebar = () => {
   };
 
   const handleUnitClick = ({ sequenceId, activeUnitId, id }) => {
+    // Close popup if it's open when navigating to a different unit
+    const existingPopup = document.getElementById('test-popup');
+    if (existingPopup) {
+      existingPopup.remove();
+      // Clean up any existing styles
+      const existingStyle = document.querySelector('style[data-popup-style]');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+      console.log('🔍 CourseOutline navigation: Popup closed');
+    }
+    
     const logEvent = (eventName, widgetPlacement) => {
       const findSequenceByUnitId = () => Object.values(sequences).find(seq => seq.unitIds.includes(activeUnitId));
       const activeSequence = findSequenceByUnitId(activeUnitId);

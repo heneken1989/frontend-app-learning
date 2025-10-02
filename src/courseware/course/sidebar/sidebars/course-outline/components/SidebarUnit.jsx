@@ -32,13 +32,13 @@ const SidebarUnit = ({
   // Check if this is a quiz/problem unit
   const isQuizUnit = icon === UNIT_ICON_TYPES.problem || title.toLowerCase().includes('quiz');
 
-  // Check completion status using our custom API (only once)
+  // Check completion status using our custom API (prioritize current unit)
   useEffect(() => {
     if (isQuizUnit && !isChecking && !hasChecked) {
       const checkCompletionStatus = async () => {
         setIsChecking(true);
         try {
-          console.log(`🔍 Checking completion for quiz: ${title}`, { id, idType: typeof id });
+          console.log(`🔍 Checking completion for quiz: ${title}`, { id, idType: typeof id, isActive });
           
           // Get CSRF token
           const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
@@ -99,9 +99,20 @@ const SidebarUnit = ({
         }
       };
       
-      checkCompletionStatus();
+      // Priority: Check current unit immediately, others with delay
+      if (isActive) {
+        // Current unit - check immediately
+        checkCompletionStatus();
+      } else {
+        // Other units - check with delay to avoid blocking UI
+        const timeoutId = setTimeout(() => {
+          checkCompletionStatus();
+        }, 2000); // 2 second delay for non-active units
+        
+        return () => clearTimeout(timeoutId);
+      }
     }
-  }, [isQuizUnit, id, title]); // Removed complete and isChecking from dependencies
+  }, [isQuizUnit, id, title, isActive]); // Added isActive to dependencies
 
   const iconType = isLocked ? UNIT_ICON_TYPES.lock : icon;
 

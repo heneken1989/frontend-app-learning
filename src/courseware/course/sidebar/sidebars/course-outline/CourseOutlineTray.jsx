@@ -156,9 +156,6 @@ const CourseOutlineTray = ({ intl }) => {
           iconAs={MenuOpenIcon}
           onClick={handleToggle}
         />
-        <div style={{ padding: '8px', textAlign: 'center', color: '#666' }}>
-          Loading...
-        </div>
       </div>
     );
   }

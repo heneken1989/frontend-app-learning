@@ -210,6 +210,23 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     }
   };
 
+  // Function to decode script text from encoded format
+  const decodeScriptText = (encodedText) => {
+    if (!encodedText) return '';
+    
+    return encodedText
+      .replace(/\\u3009/g, '）')   // Decode Japanese closing parenthesis (single backslash)
+      .replace(/\\u3008/g, '（')   // Decode Japanese opening parenthesis (single backslash)
+      .replace(/\\u300d/g, '」')   // Decode Japanese closing bracket (single backslash)
+      .replace(/\\u300c/g, '「')   // Decode Japanese opening bracket (single backslash)
+      .replace(/\\t/g, '\t')       // Decode tabs
+      .replace(/\\r/g, '\r')       // Decode carriage returns
+      .replace(/\\n/g, '\n')       // Decode newlines
+      .replace(/\\'/g, "'")        // Decode single quotes
+      .replace(/\\"/g, '"')        // Decode double quotes
+      .replace(/\\\\/g, '\\');     // Decode backslashes (must be last)
+  };
+
   // Function to show test popup with data from localStorage
   const showTestPopup = (quizData = null) => {
     // Debug: Log received data
@@ -436,14 +453,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       `;
     } else if (quizData && quizData.templateId === 29) {
       // Template 29: Grammar Single Select - Show Script Text Only
-      const scriptText = quizData.scriptText || '';
+      const encodedScriptText = quizData.scriptText || '';
       
-      // Don't process scriptText again - it's already processed by template
-      processedScriptText = scriptText;
-      
-      // Debug: Log the processed script text
-      console.log('Original scriptText:', scriptText);
-      console.log('Processed scriptText:', processedScriptText);
+      // Decode the script text to restore special characters
+      processedScriptText = decodeScriptText(encodedScriptText);
       
       popupContent = `
         <div class="grammar-single-select-popup">
@@ -461,6 +474,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             }
             .grammar-single-select-popup .script-text rt {
               color: #666 !important;
+            }
+            .grammar-single-select-popup .script-text span[style*="text-decoration: underline"] {
+              text-decoration: underline !important;
+              text-decoration-color: #333 !important;
+              text-decoration-thickness: 2px !important;
+              text-underline-offset: 2px !important;
             }
           </style>
           
@@ -605,6 +624,26 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const renderPreviousButton = () => {
     const buttonStyle = `previous-button ${isAtTop ? 'text-dark mr-3' : 'justify-content-center'}`;
+    
+    const handlePreviousClick = () => {
+      // Close popup if it's open when navigating to previous unit
+      const existingPopup = document.getElementById('test-popup');
+      if (existingPopup) {
+        existingPopup.remove();
+        // Clean up any existing styles
+        const existingStyle = document.querySelector('style[data-popup-style]');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        // Reset button state to "確認"
+        setCurrentButtonState('確認');
+      }
+      
+      if (onClickPrevious) {
+        onClickPrevious();
+      }
+    };
+    
     return (
       <PreviousButton
         className="go-back-button"
@@ -612,7 +651,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         variant="outline-secondary"
         buttonLabel={intl.formatMessage(messages.previousButton)}
         buttonStyle={buttonStyle}
-        onClick={onClickPrevious}
+        onClick={handlePreviousClick}
         previousLink={previousLink}
         isAtTop={isAtTop}
         disabled={isFirstUnitInSequence}
@@ -628,6 +667,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
     const handleNextClick = () => {
+      // Close popup if it's open when navigating to next unit
+      const existingPopup = document.getElementById('test-popup');
+      if (existingPopup) {
+        existingPopup.remove();
+        // Clean up any existing styles
+        const existingStyle = document.querySelector('style[data-popup-style]');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+        // Reset button state to "確認"
+        setCurrentButtonState('確認');
+      }
+      
       // No need to save answers when navigating - only when user clicks Check button
       if (onClickNext) {
         onClickNext();
