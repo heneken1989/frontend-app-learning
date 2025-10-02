@@ -458,6 +458,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
       
+      // Add highlighting for correct answer only
+      let highlightedScriptText = processedScriptText;
+      if (quizData.correctAnswer) {
+        // Highlight the correct answer in green
+        const correctAnswer = quizData.correctAnswer;
+        
+        // Replace correct answer with highlighted version
+        highlightedScriptText = highlightedScriptText.replace(
+          new RegExp(correctAnswer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          `<span class="correct-answer">${correctAnswer}</span>`
+        );
+      }
+      
       popupContent = `
         <div class="grammar-single-select-popup">
           <style>
@@ -481,13 +494,20 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               text-decoration-thickness: 2px !important;
               text-underline-offset: 2px !important;
             }
+            .grammar-single-select-popup .correct-answer {
+              color: #2e7d32 !important;
+              font-weight: bold !important;
+              background-color: #e8f5e8 !important;
+              padding: 2px 6px !important;
+              border-radius: 3px !important;
+            }
           </style>
           
           <!-- Script Text Section -->
           <div class="script-section">
             <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
             <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: center;">
-              ${processedScriptText}
+              ${highlightedScriptText}
             </div>
           </div>
         </div>
