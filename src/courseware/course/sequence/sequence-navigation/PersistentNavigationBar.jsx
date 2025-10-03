@@ -458,17 +458,140 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
       
-      // Add highlighting for correct answer only
+      // Add highlighting for correct answer only - only highlight underlined words
       let highlightedScriptText = processedScriptText;
       if (quizData.correctAnswer) {
-        // Highlight the correct answer in green
         const correctAnswer = quizData.correctAnswer;
         
-        // Replace correct answer with highlighted version
-        highlightedScriptText = highlightedScriptText.replace(
-          new RegExp(correctAnswer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-          `<span class="correct-answer">${correctAnswer}</span>`
-        );
+        // Debug logging
+        console.log('🔍 DEBUG - Template ID29 Highlighting:');
+        console.log('🔍 Original scriptText:', quizData.scriptText);
+        console.log('🔍 Processed scriptText:', processedScriptText);
+        console.log('🔍 Correct answer:', correctAnswer);
+        console.log('🔍 Correct answer type:', typeof correctAnswer);
+        
+        // Extract text content from correct answer (handle furigana and HTML tags)
+        const extractTextContent = (text) => {
+          // Remove HTML tags first
+          let cleanText = text.replace(/<[^>]*>/g, '');
+          
+          // Handle furigana patterns like [みっつ] or (みっつ) or 三（みっ）つ
+          // Extract both kanji and furigana parts
+          const furiganaMatch = cleanText.match(/^(.+?)\[([^\]]+)\]$/);
+          if (furiganaMatch) {
+            const kanji = furiganaMatch[1].trim();
+            const furigana = furiganaMatch[2].trim();
+            
+            // Return both kanji and furigana as separate options
+            // Also try to extract the base kanji without the additional hiragana
+            const kanjiOnly = kanji.replace(/[ひらがなカタカナ]/g, '').trim();
+            const hiraganaOnly = kanji.replace(/[一-龯]/g, '').trim();
+            
+            // For cases like "三つ[みっつ]", try to match different combinations
+            const options = [kanji, furigana];
+            
+            // Add kanji only if different from original
+            if (kanjiOnly && kanjiOnly !== kanji) {
+              options.push(kanjiOnly);
+            }
+            
+            // Add hiragana only if different from original
+            if (hiraganaOnly && hiraganaOnly !== kanji) {
+              options.push(hiraganaOnly);
+            }
+            
+            // For cases like "三つ[みっつ]", also try to match the full furigana
+            // which might be the complete reading in the script
+            if (furigana && furigana.length > 0) {
+              options.push(furigana);
+            }
+            
+            // Try to combine kanji and hiragana parts for partial matches
+            if (kanjiOnly && hiraganaOnly) {
+              // Try different combinations
+              options.push(kanjiOnly + hiraganaOnly);
+              options.push(hiraganaOnly + kanjiOnly);
+            }
+            
+            return options;
+          }
+          
+          // Handle pattern like 三（みっ）つ - kanji with furigana in parentheses
+          const parenFuriganaMatch = cleanText.match(/^(.+?)（([^）]+)）(.+?)$/);
+          if (parenFuriganaMatch) {
+            const beforeKanji = parenFuriganaMatch[1].trim();
+            const furigana = parenFuriganaMatch[2].trim();
+            const afterKanji = parenFuriganaMatch[3].trim();
+            
+            console.log('🔍 Paren furigana match:', { beforeKanji, furigana, afterKanji });
+            
+            // Try different combinations
+            const options = [
+              cleanText, // Original: 三（みっ）つ
+              beforeKanji + afterKanji, // 三つ
+              furigana + afterKanji, // みっつ
+              beforeKanji, // 三
+              afterKanji, // つ
+              furigana // みっ
+            ];
+            
+            return options;
+          }
+          
+          // Handle ruby/rt tags - extract both kanji and furigana
+          const rubyMatch = cleanText.match(/<ruby[^>]*>([^<]+)<rt[^>]*>([^<]+)<\/rt><\/ruby>/);
+          if (rubyMatch) {
+            const kanji = rubyMatch[1].trim();
+            const furigana = rubyMatch[2].trim();
+            return [kanji, furigana];
+          }
+          
+          // Remove ruby/rt tags and content
+          cleanText = cleanText.replace(/<ruby[^>]*>.*?<\/ruby>/g, '');
+          cleanText = cleanText.replace(/<rt[^>]*>.*?<\/rt>/g, '');
+          
+          return [cleanText.trim()];
+        };
+        
+        const cleanCorrectAnswer = extractTextContent(correctAnswer);
+        
+        // Debug logging for extraction
+        console.log('🔍 Clean correct answer options:', cleanCorrectAnswer);
+        
+        // Find all underlined spans and check if any contain the clean text
+        const underlinedSpans = processedScriptText.match(/<span[^>]*style="[^"]*text-decoration:\s*underline[^"]*"[^>]*>.*?<\/span>/g);
+        
+        // Debug logging for underlined spans
+        console.log('🔍 Found underlined spans:', underlinedSpans);
+        
+        if (underlinedSpans) {
+          underlinedSpans.forEach((span, index) => {
+            const spanText = extractTextContent(span);
+            const spanTextArray = Array.isArray(spanText) ? spanText : [spanText];
+            
+            // Debug logging for each span
+            console.log(`🔍 Span ${index}:`, span);
+            console.log(`🔍 Span ${index} extracted text:`, spanTextArray);
+            
+            // Check if any of the clean correct answer options match any of the span text options
+            const hasMatch = cleanCorrectAnswer.some(correctOption => 
+              spanTextArray.some(spanOption => spanOption === correctOption)
+            );
+            
+            console.log(`🔍 Span ${index} has match:`, hasMatch);
+            
+            if (hasMatch) {
+              // Extract the content inside the span (without the span tags)
+              const spanContent = span.replace(/<span[^>]*>/, '').replace(/<\/span>/, '');
+              console.log(`🔍 Span ${index} content to highlight:`, spanContent);
+              // Replace this specific underlined span with highlighted version
+              highlightedScriptText = highlightedScriptText.replace(span, `<span class="correct-answer">${spanContent}</span>`);
+            }
+          });
+        }
+        
+        // Debug logging for final result
+        console.log('🔍 Final highlighted script text:', highlightedScriptText);
       }
       
       popupContent = `
@@ -500,6 +623,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               background-color: #e8f5e8 !important;
               padding: 2px 6px !important;
               border-radius: 3px !important;
+              text-decoration: underline !important;
+              text-decoration-color: #2e7d32 !important;
+              text-decoration-thickness: 2px !important;
+              text-underline-offset: 2px !important;
             }
           </style>
           
