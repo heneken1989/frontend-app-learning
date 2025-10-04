@@ -62,6 +62,56 @@ const MultiLevelDropdown = ({
     }
   };
 
+  const handleLevelHover = (level) => {
+    setOpenLevel(level);
+    setHoveredCourse(null);
+    setHoveredSequence(null);
+    
+    // Preload data for this level when hovering
+    const filteredCourses = courses.filter(course => 
+      (course.display_name || '').toLowerCase().includes(level.toLowerCase())
+    );
+    
+    // Trigger preload for courses in this level
+    filteredCourses.forEach(course => {
+      if (!preloadedData[course.id]) {
+        // Start preloading this course data
+        fetchSectionsByCourseId(course.id)
+          .then(sectionsData => {
+            setPreloadedData(prevData => {
+              const newPreloadedData = { ...prevData };
+              newPreloadedData[course.id] = {
+                sections: sectionsData,
+                sequences: {}
+              };
+              return newPreloadedData;
+            });
+            
+            // Preload sequences for each section
+            sectionsData.forEach(section => {
+              fetchSequencesBySectionId(section.id)
+                .then(sequencesData => {
+                  setPreloadedData(prevData => {
+                    const updatedPreloadedData = { ...prevData };
+                    if (!updatedPreloadedData[course.id]) {
+                      updatedPreloadedData[course.id] = { sections: [], sequences: {} };
+                    }
+                    updatedPreloadedData[course.id].sequences[section.id] = sequencesData;
+                    return updatedPreloadedData;
+                  });
+                })
+                .catch(err => {
+                  console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
+                });
+            });
+          })
+          .catch(err => {
+            console.warn(`Failed to fetch sections for course ${course.id}:`, err);
+          });
+      }
+    });
+  };
+
   return (
     <div
       className="nav-item vocab-dropdown"
@@ -95,7 +145,7 @@ const MultiLevelDropdown = ({
               <div
                 key={level}
                 style={{ position: 'relative', borderRadius: 4 }}
-                onMouseEnter={() => { setOpenLevel(level); setHoveredCourse(null); setHoveredSequence(null); }}
+                onMouseEnter={() => handleLevelHover(level)}
                 onMouseLeave={() => setOpenLevel(null)}
                 className={isLevelActive ? 'dropdown-active-item' : ''}
               >
