@@ -26,14 +26,13 @@ const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
 // Extract the multi-level dropdown as a reusable component
 const MultiLevelDropdown = ({
-  label, courses, hoveredSkill, setHoveredSkill, LEVELS, fetchSectionsByCourseId, fetchSequencesBySectionId,
+  label, courses, hoveredSkill, setHoveredSkill, LEVELS, preloadedData,
 }) => {
   const { authenticatedUser } = useContext(AppContext);
   const [vocabOpen, setVocabOpen] = useState(false);
   const [openLevel, setOpenLevel] = useState(null);
   const [hoveredCourse, setHoveredCourse] = useState(null);
   const [hoveredSequence, setHoveredSequence] = useState(null);
-  const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
 
   const handleAuthClick = (e) => {
@@ -47,17 +46,20 @@ const MultiLevelDropdown = ({
   const handleCourseHover = (course, skill) => {
     setHoveredCourse(course);
     setHoveredSequence(null);
-    fetchSectionsByCourseId(course.id)
-      .then(sectionsData => {
-        setSections(sectionsData);
-        const section = sectionsData.find(sec => sec.display_name.toLowerCase().includes(skill ? skill.toLowerCase() : ''));
-        if (section) {
-          fetchSequencesBySectionId(section.id)
-            .then(sequencesData => setSequences(sequencesData));
-        } else {
-          setSequences([]);
-        }
-      });
+    
+    // Use preloaded data instead of fetching
+    const courseData = preloadedData[course.id];
+    if (courseData) {
+      const section = courseData.sections.find(sec => 
+        sec.display_name.toLowerCase().includes(skill ? skill.toLowerCase() : '')
+      );
+      if (section) {
+        // Use preloaded sequences
+        setSequences(courseData.sequences[section.id] || []);
+      } else {
+        setSequences([]);
+      }
+    }
   };
 
   return (
@@ -154,7 +156,7 @@ const MultiLevelDropdown = ({
                           >
                             {course.display_name.replace(/N[1-5]/gi, '').trim()}
                           </div>
-                          {isCourseActive && sequences.length > 0 && (
+                          {isCourseActive && sequences && sequences.length > 0 && (
                             <div style={{
                               position: 'absolute',
                               left: '100%',
@@ -221,7 +223,7 @@ const MultiLevelDropdown = ({
   );
 };
 
-const NavigationMenu = ({ courses }) => {
+const NavigationMenu = ({ courses, preloadedData }) => {
   const { authenticatedUser } = useContext(AppContext);
   const [hoveredSkill, setHoveredSkill] = useState(null);
 
@@ -430,8 +432,7 @@ const NavigationMenu = ({ courses }) => {
             hoveredSkill={hoveredSkill}
             setHoveredSkill={setHoveredSkill}
             LEVELS={LEVELS}
-            fetchSectionsByCourseId={fetchSectionsByCourseId}
-            fetchSequencesBySectionId={fetchSequencesBySectionId}
+            preloadedData={preloadedData}
           />
         ))}
         {/* Hidden Auto Enroll All button */}
@@ -535,6 +536,7 @@ const LearningHeader = ({
   const [timeLimit, setTimeLimit] = useState(null);
   const [hasQuiz, setHasQuiz] = useState(false);
   const [courses, setCourses] = useState([]);
+  const [preloadedData, setPreloadedData] = useState({});
   const [openLevel, setOpenLevel] = useState(null);
   const [hoveredSkill, setHoveredSkill] = useState(null);
   const [hoveredLevel, setHoveredLevel] = useState(null);
@@ -599,6 +601,43 @@ const LearningHeader = ({
     fetchAllCourses()
       .then(data => {
         setCourses(data);
+        
+        // Preload all sections and sequences for all courses
+        const preloadAllData = async () => {
+          const preloadedDataMap = {};
+          
+          for (const course of data) {
+            try {
+              // Fetch sections for this course
+              const sectionsData = await fetchSectionsByCourseId(course.id);
+              preloadedDataMap[course.id] = {
+                sections: sectionsData,
+                sequences: {}
+              };
+              
+              // Fetch sequences for each section
+              for (const section of sectionsData) {
+                try {
+                  const sequencesData = await fetchSequencesBySectionId(section.id);
+                  preloadedDataMap[course.id].sequences[section.id] = sequencesData;
+                } catch (err) {
+                  console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
+                  preloadedDataMap[course.id].sequences[section.id] = [];
+                }
+              }
+            } catch (err) {
+              console.warn(`Failed to fetch sections for course ${course.id}:`, err);
+              preloadedDataMap[course.id] = {
+                sections: [],
+                sequences: {}
+              };
+            }
+          }
+          
+          setPreloadedData(preloadedDataMap);
+        };
+        
+        preloadAllData();
       })
       .catch(err => {
         // Handle error silently
@@ -614,7 +653,7 @@ const LearningHeader = ({
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
       <div className="container-xl py-2 d-flex align-items-center">
         {/* Logo removed */}
-        <NavigationMenu courses={courses} />
+        <NavigationMenu courses={courses} preloadedData={preloadedData} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center justify-content-end" style={{ lineHeight: 1, gap: '8px' }}>
           {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
