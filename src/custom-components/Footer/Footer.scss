@@ -1,59 +1,157 @@
-.footer {
-  background-color: $white;
-  height: 80px; // Chiều cao cố định
-  min-height: 80px; // Đảm bảo chiều cao tối thiểu
-  position: fixed; // Cố định vị trí
-  bottom: 0; // Ở dưới cùng
-  left: 0;
-  right: 0;
-  z-index: 1000; // Đảm bảo hiển thị trên các element khác
-  
-  // Thêm padding để nội dung không bị che
-  .container {
-    padding: 1rem 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.custom-footer {
+  background-color: #F24C4C;
+  color: white;
+  padding: 40px 0 20px 0;
+  margin-top: auto;
+  width: 100%;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-columns {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.footer-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer-title {
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  color: white;
+  letter-spacing: 1px;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 12px;
+}
+
+.footer-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  transition: opacity 0.3s ease;
+  display: block;
+}
+
+.footer-links a:hover {
+  opacity: 0.8;
+  text-decoration: none;
+}
+
+.footer-address p,
+.footer-contact p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.social-icons {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.social-icon.facebook {
+  border-radius: 4px;
+}
+
+.social-icon:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  color: white;
+}
+
+.footer-separator {
+  height: 1px;
+  background-color: white;
+  margin: 20px 0;
+  opacity: 0.3;
+}
+
+.footer-copyright {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.footer-copyright p {
+  margin: 0;
+  font-size: 14px;
+  color: white;
+  opacity: 0.9;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .footer-columns {
+    flex-direction: column;
+    gap: 30px;
   }
   
-  a {
-    color: $primary;
-    
-    &:hover {
-      color: darken($primary, 10%);
-    }
+  .footer-column {
+    text-align: center;
   }
   
-  .copyright {
-    color: $gray-700;
-    font-size: 0.875rem;
+  .social-icons {
+    justify-content: center;
   }
   
-  @include media-breakpoint-down(sm) {
-    .container {
-      flex-direction: column;
-      text-align: center;
-      
-      .logo,
-      .links,
-      .copyright {
-        margin: 0.5rem 0;
-      }
-      
-      .links {
-        flex-wrap: wrap;
-        justify-content: center;
-        
-        a {
-          margin: 0.25rem 0.5rem;
-        }
-      }
-    }
+  .footer-content {
+    padding: 0 15px;
   }
 }
 
-// Thêm margin-bottom cho body để nội dung không bị footer che
-body {
-  margin-bottom: 80px; // Bằng với chiều cao footer
-} 
+@media (max-width: 480px) {
+  .custom-footer {
+    padding: 30px 0 15px 0;
+  }
+  
+  .footer-title {
+    font-size: 14px;
+    margin-bottom: 15px;
+  }
+  
+  .footer-links a,
+  .footer-address p,
+  .footer-contact p {
+    font-size: 13px;
+  }
+  
+  .social-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
