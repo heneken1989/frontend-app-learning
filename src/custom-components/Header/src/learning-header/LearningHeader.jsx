@@ -26,7 +26,7 @@ const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
 // Extract the multi-level dropdown as a reusable component
 const MultiLevelDropdown = ({
-  label, courses, hoveredSkill, setHoveredSkill, LEVELS, preloadedData,
+  label, courses, hoveredSkill, setHoveredSkill, LEVELS, preloadedData, setPreloadedData,
 }) => {
   const { authenticatedUser } = useContext(AppContext);
   const [vocabOpen, setVocabOpen] = useState(false);
@@ -273,7 +273,7 @@ const MultiLevelDropdown = ({
   );
 };
 
-const NavigationMenu = ({ courses, preloadedData }) => {
+const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
   const { authenticatedUser } = useContext(AppContext);
   const [hoveredSkill, setHoveredSkill] = useState(null);
 
@@ -483,6 +483,7 @@ const NavigationMenu = ({ courses, preloadedData }) => {
             setHoveredSkill={setHoveredSkill}
             LEVELS={LEVELS}
             preloadedData={preloadedData}
+            setPreloadedData={setPreloadedData}
           />
         ))}
         {/* Hidden Auto Enroll All button */}
@@ -703,7 +704,7 @@ const LearningHeader = ({
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
       <div className="container-xl py-2 d-flex align-items-center">
         {/* Logo removed */}
-        <NavigationMenu courses={courses} preloadedData={preloadedData} />
+        <NavigationMenu courses={courses} preloadedData={preloadedData} setPreloadedData={setPreloadedData} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center justify-content-end" style={{ lineHeight: 1, gap: '8px' }}>
           {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
