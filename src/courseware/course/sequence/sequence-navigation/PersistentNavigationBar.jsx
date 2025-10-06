@@ -724,18 +724,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Add popup to body
     document.body.appendChild(popup);
-    
-    // Auto remove after 15 seconds
-    setTimeout(() => {
-      if (popup.parentNode) {
-        popup.remove();
-        // Clean up style
-        if (style.parentNode) {
-          style.remove();
-        }
-        setCurrentButtonState('確認');
-      }
-    }, 15000);
   };
 
   const renderSubmitButton = () => {

@@ -66,50 +66,7 @@ const MultiLevelDropdown = ({
     setOpenLevel(level);
     setHoveredCourse(null);
     setHoveredSequence(null);
-    
-    // Preload data for this level when hovering
-    const filteredCourses = courses.filter(course => 
-      (course.display_name || '').toLowerCase().includes(level.toLowerCase())
-    );
-    
-    // Trigger preload for courses in this level
-    filteredCourses.forEach(course => {
-      if (!preloadedData[course.id]) {
-        // Start preloading this course data
-        fetchSectionsByCourseId(course.id)
-          .then(sectionsData => {
-            setPreloadedData(prevData => {
-              const newPreloadedData = { ...prevData };
-              newPreloadedData[course.id] = {
-                sections: sectionsData,
-                sequences: {}
-              };
-              return newPreloadedData;
-            });
-            
-            // Preload sequences for each section
-            sectionsData.forEach(section => {
-              fetchSequencesBySectionId(section.id)
-                .then(sequencesData => {
-                  setPreloadedData(prevData => {
-                    const updatedPreloadedData = { ...prevData };
-                    if (!updatedPreloadedData[course.id]) {
-                      updatedPreloadedData[course.id] = { sections: [], sequences: {} };
-                    }
-                    updatedPreloadedData[course.id].sequences[section.id] = sequencesData;
-                    return updatedPreloadedData;
-                  });
-                })
-                .catch(err => {
-                  console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
-                });
-            });
-          })
-          .catch(err => {
-            console.warn(`Failed to fetch sections for course ${course.id}:`, err);
-          });
-      }
-    });
+    // Data is already preloaded, no need to fetch
   };
 
   return (
@@ -154,7 +111,7 @@ const MultiLevelDropdown = ({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    cursor: 'pointer',
+                    cursor: 'default',
                     padding: '8px 16px',
                     borderRadius: 4,
                     background: isLevelActive ? '#0097a9' : 'none',
@@ -162,7 +119,6 @@ const MultiLevelDropdown = ({
                     transition: 'background 0.2s',
                   }}
                   className="dropdown-hover-item"
-                  onClick={handleAuthClick}
                 >
                   {level}
                   <span style={{ marginLeft: 8 }}></span>
@@ -653,45 +609,64 @@ const LearningHeader = ({
       .then(data => {
         setCourses(data);
         
-        // Preload all sections and sequences for all courses
+        // Preload all sections and sequences for all courses immediately
         const preloadAllData = async () => {
           const preloadedDataMap = {};
           
-          for (const course of data) {
+          // Process all courses in parallel for faster loading
+          const coursePromises = data.map(async (course) => {
             try {
               // Fetch sections for this course
               const sectionsData = await fetchSectionsByCourseId(course.id);
-              preloadedDataMap[course.id] = {
+              const courseData = {
                 sections: sectionsData,
                 sequences: {}
               };
               
-              // Fetch sequences for each section
-              for (const section of sectionsData) {
+              // Fetch sequences for each section in parallel
+              const sectionPromises = sectionsData.map(async (section) => {
                 try {
                   const sequencesData = await fetchSequencesBySectionId(section.id);
-                  preloadedDataMap[course.id].sequences[section.id] = sequencesData;
+                  return { sectionId: section.id, sequences: sequencesData };
                 } catch (err) {
                   console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
-                  preloadedDataMap[course.id].sequences[section.id] = [];
+                  return { sectionId: section.id, sequences: [] };
                 }
-              }
+              });
+              
+              const sectionResults = await Promise.all(sectionPromises);
+              
+              // Map sequences to section IDs
+              sectionResults.forEach(({ sectionId, sequences }) => {
+                courseData.sequences[sectionId] = sequences;
+              });
+              
+              return { courseId: course.id, courseData };
             } catch (err) {
               console.warn(`Failed to fetch sections for course ${course.id}:`, err);
-              preloadedDataMap[course.id] = {
-                sections: [],
-                sequences: {}
+              return { 
+                courseId: course.id, 
+                courseData: { sections: [], sequences: {} } 
               };
             }
-          }
+          });
+          
+          // Wait for all courses to complete
+          const results = await Promise.all(coursePromises);
+          
+          // Build final preloaded data map
+          results.forEach(({ courseId, courseData }) => {
+            preloadedDataMap[courseId] = courseData;
+          });
           
           setPreloadedData(preloadedDataMap);
+          console.log('✅ All dropdown data preloaded successfully!');
         };
         
         preloadAllData();
       })
       .catch(err => {
-        // Handle error silently
+        console.error('Failed to fetch courses:', err);
       });
   }, []);
 
