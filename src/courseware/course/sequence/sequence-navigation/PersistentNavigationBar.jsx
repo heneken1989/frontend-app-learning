@@ -285,6 +285,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const decodeScriptText = (encodedText) => {
     if (!encodedText) return '';
     
+    console.log('🔍 decodeScriptText input:', encodedText);
+    
     // First decode escape characters
     let decodedText = encodedText
       .replace(/\\u3009/g, '）')   // Decode Japanese closing parenthesis (single backslash)
@@ -293,7 +295,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       .replace(/\\u300c/g, '「')   // Decode Japanese opening bracket (single backslash)
       .replace(/\\t/g, '\t')       // Decode tabs
       .replace(/\\r/g, '\r')       // Decode carriage returns
-      .replace(/\\n/g, '<br>')     // Decode newlines to HTML breaks
+      .replace(/\\\\n/g, '<br>')   // Decode double backslash newlines to HTML breaks
+      .replace(/\\n/g, '<br>')     // Decode single backslash newlines to HTML breaks
       .replace(/\\'/g, "'")        // Decode single quotes
       .replace(/\\"/g, '"')        // Decode double quotes
       .replace(/\\\\/g, '\\');     // Decode backslashes (must be last)
@@ -307,6 +310,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g, function(match, p1, p2) {
       return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
     });
+    
+    console.log('🔍 decodeScriptText output:', decodedText);
     
     return decodedText;
   };
@@ -541,12 +546,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
-    } else if (quizData && quizData.templateId === 63) {
-      // Template 63: Listen Image Select Multiple Answer - Show Script Text Only
-      const encodedScriptText = quizData.scriptText || '';
-      
-      // Decode the script text to restore special characters
-      processedScriptText = decodeScriptText(encodedScriptText);
       
       // Add highlighting for correct answer only - only highlight underlined words
       let highlightedScriptText = processedScriptText;
@@ -722,7 +721,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: left;">スクリプト (Script)</div>
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
             <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
               ${highlightedScriptText}
             </div>
@@ -735,6 +734,145 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
+      
+      console.log('🔍 Template ID63 - processedScriptText:', processedScriptText);
+      console.log('🔍 Template ID63 - quizData.correctAnswer:', quizData.correctAnswer);
+      
+      // Add highlighting for correct answer only - only highlight underlined words
+      let highlightedScriptText = processedScriptText;
+      if (quizData.correctAnswer) {
+        const correctAnswer = quizData.correctAnswer;
+        
+        // Debug logging
+        console.log('🔍 DEBUG - Template ID63 Highlighting:');
+        console.log('🔍 Original scriptText:', quizData.scriptText);
+        console.log('🔍 Processed scriptText:', processedScriptText);
+        console.log('🔍 Correct answer:', correctAnswer);
+        console.log('🔍 Correct answer type:', typeof correctAnswer);
+        
+        // Extract text content from correct answer (handle furigana and HTML tags)
+        const extractTextContent = (text) => {
+          // Remove HTML tags first
+          let cleanText = text.replace(/<[^>]*>/g, '');
+          
+          // Handle furigana patterns like [みっつ] or (みっつ) or 三（みっ）つ
+          // Extract both kanji and furigana parts
+          const furiganaMatch = cleanText.match(/^(.+?)\[([^\]]+)\]$/);
+          if (furiganaMatch) {
+            const kanji = furiganaMatch[1].trim();
+            const furigana = furiganaMatch[2].trim();
+            
+            // Return both kanji and furigana as separate options
+            // Also try to extract the base kanji without the additional hiragana
+            const kanjiOnly = kanji.replace(/[ひらがなカタカナ]/g, '').trim();
+            const hiraganaOnly = kanji.replace(/[一-龯]/g, '').trim();
+            
+            // For cases like "三つ[みっつ]", try to match different combinations
+            const options = [kanji, furigana];
+            
+            // Add kanji only if different from original
+            if (kanjiOnly && kanjiOnly !== kanji) {
+              options.push(kanjiOnly);
+            }
+            
+            // Add hiragana only if different from original
+            if (hiraganaOnly && hiraganaOnly !== kanji) {
+              options.push(hiraganaOnly);
+            }
+            
+            // For cases like "三つ[みっつ]", also try to match the full furigana
+            // which might be the complete reading in the script
+            if (furigana && furigana.length > 0) {
+              options.push(furigana);
+            }
+            
+            // Try to combine kanji and hiragana parts for partial matches
+            if (kanjiOnly && hiraganaOnly) {
+              // Try different combinations
+              options.push(kanjiOnly + hiraganaOnly);
+              options.push(hiraganaOnly + kanjiOnly);
+            }
+            
+            return options;
+          }
+          
+          // Handle pattern like 三（みっ）つ - kanji with furigana in parentheses
+          const parenFuriganaMatch = cleanText.match(/^(.+?)（([^）]+)）(.+?)$/);
+          if (parenFuriganaMatch) {
+            const beforeKanji = parenFuriganaMatch[1].trim();
+            const furigana = parenFuriganaMatch[2].trim();
+            const afterKanji = parenFuriganaMatch[3].trim();
+            
+            console.log('🔍 Paren furigana match:', { beforeKanji, furigana, afterKanji });
+            
+            // Try different combinations
+            const options = [
+              cleanText, // Original: 三（みっ）つ
+              beforeKanji + afterKanji, // 三つ
+              furigana + afterKanji, // みっつ
+              beforeKanji, // 三
+              afterKanji, // つ
+              furigana // みっ
+            ];
+            
+            return options;
+          }
+          
+          // Handle ruby/rt tags - extract both kanji and furigana
+          const rubyMatch = cleanText.match(/<ruby[^>]*>([^<]+)<rt[^>]*>([^<]+)<\/rt><\/ruby>/);
+          if (rubyMatch) {
+            const kanji = rubyMatch[1].trim();
+            const furigana = rubyMatch[2].trim();
+            return [kanji, furigana];
+          }
+          
+          // Remove ruby/rt tags and content
+          cleanText = cleanText.replace(/<ruby[^>]*>.*?<\/ruby>/g, '');
+          cleanText = cleanText.replace(/<rt[^>]*>.*?<\/rt>/g, '');
+          
+          return [cleanText.trim()];
+        };
+        
+        const cleanCorrectAnswer = extractTextContent(correctAnswer);
+        
+        // Debug logging for extraction
+        console.log('🔍 Clean correct answer options:', cleanCorrectAnswer);
+        
+        // Find all underlined spans and check if any contain the clean text
+        const underlinedSpans = processedScriptText.match(/<span[^>]*style="[^"]*text-decoration:\s*underline[^"]*"[^>]*>.*?<\/span>/g);
+        
+        // Debug logging for underlined spans
+        console.log('🔍 Found underlined spans:', underlinedSpans);
+        
+        if (underlinedSpans) {
+          underlinedSpans.forEach((span, index) => {
+            const spanText = extractTextContent(span);
+            const spanTextArray = Array.isArray(spanText) ? spanText : [spanText];
+            
+            // Debug logging for each span
+            console.log(`🔍 Span ${index}:`, span);
+            console.log(`🔍 Span ${index} extracted text:`, spanTextArray);
+            
+            // Check if any of the clean correct answer options match any of the span text options
+            const hasMatch = cleanCorrectAnswer.some(correctOption => 
+              spanTextArray.some(spanOption => spanOption === correctOption)
+            );
+            
+            console.log(`🔍 Span ${index} has match:`, hasMatch);
+            
+            if (hasMatch) {
+              // Extract the content inside the span (without the span tags)
+              const spanContent = span.replace(/<span[^>]*>/, '').replace(/<\/span>/, '');
+              console.log(`🔍 Span ${index} content to highlight:`, spanContent);
+              // Replace this specific underlined span with highlighted version
+              highlightedScriptText = highlightedScriptText.replace(span, `<span class="correct-answer">${spanContent}</span>`);
+            }
+          });
+        }
+        
+        // Debug logging for final result
+        console.log('🔍 Final highlighted script text:', highlightedScriptText);
+      }
       
       popupContent = `
         <div class="listen-image-select-popup">
@@ -763,9 +901,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: left;">スクリプト (Script)</div>
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
             <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
-              ${processedScriptText}
+              ${highlightedScriptText}
             </div>
           </div>
         </div>
@@ -813,6 +951,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         </div>
       `;
     }
+    
+    console.log('🔍 Final popupContent for template ID63:', popupContent);
+    console.log('🔍 popupContent length:', popupContent.length);
     
     // Use innerHTML to properly render HTML tags in production
     innerWrapper.innerHTML = popupContent;
