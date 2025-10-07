@@ -22,6 +22,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSubmitButton, setShowSubmitButton] = useState(true); // Always show Check button
   const [currentButtonState, setCurrentButtonState] = useState('確認'); // '確認' or 'やり直し'
+  const [showScriptButton, setShowScriptButton] = useState(false); // Show script button for template 63
+  const [template63QuizData, setTemplate63QuizData] = useState(null); // Store quiz data for template 63
+  const [isScriptVisible, setIsScriptVisible] = useState(false); // Track if script popup is visible
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
@@ -135,6 +138,16 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
+          // Check if this is template 63 to show script button
+          if (event.data.quizData && event.data.quizData.templateId === 63) {
+            console.log('🔍 Template 63 detected - showing script button');
+            console.log('🔍 Template 63 quiz data:', event.data.quizData);
+            setShowScriptButton(true);
+            setTemplate63QuizData(event.data.quizData); // Store quiz data
+            // Don't auto-show popup for template 63
+            return;
+          }
+          
           // If no templateConfig or showPopup is true/undefined, show popup
           if (event.data.quizData) {
             console.log('🔍 Calling showTestPopup with quizData:', event.data.quizData);
@@ -163,6 +176,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   useEffect(() => {
     setIsSubmitEnabled(true);
     setIsSubmitting(false);
+    setShowScriptButton(false); // Reset script button when unit changes
+    setTemplate63QuizData(null); // Reset template 63 quiz data when unit changes
+    setIsScriptVisible(false); // Reset script visibility when unit changes
     // Keep showSubmitButton as true - always show Check button
 
     // Don't send any automatic messages - only when user clicks submit
@@ -197,6 +213,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           }
         }
         
+        // Hide script button and reset script state for template 63
+        setShowScriptButton(false);
+        setIsScriptVisible(false);
+        setTemplate63QuizData(null);
+        
         // Reset timer on header
         window.dispatchEvent(new CustomEvent('resetTimer', { 
           detail: { 
@@ -210,21 +231,84 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     }
   };
 
+  const handleShowScript = () => {
+    console.log('🔍 ShowScript button clicked, isScriptVisible:', isScriptVisible);
+    
+    if (isScriptVisible) {
+      // Hide script popup
+      console.log('🔍 Hiding script popup');
+      const existingPopup = document.getElementById('test-popup');
+      if (existingPopup) {
+        existingPopup.remove();
+        // Clean up any existing styles
+        const existingStyle = document.querySelector('style[data-popup-style]');
+        if (existingStyle) {
+          existingStyle.remove();
+        }
+      }
+      setIsScriptVisible(false);
+    } else {
+      // Show script popup
+      console.log('🔍 Template 63 quiz data:', template63QuizData);
+      
+      if (template63QuizData) {
+        console.log('🔍 Showing script popup for template 63');
+        showTestPopup(template63QuizData);
+        setIsScriptVisible(true);
+      } else {
+        console.log('🔍 No template 63 quiz data available');
+        
+        // Fallback: try to get from localStorage
+        try {
+          const storedData = localStorage.getItem('quizGradeSubmitted');
+          const timestamp = localStorage.getItem('quizGradeSubmittedTimestamp');
+          
+          if (storedData && timestamp) {
+            const timeDiff = Date.now() - parseInt(timestamp);
+            if (timeDiff < 10000) { // Only if data is less than 10 seconds old
+              const quizData = JSON.parse(storedData);
+              if (quizData && quizData.templateId === 63) {
+                console.log('🔍 Found template 63 data in localStorage');
+                showTestPopup(quizData);
+                setIsScriptVisible(true);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('🔍 Error getting quiz data for script:', error);
+        }
+      }
+    }
+  };
+
   // Function to decode script text from encoded format
   const decodeScriptText = (encodedText) => {
     if (!encodedText) return '';
     
-    return encodedText
+    // First decode escape characters
+    let decodedText = encodedText
       .replace(/\\u3009/g, '）')   // Decode Japanese closing parenthesis (single backslash)
       .replace(/\\u3008/g, '（')   // Decode Japanese opening parenthesis (single backslash)
       .replace(/\\u300d/g, '」')   // Decode Japanese closing bracket (single backslash)
       .replace(/\\u300c/g, '「')   // Decode Japanese opening bracket (single backslash)
       .replace(/\\t/g, '\t')       // Decode tabs
       .replace(/\\r/g, '\r')       // Decode carriage returns
-      .replace(/\\n/g, '\n')       // Decode newlines
+      .replace(/\\n/g, '<br>')     // Decode newlines to HTML breaks
       .replace(/\\'/g, "'")        // Decode single quotes
       .replace(/\\"/g, '"')        // Decode double quotes
       .replace(/\\\\/g, '\\');     // Decode backslashes (must be last)
+    
+    // Then convert furigana: 事務所(じむしょ) -> <ruby>事務所<rt>じむしょ</rt></ruby>
+    // First convert Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
+    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)（([^）]+)）/g, function(match, p1, p2) {
+      return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+    });
+    // Then convert regular parentheses: 車(くるま) -> <ruby>車<rt>くるま</rt></ruby>
+    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g, function(match, p1, p2) {
+      return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+    });
+    
+    return decodedText;
   };
 
   // Function to show test popup with data from localStorage
@@ -457,6 +541,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
+    } else if (quizData && quizData.templateId === 63) {
+      // Template 63: Listen Image Select Multiple Answer - Show Script Text Only
+      const encodedScriptText = quizData.scriptText || '';
+      
+      // Decode the script text to restore special characters
+      processedScriptText = decodeScriptText(encodedScriptText);
       
       // Add highlighting for correct answer only - only highlight underlined words
       let highlightedScriptText = processedScriptText;
@@ -632,9 +722,50 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
-            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e9ecef; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: center;">
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: left;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
               ${highlightedScriptText}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (quizData && quizData.templateId === 63) {
+      // Template 63: Listen Image Select Multiple Answer - Show Script Text Only
+      const encodedScriptText = quizData.scriptText || '';
+      
+      // Decode the script text to restore special characters
+      processedScriptText = decodeScriptText(encodedScriptText);
+      
+      popupContent = `
+        <div class="listen-image-select-popup">
+          <style>
+            .listen-image-select-popup { 
+              font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+              font-size: 1.2rem !important;
+            }
+            .listen-image-select-popup ruby { 
+              font-size: 1.2rem !important; 
+            }
+            .listen-image-select-popup rt { 
+              font-size: 0.6em !important; 
+              color: #666 !important; 
+            }
+            .listen-image-select-popup .script-text rt {
+              color: #666 !important;
+            }
+            .listen-image-select-popup .script-text span[style*="text-decoration: underline"] {
+              text-decoration: underline !important;
+              text-decoration-color: #333 !important;
+              text-decoration-thickness: 2px !important;
+              text-underline-offset: 2px !important;
+            }
+          </style>
+          
+          <!-- Script Text Section -->
+          <div class="script-section">
+            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: left;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
+              ${processedScriptText}
             </div>
           </div>
         </div>
@@ -753,6 +884,37 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         }}
       >
         <span className="submit-label">{buttonText}</span>
+      </Button>
+    );
+  };
+
+  const renderShowScriptButton = () => {
+    if (!showScriptButton) return null;
+
+    const buttonText = isScriptVisible ? 'HideScript' : 'ShowScript';
+    const buttonColor = isScriptVisible ? '#ff9800' : '#2196f3'; // Orange when hiding, blue when showing
+
+    return (
+      <Button
+        variant="outline-primary"
+        className="show-script-button mx-2"
+        onClick={handleShowScript}
+        style={{
+          backgroundColor: buttonColor,
+          borderColor: buttonColor,
+          color: 'white',
+          fontWeight: 'bold',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          minWidth: '100px',
+          height: '40px',
+          padding: '8px 16px',
+          fontSize: '14px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
+        {buttonText}
       </Button>
     );
   };
@@ -888,6 +1050,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         height: '60px' // Reduced height from 70px to 60px
       }}>
         {renderSubmitButton()}
+        {renderShowScriptButton()}
         {renderNextButton()}
                   {/* Unit title display */}
                   <div style={{ 
