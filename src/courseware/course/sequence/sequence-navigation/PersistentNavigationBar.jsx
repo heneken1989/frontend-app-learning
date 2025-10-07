@@ -549,6 +549,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
       
+      console.log('🔍 ===== TEMPLATE ID29 HIGHLIGHTING DEBUG START =====');
+      console.log('🔍 Template ID29 - encodedScriptText:', encodedScriptText);
+      console.log('🔍 Template ID29 - processedScriptText:', processedScriptText);
+      console.log('🔍 Template ID29 - correctAnswer:', quizData.correctAnswer);
+      console.log('🔍 Template ID29 - correctAnswer type:', typeof quizData.correctAnswer);
+      
       // Add highlighting for correct answer only - only highlight underlined words
       let highlightedScriptText = processedScriptText;
       if (quizData.correctAnswer) {
@@ -566,6 +572,53 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           // Remove HTML tags first
           let cleanText = text.replace(/<[^>]*>/g, '');
           
+          console.log('🔍 extractTextContent input:', cleanText);
+          
+          // Handle pattern like 駅(えき) or 電車（でんしゃ） or 高（たか）い - kanji with furigana in parentheses
+          // Support both regular () and full-width （） parentheses
+          const simpleFuriganaMatch = cleanText.match(/^([一-龯ひらがなカタカナ0-9]+)[（(]([^）)]+)[）)]$/);
+          if (simpleFuriganaMatch) {
+            const kanji = simpleFuriganaMatch[1].trim();
+            const furigana = simpleFuriganaMatch[2].trim();
+            
+            console.log('🔍 Simple furigana match:', { kanji, furigana });
+            
+            // Extract hiragana parts from kanji (like い in 高（たか）い)
+            const hiraganaParts = kanji.match(/[ひらがな]+/g) || [];
+            
+            console.log('🔍 Hiragana parts:', hiraganaParts);
+            
+            // Options: kanji match, furigana match, and kanji+furigana match
+            const options = [
+              kanji, // 電車 - for kanji match
+              furigana, // でんしゃ - for furigana match
+              kanji + furigana, // 電車でんしゃ - for kanji+furigana match
+            ];
+            
+            // Add full furigana (furigana + hiragana parts) only if there are hiragana parts
+            if (hiraganaParts.length > 0) {
+              const fullFurigana = furigana + hiraganaParts.join('');
+              options.push(fullFurigana); // たかい - for furigana+hiragana match
+              console.log('🔍 Full furigana:', fullFurigana);
+            }
+            
+            console.log('🔍 Simple furigana options (limited):', options);
+            return options;
+          }
+          
+          // Handle pure hiragana/katakana text (like でんしゃ, みっつ, etc.)
+          const pureKanaMatch = cleanText.match(/^[ひらがなカタカナ]+$/);
+          if (pureKanaMatch) {
+            console.log('🔍 Pure kana match:', cleanText);
+            
+            const options = [
+              cleanText, // Original: でんしゃ - only one option for pure kana
+            ];
+            
+            console.log('🔍 Pure kana options (limited):', options);
+            return options;
+          }
+          
           // Handle furigana patterns like [みっつ] or (みっつ) or 三（みっ）つ
           // Extract both kanji and furigana parts
           const furiganaMatch = cleanText.match(/^(.+?)\[([^\]]+)\]$/);
@@ -573,37 +626,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const kanji = furiganaMatch[1].trim();
             const furigana = furiganaMatch[2].trim();
             
-            // Return both kanji and furigana as separate options
-            // Also try to extract the base kanji without the additional hiragana
-            const kanjiOnly = kanji.replace(/[ひらがなカタカナ]/g, '').trim();
-            const hiraganaOnly = kanji.replace(/[一-龯]/g, '').trim();
+            // Options: kanji match, furigana match, and kanji+furigana match
+            const options = [
+              kanji, // For kanji match
+              furigana, // For furigana match
+              kanji + furigana, // For kanji+furigana match
+            ];
             
-            // For cases like "三つ[みっつ]", try to match different combinations
-            const options = [kanji, furigana];
-            
-            // Add kanji only if different from original
-            if (kanjiOnly && kanjiOnly !== kanji) {
-              options.push(kanjiOnly);
-            }
-            
-            // Add hiragana only if different from original
-            if (hiraganaOnly && hiraganaOnly !== kanji) {
-              options.push(hiraganaOnly);
-            }
-            
-            // For cases like "三つ[みっつ]", also try to match the full furigana
-            // which might be the complete reading in the script
-            if (furigana && furigana.length > 0) {
-              options.push(furigana);
-            }
-            
-            // Try to combine kanji and hiragana parts for partial matches
-            if (kanjiOnly && hiraganaOnly) {
-              // Try different combinations
-              options.push(kanjiOnly + hiraganaOnly);
-              options.push(hiraganaOnly + kanjiOnly);
-            }
-            
+            console.log('🔍 Furigana pattern options (limited):', options);
             return options;
           }
           
@@ -616,16 +646,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             
             console.log('🔍 Paren furigana match:', { beforeKanji, furigana, afterKanji });
             
-            // Try different combinations
+            // Options: kanji match, furigana+hiragana match, and kanji+furigana+hiragana match
             const options = [
-              cleanText, // Original: 三（みっ）つ
-              beforeKanji + afterKanji, // 三つ
-              furigana + afterKanji, // みっつ
-              beforeKanji, // 三
-              afterKanji, // つ
-              furigana // みっ
+              beforeKanji + afterKanji, // 三つ - for kanji match
+              furigana + afterKanji, // みっつ - for furigana+hiragana match
+              beforeKanji + furigana + afterKanji, // 三みっつ - for kanji+furigana+hiragana match
             ];
             
+            console.log('🔍 Paren furigana options (limited):', options);
             return options;
           }
           
@@ -641,6 +669,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           cleanText = cleanText.replace(/<ruby[^>]*>.*?<\/ruby>/g, '');
           cleanText = cleanText.replace(/<rt[^>]*>.*?<\/rt>/g, '');
           
+          console.log('🔍 Final clean text:', cleanText.trim());
           return [cleanText.trim()];
         };
         
@@ -656,7 +685,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         console.log('🔍 Found underlined spans:', underlinedSpans);
         
         if (underlinedSpans) {
-          underlinedSpans.forEach((span, index) => {
+          let foundMatch = false; // Flag to stop after first match
+          
+          for (let index = 0; index < underlinedSpans.length && !foundMatch; index++) {
+            const span = underlinedSpans[index];
             const spanText = extractTextContent(span);
             const spanTextArray = Array.isArray(spanText) ? spanText : [spanText];
             
@@ -675,14 +707,54 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               // Extract the content inside the span (without the span tags)
               const spanContent = span.replace(/<span[^>]*>/, '').replace(/<\/span>/, '');
               console.log(`🔍 Span ${index} content to highlight:`, spanContent);
-              // Replace this specific underlined span with highlighted version
-              highlightedScriptText = highlightedScriptText.replace(span, `<span class="correct-answer">${spanContent}</span>`);
+              // Replace this specific underlined span with highlighted version, preserving the original span structure
+              const highlightedSpan = span.replace(/<span[^>]*>/, '<span class="correct-answer" style="text-decoration: underline;">').replace(/<\/span>/, '</span>');
+              highlightedScriptText = highlightedScriptText.replace(span, highlightedSpan);
+              foundMatch = true; // Stop after first match
+              console.log(`🔍 Found match at span ${index}, stopping search`);
+            }
+          }
+        }
+        
+        // Also check for ruby tags that might contain the correct answer
+        const rubyTags = processedScriptText.match(/<ruby[^>]*>.*?<\/ruby>/g);
+        console.log('🔍 Found ruby tags:', rubyTags);
+        
+        if (rubyTags) {
+          rubyTags.forEach((rubyTag, index) => {
+            console.log(`🔍 Ruby tag ${index}:`, rubyTag);
+            
+            // Extract both kanji and furigana from ruby tag
+            const rubyMatch = rubyTag.match(/<ruby[^>]*>([^<]+)<rt[^>]*>([^<]+)<\/rt><\/ruby>/);
+            if (rubyMatch) {
+              const kanji = rubyMatch[1].trim();
+              const furigana = rubyMatch[2].trim();
+              
+              console.log(`🔍 Ruby tag ${index} - kanji:`, kanji, 'furigana:', furigana);
+              
+              // Check if correct answer matches kanji, furigana, or both
+              const hasRubyMatch = cleanCorrectAnswer.some(correctOption => 
+                correctOption === kanji || correctOption === furigana || correctOption === (kanji + furigana) || correctOption === (furigana + kanji)
+              );
+              
+              console.log(`🔍 Ruby tag ${index} has match:`, hasRubyMatch);
+              
+              if (hasRubyMatch) {
+                // Replace the ruby tag with highlighted version
+                highlightedScriptText = highlightedScriptText.replace(rubyTag, `<span class="correct-answer">${rubyTag}</span>`);
+              }
             }
           });
         }
         
+        // Remove direct text matching - only highlight underlined spans that match
+        console.log('🔍 Skipping direct text matches - only highlighting underlined spans');
+        
         // Debug logging for final result
+        console.log('🔍 ===== TEMPLATE ID29 HIGHLIGHTING DEBUG END =====');
         console.log('🔍 Final highlighted script text:', highlightedScriptText);
+        console.log('🔍 Highlighting changes made:', highlightedScriptText !== processedScriptText);
+        console.log('🔍 ===== TEMPLATE ID29 HIGHLIGHTING DEBUG END =====');
       }
       
       popupContent = `
@@ -718,6 +790,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               text-decoration-color: #2e7d32 !important;
               text-decoration-thickness: 2px !important;
               text-underline-offset: 2px !important;
+            }
+            .grammar-single-select-popup .correct-answer ruby {
+              color: #2e7d32 !important;
+              font-weight: bold !important;
+            }
+            .grammar-single-select-popup .correct-answer rt {
+              color: #2e7d32 !important;
+              font-weight: bold !important;
+              background-color: #e8f5e8 !important;
+            }
+            .grammar-single-select-popup .correct-answer rb {
+              color: #2e7d32 !important;
+              font-weight: bold !important;
             }
           </style>
           
@@ -764,37 +849,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const kanji = furiganaMatch[1].trim();
             const furigana = furiganaMatch[2].trim();
             
-            // Return both kanji and furigana as separate options
-            // Also try to extract the base kanji without the additional hiragana
-            const kanjiOnly = kanji.replace(/[ひらがなカタカナ]/g, '').trim();
-            const hiraganaOnly = kanji.replace(/[一-龯]/g, '').trim();
+            // Options: kanji match, furigana match, and kanji+furigana match
+            const options = [
+              kanji, // For kanji match
+              furigana, // For furigana match
+              kanji + furigana, // For kanji+furigana match
+            ];
             
-            // For cases like "三つ[みっつ]", try to match different combinations
-            const options = [kanji, furigana];
-            
-            // Add kanji only if different from original
-            if (kanjiOnly && kanjiOnly !== kanji) {
-              options.push(kanjiOnly);
-            }
-            
-            // Add hiragana only if different from original
-            if (hiraganaOnly && hiraganaOnly !== kanji) {
-              options.push(hiraganaOnly);
-            }
-            
-            // For cases like "三つ[みっつ]", also try to match the full furigana
-            // which might be the complete reading in the script
-            if (furigana && furigana.length > 0) {
-              options.push(furigana);
-            }
-            
-            // Try to combine kanji and hiragana parts for partial matches
-            if (kanjiOnly && hiraganaOnly) {
-              // Try different combinations
-              options.push(kanjiOnly + hiraganaOnly);
-              options.push(hiraganaOnly + kanjiOnly);
-            }
-            
+            console.log('🔍 Furigana pattern options (limited):', options);
             return options;
           }
           
@@ -807,16 +869,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             
             console.log('🔍 Paren furigana match:', { beforeKanji, furigana, afterKanji });
             
-            // Try different combinations
+            // Options: kanji match, furigana+hiragana match, and kanji+furigana+hiragana match
             const options = [
-              cleanText, // Original: 三（みっ）つ
-              beforeKanji + afterKanji, // 三つ
-              furigana + afterKanji, // みっつ
-              beforeKanji, // 三
-              afterKanji, // つ
-              furigana // みっ
+              beforeKanji + afterKanji, // 三つ - for kanji match
+              furigana + afterKanji, // みっつ - for furigana+hiragana match
+              beforeKanji + furigana + afterKanji, // 三みっつ - for kanji+furigana+hiragana match
             ];
             
+            console.log('🔍 Paren furigana options (limited):', options);
             return options;
           }
           
@@ -847,7 +907,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         console.log('🔍 Found underlined spans:', underlinedSpans);
         
         if (underlinedSpans) {
-          underlinedSpans.forEach((span, index) => {
+          let foundMatch = false; // Flag to stop after first match
+          
+          for (let index = 0; index < underlinedSpans.length && !foundMatch; index++) {
+            const span = underlinedSpans[index];
             const spanText = extractTextContent(span);
             const spanTextArray = Array.isArray(spanText) ? spanText : [spanText];
             
@@ -866,10 +929,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               // Extract the content inside the span (without the span tags)
               const spanContent = span.replace(/<span[^>]*>/, '').replace(/<\/span>/, '');
               console.log(`🔍 Span ${index} content to highlight:`, spanContent);
-              // Replace this specific underlined span with highlighted version
-              highlightedScriptText = highlightedScriptText.replace(span, `<span class="correct-answer">${spanContent}</span>`);
+              // Replace this specific underlined span with highlighted version, preserving the original span structure
+              const highlightedSpan = span.replace(/<span[^>]*>/, '<span class="correct-answer" style="text-decoration: underline;">').replace(/<\/span>/, '</span>');
+              highlightedScriptText = highlightedScriptText.replace(span, highlightedSpan);
+              foundMatch = true; // Stop after first match
+              console.log(`🔍 Found match at span ${index}, stopping search`);
             }
-          });
+          }
         }
         
         // Debug logging for final result
