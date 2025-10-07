@@ -365,7 +365,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       left: 0;
       right: 0;
       padding: 0;
-      background-color: rgba(99, 97, 97, 0.95);
+      background-color: rgba(60, 60, 60, 0.95);
       z-index: 9999;
       transition: transform 0.3s ease;
       max-height: calc(100vh - 60px);
@@ -375,20 +375,22 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     // Create inner content wrapper
     const innerWrapper = document.createElement('div');
     innerWrapper.style.cssText = `
-      max-width: 70%;
-      margin: 0 auto;
+      width: fit-content;
+      max-width: 80%;
+      min-width: 300px;
+      margin: 20px auto;
       background: #fff;
-      border-radius: 4px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       border: 1px solid #ddd;
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      max-height: calc(100vh - 80px);
+      max-height: calc(100vh - 100px);
       overflow-y: auto;
-      padding: 1.5rem;
-      margin-top: 0;
-      margin-bottom: 0;
+      padding: 1rem;
+      margin-top: 20px;
+      margin-bottom: 20px;
     `;
     
     // Generate popup content based on template type
@@ -721,8 +723,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
-            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
+            <div class="script-title" style="margin: 0 0 10px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.5; color: #333; text-align: left;">
               ${highlightedScriptText}
             </div>
           </div>
@@ -901,8 +903,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
-            <div class="script-text" style="padding: 15px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.6; color: #333; text-align: left;">
+            <div class="script-title" style="margin: 0 0 10px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.5; color: #333; text-align: left;">
               ${highlightedScriptText}
             </div>
           </div>
