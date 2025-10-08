@@ -25,6 +25,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const [showScriptButton, setShowScriptButton] = useState(false); // Show script button for template 63
   const [template63QuizData, setTemplate63QuizData] = useState(null); // Store quiz data for template 63
   const [isScriptVisible, setIsScriptVisible] = useState(false); // Track if script popup is visible
+  const [hasAudioQuiz, setHasAudioQuiz] = useState(false); // Whether current quiz has audio
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
@@ -125,6 +126,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           setIsSubmitting(false);
           // DON'T change button state here - only manual clicks should change it
           break;
+        case 'quiz.meta':
+          // Quiz iframe announces metadata such as audio capability
+          if (event.data && event.data.hasAudio) {
+            setHasAudioQuiz(true);
+          }
+          break;
         case 'quiz.data.ready':
           // Debug: Log message from template
           console.log('🔍 Received quiz.data.ready message:', event.data);
@@ -179,6 +186,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     setShowScriptButton(false); // Reset script button when unit changes
     setTemplate63QuizData(null); // Reset template 63 quiz data when unit changes
     setIsScriptVisible(false); // Reset script visibility when unit changes
+    setHasAudioQuiz(false); // Reset audio flag on unit change
     // Keep showSubmitButton as true - always show Check button
 
     // Don't send any automatic messages - only when user clicks submit
@@ -1258,9 +1266,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         width: '100%',
         height: '60px' // Reduced height from 70px to 60px
       }}>
-        {renderSubmitButton()}
-        {renderShowScriptButton()}
-        {renderNextButton()}
+        {hasAudioQuiz ? (
+          <>
+            {renderShowScriptButton()}
+            {renderSubmitButton()}
+            {renderNextButton()}
+          </>
+        ) : (
+          <>
+            {renderSubmitButton()}
+            {renderShowScriptButton()}
+            {renderNextButton()}
+          </>
+        )}
                   {/* Unit title display */}
                   <div style={{ 
                     marginLeft: '16px',
