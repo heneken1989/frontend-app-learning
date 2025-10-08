@@ -82,34 +82,6 @@ const Course = ({
       <Helmet>
         <title>{`${pageTitleBreadCrumbs.join(' | ')} | ${getConfig().SITE_NAME}`}</title>
       </Helmet>
-      <div className="position-relative d-flex align-items-xl-center mb-4 mt-1 flex-column flex-xl-row">
-        {navigationDisabled || (
-        <>
-          <CourseBreadcrumbsSlot
-            courseId={courseId}
-            sectionId={section ? section.id : null}
-            sequenceId={sequenceId}
-            isStaff={isStaff}
-            unitId={unitId}
-          />
-        </>
-        )}
-        {shouldDisplayChat && (
-          <>
-            <Chat
-              enabled={course.learningAssistantEnabled}
-              enrollmentMode={course.enrollmentMode}
-              isStaff={isStaff}
-              courseId={courseId}
-              contentToolsEnabled={course.showCalculator || course.notes.enabled}
-              unitId={unitId}
-            />
-          </>
-        )}
-        <div className="w-100 d-flex align-items-center">
-          <NotificationsDiscussionsSidebarTriggerSlot courseId={courseId} />
-        </div>
-      </div>
 
       <AlertList topic="sequence" />
       <Sequence
