@@ -145,13 +145,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
-          // Check if this is template 63 to show script button
-          if (event.data.quizData && event.data.quizData.templateId === 63) {
-            console.log('🔍 Template 63 detected - showing script button');
-            console.log('🔍 Template 63 quiz data:', event.data.quizData);
+          // Check if this is template 63 or 40 to show script button
+          if (event.data.quizData && (event.data.quizData.templateId === 63 || event.data.quizData.templateId === 40)) {
+            console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button`);
+            console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
-            // Don't auto-show popup for template 63
+            // Don't auto-show popup for template 63 and 40
             return;
           }
           
@@ -257,14 +257,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       setIsScriptVisible(false);
     } else {
       // Show script popup
-      console.log('🔍 Template 63 quiz data:', template63QuizData);
+      console.log('🔍 Template 63/40 quiz data:', template63QuizData);
       
       if (template63QuizData) {
-        console.log('🔍 Showing script popup for template 63');
+        console.log(`🔍 Showing script popup for template ${template63QuizData.templateId}`);
         showTestPopup(template63QuizData);
         setIsScriptVisible(true);
       } else {
-        console.log('🔍 No template 63 quiz data available');
+        console.log('🔍 No template 63/40 quiz data available');
         
         // Fallback: try to get from localStorage
         try {
@@ -275,8 +275,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const timeDiff = Date.now() - parseInt(timestamp);
             if (timeDiff < 10000) { // Only if data is less than 10 seconds old
               const quizData = JSON.parse(storedData);
-              if (quizData && quizData.templateId === 63) {
-                console.log('🔍 Found template 63 data in localStorage');
+              if (quizData && (quizData.templateId === 63 || quizData.templateId === 40)) {
+                console.log(`🔍 Found template ${quizData.templateId} data in localStorage`);
                 showTestPopup(quizData);
                 setIsScriptVisible(true);
               }
@@ -823,15 +823,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           </div>
         </div>
       `;
-    } else if (quizData && quizData.templateId === 63) {
-      // Template 63: Listen Image Select Multiple Answer - Show Script Text Only
+    } else if (quizData && (quizData.templateId === 40 || quizData.templateId === 63)) {
+      // Template 40 & 63: Listen quizzes - Show Script Text Only
       const encodedScriptText = quizData.scriptText || '';
       
       // Decode the script text to restore special characters
       processedScriptText = decodeScriptText(encodedScriptText);
       
-      console.log('🔍 Template ID63 - processedScriptText:', processedScriptText);
-      console.log('🔍 Template ID63 - quizData.correctAnswer:', quizData.correctAnswer);
+      console.log(`🔍 Template ID${quizData.templateId} - processedScriptText:`, processedScriptText);
+      console.log(`🔍 Template ID${quizData.templateId} - quizData.correctAnswer:`, quizData.correctAnswer);
       
       // Add highlighting for correct answer only - only highlight underlined words
       let highlightedScriptText = processedScriptText;
@@ -839,7 +839,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         const correctAnswer = quizData.correctAnswer;
         
         // Debug logging
-        console.log('🔍 DEBUG - Template ID63 Highlighting:');
+        console.log(`🔍 DEBUG - Template ID${quizData.templateId} Highlighting:`);
         console.log('🔍 Original scriptText:', quizData.scriptText);
         console.log('🔍 Processed scriptText:', processedScriptText);
         console.log('🔍 Correct answer:', correctAnswer);
