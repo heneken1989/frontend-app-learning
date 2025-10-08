@@ -31,19 +31,57 @@ const SimpleCourseOutline = ({
         const courseOutlineButton = document.querySelector('.course-outline-navbar-trigger');
         if (courseOutlineButton) {
           const rect = courseOutlineButton.getBoundingClientRect();
-          setPopupPosition({
-            top: rect.top - 300, // Position closer to the icon
-            left: rect.left
-          });
+          const popupWidth = 320;
+          const popupHeight = 400;
+          
+          // Calculate position to the left of the icon
+          let left = rect.left - popupWidth;
+          let top = rect.top - 10;
+          
+          // Ensure popup doesn't go off the left edge of screen
+          if (left < 10) {
+            left = 10;
+          }
+          
+          // Ensure popup doesn't go off the top edge of screen
+          if (top < 10) {
+            top = 10;
+          }
+          
+          // Ensure popup doesn't go off the bottom edge of screen
+          if (top + popupHeight > window.innerHeight - 10) {
+            top = window.innerHeight - popupHeight - 10;
+          }
+          
+          setPopupPosition({ top, left });
         } else {
           // Fallback: look for the outline-sidebar-heading-wrapper (the one on navbar)
           const courseOutlineButtonFallback = document.querySelector('.outline-sidebar-heading-wrapper');
           if (courseOutlineButtonFallback) {
             const rect = courseOutlineButtonFallback.getBoundingClientRect();
-            setPopupPosition({
-              top: rect.top - 300, // Position closer to the icon
-              left: rect.left
-            });
+            const popupWidth = 320;
+            const popupHeight = 400;
+            
+            // Calculate position to the left of the icon
+            let left = rect.left - popupWidth;
+            let top = rect.top - 10;
+            
+            // Ensure popup doesn't go off the left edge of screen
+            if (left < 10) {
+              left = 10;
+            }
+            
+            // Ensure popup doesn't go off the top edge of screen
+            if (top < 10) {
+              top = 10;
+            }
+            
+            // Ensure popup doesn't go off the bottom edge of screen
+            if (top + popupHeight > window.innerHeight - 10) {
+              top = window.innerHeight - popupHeight - 10;
+            }
+            
+            setPopupPosition({ top, left });
           }
         }
       };

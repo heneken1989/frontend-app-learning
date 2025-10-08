@@ -1253,7 +1253,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   // Render into the persistent container
   return createPortal(
     <>
-      <div className="unit-navigation-bar d-flex align-items-center justify-content-center" style={{ 
+      <div className="unit-navigation-bar d-flex align-items-center" style={{ 
         padding: '1rem',
         position: 'fixed',
         bottom: '0', // Move to bottom to cover bottom bar
@@ -1266,32 +1266,38 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         width: '100%',
         height: '60px' // Reduced height from 70px to 60px
       }}>
-        {hasAudioQuiz ? (
-          <>
-            {renderShowScriptButton()}
-            {renderSubmitButton()}
-            {renderNextButton()}
-          </>
-        ) : (
-          <>
-            {renderSubmitButton()}
-            {renderShowScriptButton()}
-            {renderNextButton()}
-          </>
-        )}
-                  {/* Unit title display */}
-                  <div style={{ 
-                    marginLeft: '16px',
-                    padding: '8px 12px',
-                    background: 'rgba(255,255,255,0.2)',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#333'
-                  }}>
-                    {getUnitTitle()}
-                  </div>
-                  <CourseOutlineSidebarSlot />
+        {/* Center - Check/ShowScript buttons */}
+        <div className="d-flex align-items-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+          {hasAudioQuiz ? (
+            <>
+              {renderShowScriptButton()}
+              {renderSubmitButton()}
+            </>
+          ) : (
+            <>
+              {renderSubmitButton()}
+              {renderShowScriptButton()}
+            </>
+          )}
+        </div>
+
+        {/* Right side - Unit Title, CourseOutline, Next */}
+        <div className="d-flex align-items-center" style={{ gap: '8px', marginLeft: 'auto' }}>
+          {/* Unit title display */}
+          <div style={{ 
+            padding: '8px 12px',
+            background: 'rgba(255,255,255,0.2)',
+            borderRadius: '4px',
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#333'
+          }}>
+            {getUnitTitle()}
+          </div>
+          
+          <CourseOutlineSidebarSlot />
+          {renderNextButton()}
+        </div>
       </div>
       
 

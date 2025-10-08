@@ -585,35 +585,34 @@ body {
 }
 
 .outline-tray-wrapper .outline-tray-overlay {
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  top: 0;
   left: 0;
-  right: auto;
-  bottom: auto;
+  right: 0;
+  bottom: 0;
   background-color: transparent;
   z-index: 9999;
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding-top: 8px;
-  padding-left: 0;
-  width: auto;
-  height: auto;
-  transform: translateY(-100%);
-  margin-top: -40px;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .outline-tray {
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 300px;
-  max-width: 400px;
-  max-height: 240px;
+  min-width: 100px;
+  max-width: 150px;
+  max-height: 200px;
   overflow: hidden;
   z-index: 10001;
   position: relative;
   border: 1px solid #e9ecef;
+  margin-bottom: 70px;
+  margin-right: 20px;
 }
 
 .outline-tray-content {
@@ -1054,6 +1053,28 @@ li.current-quiz {
       border-radius: 4px;
     }
   }
+}
+
+.simple-course-outline-popup {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  max-height: 400px;
+  overflow: hidden;
+  border: 1px solid #e9ecef;
+  z-index: 10001;
+}
+
+.simple-course-outline-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 10000;
 }
 
 .simple-course-outline-content {
