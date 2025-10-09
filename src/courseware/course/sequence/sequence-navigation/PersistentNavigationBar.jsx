@@ -145,13 +145,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
-          // Check if this is template 63 or 40 to show script button
-          if (event.data.quizData && (event.data.quizData.templateId === 63 || event.data.quizData.templateId === 40)) {
+          // Check if this is template 39, 40, or 63 to show script button
+          if (event.data.quizData && (event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63)) {
             console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button`);
             console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
-            // Don't auto-show popup for template 63 and 40
+            // Don't auto-show popup for template 39, 40, and 63
             return;
           }
           
@@ -257,14 +257,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       setIsScriptVisible(false);
     } else {
       // Show script popup
-      console.log('🔍 Template 63/40 quiz data:', template63QuizData);
+      console.log('🔍 Template 39/40/63 quiz data:', template63QuizData);
       
       if (template63QuizData) {
         console.log(`🔍 Showing script popup for template ${template63QuizData.templateId}`);
         showTestPopup(template63QuizData);
         setIsScriptVisible(true);
       } else {
-        console.log('🔍 No template 63/40 quiz data available');
+        console.log('🔍 No template 39/40/63 quiz data available');
         
         // Fallback: try to get from localStorage
         try {
@@ -275,7 +275,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const timeDiff = Date.now() - parseInt(timestamp);
             if (timeDiff < 10000) { // Only if data is less than 10 seconds old
               const quizData = JSON.parse(storedData);
-              if (quizData && (quizData.templateId === 63 || quizData.templateId === 40)) {
+              if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63)) {
                 console.log(`🔍 Found template ${quizData.templateId} data in localStorage`);
                 showTestPopup(quizData);
                 setIsScriptVisible(true);
@@ -823,8 +823,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           </div>
         </div>
       `;
-    } else if (quizData && (quizData.templateId === 40 || quizData.templateId === 63)) {
-      // Template 40 & 63: Listen quizzes - Show Script Text Only
+    } else if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63)) {
+      // Template 39, 40 & 63: Listen quizzes - Show Script Text Only
       const encodedScriptText = quizData.scriptText || '';
       
       // Decode the script text to restore special characters

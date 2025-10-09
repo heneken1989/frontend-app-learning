@@ -427,7 +427,15 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
           e.target.style.opacity = '1';
         }}
       >
-        Manabi <span>Hub</span>
+        <img 
+          src="https://i.postimg.cc/KvRf6sbv/z7090263423955-f64ff175e1732d58db753af299c30b15.jpg" 
+          alt="Manabi Hub Logo" 
+          style={{ 
+            height: '45px', 
+            width: 'auto',
+            objectFit: 'contain'
+          }}
+        />
       </div>
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         {['聴解', '言葉。漢字', '文法', '読解', '模試テスト'].map((label) => (
