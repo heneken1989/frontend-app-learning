@@ -145,13 +145,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
-          // Check if this is template 39, 40, 63, or 65 to show script button
-          if (event.data.quizData && (event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63 || event.data.quizData.templateId === 65)) {
+          // Check if this is template 39, 40, 63, 65, or 67 to show script button
+          if (event.data.quizData && (event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63 || event.data.quizData.templateId === 65 || event.data.quizData.templateId === 67)) {
             console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button`);
             console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
-            // Don't auto-show popup for template 39, 40, 63, and 65
+            // Don't auto-show popup for template 39, 40, 63, 65, and 67
             return;
           }
           
@@ -275,7 +275,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const timeDiff = Date.now() - parseInt(timestamp);
             if (timeDiff < 10000) { // Only if data is less than 10 seconds old
               const quizData = JSON.parse(storedData);
-              if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65)) {
+              if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67)) {
                 console.log(`🔍 Found template ${quizData.templateId} data in localStorage`);
                 showTestPopup(quizData);
                 setIsScriptVisible(true);
@@ -830,8 +830,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           </div>
         </div>
       `;
-    } else if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65)) {
-      // Template 39, 40, 63 & 65: Listen quizzes - Show Script Text Only
+    } else if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67)) {
+      // Template 39, 40, 63, 65 & 67: Listen quizzes - Show Script Text Only
       const encodedScriptText = quizData.scriptText || '';
       
       // Decode the script text to restore special characters
