@@ -155,6 +155,16 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
+          // Check if this is template 41 - only show script button after submission
+          if (event.data.quizData && event.data.quizData.templateId === 41) {
+            console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button after submission`);
+            console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
+            setShowScriptButton(true);
+            setTemplate63QuizData(event.data.quizData); // Store quiz data
+            // Don't auto-show popup for template 41
+            return;
+          }
+          
           // If no templateConfig or showPopup is true/undefined, show popup
           if (event.data.quizData) {
             console.log('🔍 Calling showTestPopup with quizData:', event.data.quizData);
@@ -257,14 +267,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       setIsScriptVisible(false);
     } else {
       // Show script popup
-      console.log('🔍 Template 39/40/63/65 quiz data:', template63QuizData);
+        console.log('🔍 Template 39/40/41/63/65/67 quiz data:', template63QuizData);
       
       if (template63QuizData) {
         console.log(`🔍 Showing script popup for template ${template63QuizData.templateId}`);
         showTestPopup(template63QuizData);
         setIsScriptVisible(true);
       } else {
-        console.log('🔍 No template 39/40/63/65 quiz data available');
+        console.log('🔍 No template 39/40/41/63/65/67 quiz data available');
         
         // Fallback: try to get from localStorage
         try {
@@ -275,7 +285,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const timeDiff = Date.now() - parseInt(timestamp);
             if (timeDiff < 10000) { // Only if data is less than 10 seconds old
               const quizData = JSON.parse(storedData);
-              if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67)) {
+              if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 41 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67)) {
                 console.log(`🔍 Found template ${quizData.templateId} data in localStorage`);
                 showTestPopup(quizData);
                 setIsScriptVisible(true);
@@ -826,6 +836,225 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             <div class="script-title" style="margin: 0 0 10px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
             <div class="script-text" style="padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.5; color: #333; text-align: left;">
               ${highlightedScriptText}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (quizData && quizData.templateId === 41) {
+      // Template 41: Highlight Japanese - Show explanation with correct words replaced
+      const paragraphText = quizData.paragraphText || '';
+      const fixedWordsExplanation = quizData.fixedWordsExplanation || '';
+      
+      console.log('🔍 Template ID41 - paragraphText:', paragraphText);
+      console.log('🔍 Template ID41 - fixedWordsExplanation:', fixedWordsExplanation);
+      
+      // Parse fixed words explanation to create mapping
+      const fixedWordsMap = {};
+      const indexedFixedWordsMap = {};
+      const correctWords = [];
+      
+      if (fixedWordsExplanation) {
+        const pairs = fixedWordsExplanation.split(',').map(p => p.trim());
+        
+        pairs.forEach(pair => {
+          // Replace full-width equals sign (＝) with standard equals sign (=)
+          const normalizedPair = pair.replace(/＝/g, '=');
+          
+          // Check if this is an indexed format (word:index=fixed)
+          if (normalizedPair.includes(':') && normalizedPair.includes('=')) {
+            const [wrongWithIndex, fixed] = normalizedPair.split('=').map(s => s.trim());
+            if (wrongWithIndex && fixed) {
+              const [wrong, indexStr] = wrongWithIndex.split(':').map(s => s.trim());
+              const normWrong = wrong.toLowerCase().replace(/[.,!?;:()\"'-]/g, '');
+              const index = parseInt(indexStr, 10);
+              
+              // Add to correctWords if not already included
+              if (!correctWords.includes(normWrong)) {
+                correctWords.push(normWrong);
+              }
+              
+              if (!isNaN(index)) {
+                if (!indexedFixedWordsMap[normWrong]) {
+                  indexedFixedWordsMap[normWrong] = {};
+                }
+                indexedFixedWordsMap[normWrong][index] = fixed;
+              }
+            }
+          } 
+          // Simple format (word=fixed)
+          else if (normalizedPair.includes('=')) {
+            const [wrong, fixed] = normalizedPair.split('=').map(s => s.trim());
+            if (wrong && fixed) {
+              const normWrong = wrong.toLowerCase().replace(/[.,!?;:()\"'-]/g, '');
+              
+              // Add to correctWords if not already included
+              if (!correctWords.includes(normWrong)) {
+                correctWords.push(normWrong);
+              }
+              
+              // Store in both maps
+              fixedWordsMap[normWrong] = fixed;
+              
+              // Also treat as an indexed mapping with index 0
+              if (!indexedFixedWordsMap[normWrong]) {
+                indexedFixedWordsMap[normWrong] = {};
+              }
+              indexedFixedWordsMap[normWrong][0] = fixed;
+            }
+          }
+        });
+      }
+      
+      // Function to convert furigana format from 車(くるま) to <ruby>車<rt>くるま</rt></ruby>
+      const convertFurigana = (text) => {
+        if (!text || typeof text !== "string") return text;
+
+        // Chỉ Kanji (và vài ký tự đặc biệt)
+        const kanjiWord = "[\u4E00-\u9FFF々〆〤ヶ]+";
+
+        // Dấu ngoặc Nhật (全角)
+        const reJaParens = new RegExp("(" + kanjiWord + ")（([^）]+)）", "g");
+        text = text.replace(reJaParens, (match, p1, p2) => {
+          return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+        });
+
+        // Dấu ngoặc ASCII (半角)
+        const reAsciiParens = new RegExp("(" + kanjiWord + ")\\(([^)]+)\\)", "g");
+        text = text.replace(reAsciiParens, (match, p1, p2) => {
+          return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+        });
+
+        return text;
+      };
+      
+      // Function to split words
+      const splitWords = (text) => {
+        return text.split(/[\u0020\u3000]+/).filter(Boolean);
+      };
+      
+      // Function to normalize word
+      const normalize = (word) => {
+        return word.replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
+      };
+      
+      // Create explanation text with correct words replaced and highlighted
+      const createExplanationText = () => {
+        const words = splitWords(paragraphText);
+        const explanationWords = [];
+        const wordCounts = {};
+        
+        words.forEach((word, idx) => {
+          const norm = normalize(word);
+          
+          // Initialize count for this word if not already done
+          if (!wordCounts[norm]) {
+            wordCounts[norm] = 0;
+          }
+          
+          // Check if this word is in correctWords
+          if (correctWords.includes(norm)) {
+            // Get the correct answer for this specific occurrence
+            let correctAnswer = word;
+            if (indexedFixedWordsMap[norm] && indexedFixedWordsMap[norm][wordCounts[norm]] !== undefined) {
+              correctAnswer = indexedFixedWordsMap[norm][wordCounts[norm]];
+            } else if (fixedWordsMap[norm]) {
+              correctAnswer = fixedWordsMap[norm];
+            }
+            
+            // Apply furigana conversion to both original word and correct answer
+            const wordWithFurigana = convertFurigana(word);
+            const correctAnswerWithFurigana = convertFurigana(correctAnswer);
+            
+            // Create segmented display: correct word/explanation word
+            const segmentedAnswer = `<span class="segmented-word">
+              <span class="correct-part">${wordWithFurigana}</span>
+              <span class="explanation-part">/ ${correctAnswerWithFurigana}</span>
+            </span>`;
+            explanationWords.push(segmentedAnswer);
+          } else {
+            // Keep original word with furigana conversion
+            const wordWithFurigana = convertFurigana(word);
+            explanationWords.push(wordWithFurigana);
+          }
+          
+          // Increment the count for this word after processing
+          wordCounts[norm]++;
+        });
+        
+        return explanationWords.join(' ');
+      };
+      
+      const explanationText = createExplanationText();
+      
+      popupContent = `
+        <div class="highlight-japanese-popup">
+          <style>
+            .highlight-japanese-popup { 
+              font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+              font-size: 1.2rem !important;
+            }
+            .highlight-japanese-popup ruby { 
+              font-size: 1.2rem !important; 
+            }
+            .highlight-japanese-popup rt { 
+              font-size: 0.6em !important; 
+              color: #666 !important; 
+            }
+            .highlight-japanese-popup .explanation-text {
+              padding: 20px;
+              background: #f8f9fa;
+              border-radius: 8px;
+              border: 1px solid #e9ecef;
+              font-size: 1.2rem;
+              line-height: 1.8;
+              color: #333;
+              text-align: left;
+            }
+            .highlight-japanese-popup .segmented-word {
+              display: inline-block !important;
+              border: 2px solid #00838f !important;
+              border-radius: 6px !important;
+              overflow: hidden !important;
+              margin: 0 3px !important;
+              vertical-align: middle !important;
+              padding: 2px !important;
+            }
+            .highlight-japanese-popup .correct-part {
+              background-color: #00838f !important;
+              color: white !important;
+              padding: 2px 2px !important;
+              font-weight: bold !important;
+              display: inline-block !important;
+              border-radius: 4px !important;
+            }
+            .highlight-japanese-popup .explanation-part {
+              background-color: #f5f5f5 !important;
+              color: #333 !important;
+              padding: 2px 2px !important;
+              display: inline-block !important;
+            }
+            .highlight-japanese-popup .correct-part ruby,
+            .highlight-japanese-popup .explanation-part ruby {
+              font-size: 1.2rem !important;
+            }
+            .highlight-japanese-popup .correct-part rt,
+            .highlight-japanese-popup .explanation-part rt {
+              font-size: 0.6em !important;
+              color: inherit !important;
+            }
+            .highlight-japanese-popup .correct-part rt {
+              color: rgba(255,255,255,0.8) !important;
+            }
+            .highlight-japanese-popup .explanation-part rt {
+              color: #666 !important;
+            }
+          </style>
+          
+          <!-- Explanation Section -->
+          <div class="explanation-section">
+            <div class="explanation-title" style="margin: 0 0 15px 0; color: #333; font-size: 1.4rem; font-weight: bold; text-align: center;">Explanation</div>
+            <div class="explanation-text">
+              ${explanationText}
             </div>
           </div>
         </div>
