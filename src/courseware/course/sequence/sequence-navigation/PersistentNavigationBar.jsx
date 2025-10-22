@@ -944,7 +944,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Function to split words
       const splitWords = (text) => {
-        return text.split(/[\u0020\u3000]+/).filter(Boolean);
+        // First, replace <br> tags with spaces to avoid breaking words
+        const textWithSpaces = text.replace(/<br\s*\/?>/gi, ' ');
+        // Then split on spaces and filter out empty strings
+        return textWithSpaces.split(/[\u0020\u3000]+/).filter(Boolean);
       };
       
       // Function to normalize word
@@ -964,11 +967,16 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Create explanation text with correct words replaced and highlighted
       const createExplanationText = () => {
-        const words = splitWords(paragraphText);
-        const explanationWords = [];
-        const wordCounts = {};
+        // First, split by <br> tags to preserve line breaks
+        const lines = paragraphText.split(/<br\s*\/?>/gi);
+        const explanationLines = [];
         
-        words.forEach((word, idx) => {
+        lines.forEach((line, lineIndex) => {
+          const words = splitWords(line);
+          const explanationWords = [];
+          const wordCounts = {};
+          
+          words.forEach((word, idx) => {
           const norm = normalize(word);
           
           // Initialize count for this word if not already done
@@ -1019,11 +1027,16 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             explanationWords.push(wordWithFurigana);
           }
           
-          // Increment the count for this word after processing
-          wordCounts[norm]++;
+            // Increment the count for this word after processing
+            wordCounts[norm]++;
+          });
+          
+          // Join words in this line
+          explanationLines.push(explanationWords.join(' '));
         });
         
-        return explanationWords.join(' ');
+        // Join lines with <br> tags
+        return explanationLines.join('<br>');
       };
       
       const explanationText = createExplanationText();
@@ -1055,6 +1068,34 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               right: 0 !important;
               width: 100% !important;
               z-index: 5 !important;
+              /* Chrome version-specific fixes */
+              -webkit-transform: translateY(0) !important;
+              transform: translateY(0) !important;
+            }
+            /* Chrome-specific fixes */
+            @supports (-webkit-appearance: none) {
+              .highlight-japanese-popup rt {
+                top: -0.8em !important;
+                font-size: 0.35em !important;
+              }
+            }
+            /* Fallback for browsers that don't support ruby */
+            @supports not (display: ruby) {
+              .highlight-japanese-popup ruby {
+                display: inline-block !important;
+                vertical-align: top !important;
+              }
+              .highlight-japanese-popup rt {
+                display: block !important;
+                font-size: 0.5em !important;
+                line-height: 1 !important;
+                margin-top: -0.5em !important;
+                position: static !important;
+                top: auto !important;
+                left: auto !important;
+                right: auto !important;
+                width: auto !important;
+              }
             }
             .highlight-japanese-popup .explanation-text {
               padding: 20px;
