@@ -334,22 +334,13 @@ const LoadedTabPage = ({
 
   // Expose functions to global scope for iframe access
   useEffect(() => {
-    console.log('🔍 DEBUG - Exposing functions to global scope');
-    
     window.triggerQuizToggle = (data) => {
-      console.log('🎯 Direct function call from iframe:', data);
       showExternalPopup(data);
     };
     
     window.closeQuizPopup = () => {
-      console.log('🔄 Direct close call from iframe');
       closeExternalPopup();
     };
-    
-    console.log('🔍 DEBUG - Functions exposed:', {
-      triggerQuizToggle: typeof window.triggerQuizToggle,
-      closeQuizPopup: typeof window.closeQuizPopup
-    });
   }, []);
 
   return (

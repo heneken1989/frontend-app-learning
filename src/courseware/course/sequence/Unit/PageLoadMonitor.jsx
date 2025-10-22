@@ -15,6 +15,11 @@ const PageLoadMonitor = ({
   const [isMonitoring, setIsMonitoring] = useState(true);
 
   useEffect(() => {
+    // Prevent duplicate monitoring for the same unit
+    if (!isMonitoring) {
+      return;
+    }
+    
     const startTime = Date.now();
     setLoadStartTime(startTime);
     
@@ -114,7 +119,7 @@ const PageLoadMonitor = ({
       window.removeEventListener('load', handlePageLoad);
       document.removeEventListener('DOMContentLoaded', handlePageLoad);
     };
-  }, [courseId, unitId, maxLoadTime, retryCount, isMonitoring]);
+  }, [unitId, isMonitoring]); // Only depend on unitId and isMonitoring
 
   // Monitor for JavaScript errors
   useEffect(() => {

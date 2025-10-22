@@ -23,6 +23,11 @@ const NoLoadingContentIFrame = ({
   const hideTimeoutRef = useRef(null);
 
   useEffect(() => {
+    // Only reset if URL actually changed
+    if (!iframeUrl) {
+      return;
+    }
+    
     // Clear any existing timeout
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -48,7 +53,7 @@ const NoLoadingContentIFrame = ({
         clearTimeout(hideTimeoutRef.current);
       }
     };
-  }, [iframeUrl]);
+  }, [iframeUrl]); // Only depend on iframeUrl
 
   const handleLoad = () => {
     console.log('✅ [NoLoadingContentIFrame] Iframe loaded successfully');

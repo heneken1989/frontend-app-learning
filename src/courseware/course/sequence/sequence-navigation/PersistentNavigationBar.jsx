@@ -378,6 +378,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     // Create answer paragraph container (like in quiz iframe)
     const popup = document.createElement('div');
     popup.id = 'test-popup';
+    popup.setAttribute('translate', 'no'); // Prevent Google Translate
+    popup.setAttribute('class', 'notranslate'); // Additional protection
     popup.style.cssText = `
       position: fixed;
       bottom: 60px;
@@ -393,6 +395,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
     // Create inner content wrapper
     const innerWrapper = document.createElement('div');
+    innerWrapper.setAttribute('translate', 'no'); // Prevent Google Translate
+    innerWrapper.setAttribute('class', 'notranslate'); // Additional protection
     innerWrapper.style.cssText = `
       width: fit-content;
       max-width: 80%;
@@ -1411,6 +1415,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Add class to inner wrapper for responsive targeting
     innerWrapper.className = 'inner-wrapper';
+    
+    // Add meta tag to prevent Google Translate (if not already present)
+    const existingMeta = document.querySelector('meta[name="google"]');
+    if (!existingMeta) {
+      const metaTag = document.createElement('meta');
+      metaTag.name = 'google';
+      metaTag.content = 'notranslate';
+      document.head.appendChild(metaTag);
+    }
     
     // Add popup to body
     document.body.appendChild(popup);

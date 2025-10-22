@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
 
 import { AppContext } from '@edx/frontend-platform/react';
@@ -49,13 +49,18 @@ const Unit = ({
     preview: shouldDisplayUnitPreview ? '1' : '0',
   }));
   const iframeUrl = getUrl();
-  const handleTimeExpired = () => {
+  const handleTimeExpired = useCallback(() => {
     // Logic to handle when the timer expires
     // You can add additional logic here, such as showing an alert or redirecting the user
-  };
+  }, []);
   const [time_limit, setTime_limit] = useState(null);
 
   useEffect(() => {
+    // Only fetch if id exists and hasn't been fetched yet
+    if (!id) {
+      return;
+    }
+    
     fetchUnitById(id)
       .then((unitData) => {
         setTime_limit(unitData.time_limit);
@@ -65,44 +70,51 @@ const Unit = ({
         }
       })
       .catch((error) => {
-        // Error fetching unit data
+        console.error('Error fetching unit data:', error);
       });
-  }, [id]);
+  }, [id]); // Only depend on id
+
+  // Memoize props to prevent unnecessary re-renders
+  const pageLoadMonitorProps = useMemo(() => ({
+    courseId,
+    unitId: id,
+    maxLoadTime: 30000,
+    maxRetries: 2,
+    enableAutoReload: false
+  }), [courseId, id]);
+
+  const globalErrorHandlerProps = useMemo(() => ({
+    courseId,
+    unitId: id,
+    maxRetries: 2,
+    enableAutoReload: false
+  }), [courseId, id]);
+
+  const noLoadingContentIFrameProps = useMemo(() => ({
+    elementId: "unit-iframe",
+    id,
+    iframeUrl,
+    loadingMessage: formatMessage(messages.loadingSequence),
+    onLoaded,
+    shouldShowContent: !shouldDisplayHonorCode && !examAccess.blockAccess,
+    title: unit?.title || '',
+    courseId,
+    hasQuiz,
+    enableAutoReload: false
+  }), [id, iframeUrl, onLoaded, shouldDisplayHonorCode, examAccess.blockAccess, unit?.title, courseId, hasQuiz, formatMessage]);
 
   return (
     <div className="unit">
       {/*  <UnitTitleSlot unitId={id} {...{ unit, isEnabledOutlineSidebar, renderUnitNavigation }} /> */}
       
       {/* Page Load Monitor - monitoring only, no auto-reload */}
-      <PageLoadMonitor 
-        courseId={courseId} 
-        unitId={id} 
-        maxLoadTime={30000}
-        maxRetries={2}
-        enableAutoReload={false}
-      />
+      <PageLoadMonitor {...pageLoadMonitorProps} />
       
       {/* Global Error Handler - monitoring only, no auto-reload */}
-      <GlobalErrorHandler 
-        courseId={courseId} 
-        unitId={id} 
-        maxRetries={2}
-        enableAutoReload={false}
-      />
+      <GlobalErrorHandler {...globalErrorHandlerProps} />
 
-      <UnitSuspense {...{ courseId, id }} />
-      <NoLoadingContentIFrame
-        elementId="unit-iframe"
-        id={id}
-        iframeUrl={iframeUrl}
-        loadingMessage={formatMessage(messages.loadingSequence)}
-        onLoaded={onLoaded}
-        shouldShowContent={!shouldDisplayHonorCode && !examAccess.blockAccess}
-        title={unit.title}
-        courseId={courseId}
-        hasQuiz={hasQuiz}
-        enableAutoReload={false}
-      />
+      <UnitSuspense courseId={courseId} id={id} />
+      <NoLoadingContentIFrame {...noLoadingContentIFrameProps} />
     </div>
   );
 };
