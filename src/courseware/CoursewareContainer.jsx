@@ -17,11 +17,63 @@ import { TabPage } from '../tab-page';
 import Course from './course';
 import { handleNextSectionCelebration } from './course/celebration';
 import withParamsAndNavigation from './utils';
+import { checkTestModeFromURL, getSequencesForTestSection, getCurrentTestSection } from '../custom-components/TestSeriesPage/utils/testSectionManager';
+
+// Helper function to redirect to first unit in test mode
+const redirectToFirstTestUnit = (courseId, testModeInfo, navigate, isPreview) => {
+  console.log('🎯 [redirectToFirstTestUnit] Redirecting to first test unit:', testModeInfo);
+  
+  // Get test sequences for the current test section
+  const testSequences = getSequencesForTestSection(testModeInfo.sectionId);
+  
+  if (testSequences && testSequences.length > 0) {
+    // Find the first sequence in the test
+    const firstTestSequence = testSequences[0];
+    
+    if (firstTestSequence && firstTestSequence.unitIds && firstTestSequence.unitIds.length > 0) {
+      // Get the first unit (quiz) in the first test sequence
+      const firstUnitId = firstTestSequence.unitIds[0];
+      const baseUrl = `/course/${courseId}/${firstTestSequence.id}`;
+      const sequenceUrl = isPreview ? `/preview${baseUrl}` : baseUrl;
+      
+      console.log('🎯 [redirectToFirstTestUnit] Redirecting to first quiz:', {
+        testSequence: firstTestSequence.id,
+        firstUnitId: firstUnitId,
+        redirectUrl: `${sequenceUrl}/${firstUnitId}`
+      });
+      
+      navigate(`${sequenceUrl}/${firstUnitId}`, { replace: true });
+      return true;
+    }
+  }
+  
+  return false;
+};
 
 // Look at where this is called in componentDidUpdate for more info about its usage
 export const checkResumeRedirect = memoize(
   (courseStatus, courseId, sequenceId, firstSequenceId, navigate, isPreview) => {
     if (courseStatus === 'loaded' && !sequenceId) {
+      // Check if we're in test mode first
+      const testModeInfo = checkTestModeFromURL(window.location.pathname);
+      
+      if (testModeInfo && testModeInfo.isTestMode) {
+        console.log('🎯 [checkResumeRedirect] Test mode detected, redirecting to first quiz');
+        
+        // Try to redirect to first test unit
+        const redirected = redirectToFirstTestUnit(courseId, testModeInfo, navigate, isPreview);
+        
+        if (!redirected) {
+          // Fallback: if we can't find test sequences, just redirect to first sequence
+          if (firstSequenceId) {
+            console.log('🎯 [checkResumeRedirect] Test mode fallback: redirecting to first sequence');
+            navigate(`/course/${courseId}/${firstSequenceId}`, { replace: true });
+          }
+        }
+        return;
+      }
+      
+      // Regular resume logic for non-test mode
       // Note that getResumeBlock is just an API call, not a redux thunk.
       getResumeBlock(courseId).then((data) => {
         // This is a replace because we don't want this change saved in the browser's history.
@@ -111,12 +163,36 @@ export const checkUnitToSequenceUnitRedirect = memoize((
 export const checkSequenceToSequenceUnitRedirect = memoize(
   (courseId, sequenceStatus, sequence, unitId, navigate, isPreview) => {
     if (sequenceStatus === 'loaded' && sequence.id && !unitId) {
-      if (sequence.unitIds !== undefined && sequence.unitIds.length > 0) {
-        const baseUrl = `/course/${courseId}/${sequence.id}`;
-        const sequenceUrl = isPreview ? `/preview${baseUrl}` : baseUrl;
-        const nextUnitId = sequence.unitIds[sequence.activeUnitIndex];
-        // This is a replace because we don't want this change saved in the browser's history.
-        navigate(`${sequenceUrl}/${nextUnitId}`, { replace: true });
+      // Check if we're in test mode
+      const testModeInfo = checkTestModeFromURL(window.location.pathname);
+      
+      if (testModeInfo && testModeInfo.isTestMode) {
+        console.log('🎯 [checkSequenceToSequenceUnitRedirect] Test mode detected, redirecting to first quiz in sequence');
+        
+        if (sequence.unitIds !== undefined && sequence.unitIds.length > 0) {
+          // In test mode, always go to the first unit (quiz) instead of active unit
+          const firstUnitId = sequence.unitIds[0];
+          const baseUrl = `/course/${courseId}/${sequence.id}`;
+          const sequenceUrl = isPreview ? `/preview${baseUrl}` : baseUrl;
+          
+          console.log('🎯 [checkSequenceToSequenceUnitRedirect] Redirecting to first quiz in test sequence:', {
+            sequenceId: sequence.id,
+            firstUnitId: firstUnitId,
+            redirectUrl: `${sequenceUrl}/${firstUnitId}`
+          });
+          
+          // This is a replace because we don't want this change saved in the browser's history.
+          navigate(`${sequenceUrl}/${firstUnitId}`, { replace: true });
+        }
+      } else {
+        // Regular behavior for non-test mode
+        if (sequence.unitIds !== undefined && sequence.unitIds.length > 0) {
+          const baseUrl = `/course/${courseId}/${sequence.id}`;
+          const sequenceUrl = isPreview ? `/preview${baseUrl}` : baseUrl;
+          const nextUnitId = sequence.unitIds[sequence.activeUnitIndex];
+          // This is a replace because we don't want this change saved in the browser's history.
+          navigate(`${sequenceUrl}/${nextUnitId}`, { replace: true });
+        }
       }
     }
   },

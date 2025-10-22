@@ -317,7 +317,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       .replace(/\\n/g, '<br>')     // Decode single backslash newlines to HTML breaks
       .replace(/\\'/g, "'")        // Decode single quotes
       .replace(/\\"/g, '"')        // Decode double quotes
-      .replace(/\\\\/g, '\\');     // Decode backslashes (must be last)
+      .replace(/\\\\/g, '\\')      // Decode backslashes (must be last)
+      .replace(/BREAK/g, '<br>');   // Replace BREAK markers with HTML line breaks
     
     // Then convert furigana: 事務所(じむしょ) -> <ruby>事務所<rt>じむしょ</rt></ruby>
     // First convert Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
@@ -842,7 +843,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       `;
     } else if (quizData && quizData.templateId === 41) {
       // Template 41: Highlight Japanese - Show explanation with correct words replaced
-      const paragraphText = quizData.paragraphText || '';
+      const paragraphText = decodeScriptText(quizData.paragraphText || '');
       const fixedWordsExplanation = quizData.fixedWordsExplanation || '';
       
       console.log('🔍 Template ID41 - paragraphText:', paragraphText);
@@ -851,10 +852,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       // Parse fixed words explanation to create mapping
       const fixedWordsMap = {};
       const indexedFixedWordsMap = {};
-      const correctWords = [];
+      const correctWords = []; // This will be populated from the mapping
       
       if (fixedWordsExplanation) {
         const pairs = fixedWordsExplanation.split(',').map(p => p.trim());
+        console.log('🔍 Popup - Parsing pairs:', pairs);
         
         pairs.forEach(pair => {
           // Replace full-width equals sign (＝) with standard equals sign (=)
@@ -865,27 +867,38 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             const [wrongWithIndex, fixed] = normalizedPair.split('=').map(s => s.trim());
             if (wrongWithIndex && fixed) {
               const [wrong, indexStr] = wrongWithIndex.split(':').map(s => s.trim());
-              const normWrong = wrong.toLowerCase().replace(/[.,!?;:()\"'-]/g, '');
+              // For furigana format like 会社員（かいしゃいん）, extract only the main part
+              const normWrong = wrong.replace(/（[^）]*）/g, '').replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
               const index = parseInt(indexStr, 10);
-              
-              // Add to correctWords if not already included
-              if (!correctWords.includes(normWrong)) {
-                correctWords.push(normWrong);
-              }
               
               if (!isNaN(index)) {
                 if (!indexedFixedWordsMap[normWrong]) {
                   indexedFixedWordsMap[normWrong] = {};
                 }
                 indexedFixedWordsMap[normWrong][index] = fixed;
+                
+                // For indexed format, don't add to correctWords - only specific occurrences are correct
+                console.log('🔍 Popup - Indexed format - not adding to correctWords, will use indexedFixedWordsMap only');
+              } else {
+                // Only add to correctWords if no valid index (fallback for simple format)
+                if (!correctWords.includes(normWrong)) {
+                  correctWords.push(normWrong);
+                  console.log('🔍 Popup - Added to correctWords (no index):', normWrong);
+                }
               }
             }
           } 
           // Simple format (word=fixed)
           else if (normalizedPair.includes('=')) {
+            console.log('🔍 Popup - Processing simple format:', normalizedPair);
             const [wrong, fixed] = normalizedPair.split('=').map(s => s.trim());
+            console.log('🔍 Popup - wrong:', wrong, 'fixed:', fixed);
             if (wrong && fixed) {
-              const normWrong = wrong.toLowerCase().replace(/[.,!?;:()\"'-]/g, '');
+              // Normalize both wrong and fixed words to remove furigana and punctuation
+              // For furigana format like 会社員（かいしゃいん）, extract only the main part
+              const normWrong = wrong.replace(/（[^）]*）/g, '').replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
+              const normFixed = fixed.replace(/（[^）]*）/g, '').replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
+              console.log('🔍 Popup - normWrong:', normWrong, 'normFixed:', normFixed);
               
               // Add to correctWords if not already included
               if (!correctWords.includes(normWrong)) {
@@ -893,13 +906,15 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               }
               
               // Store in both maps
-              fixedWordsMap[normWrong] = fixed;
+              fixedWordsMap[normWrong] = fixed; // Keep original fixed word with furigana
+              console.log('🔍 Popup - Added to fixedWordsMap:', normWrong, '->', fixed);
               
               // Also treat as an indexed mapping with index 0
               if (!indexedFixedWordsMap[normWrong]) {
                 indexedFixedWordsMap[normWrong] = {};
               }
-              indexedFixedWordsMap[normWrong][0] = fixed;
+              indexedFixedWordsMap[normWrong][0] = fixed; // Keep original fixed word with furigana
+              console.log('🔍 Popup - Added to indexedFixedWordsMap:', normWrong, '[0] ->', fixed);
             }
           }
         });
@@ -934,7 +949,17 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Function to normalize word
       const normalize = (word) => {
-        return word.replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
+        // For ruby tags, extract only the main text (not the furigana)
+        if (word.includes('<ruby>') && word.includes('</ruby>')) {
+          const rubyMatch = word.match(/<ruby>([^<]+)<rt>[^<]+<\/rt><\/ruby>/);
+          if (rubyMatch) {
+            return rubyMatch[1].replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
+          }
+        }
+        // For other HTML tags, remove them
+        let cleanWord = word.replace(/<[^>]*>/g, '');
+        // Then remove punctuation
+        return cleanWord.replace(/[.,!?;:()\"'-]/g, '').toLowerCase();
       };
       
       // Create explanation text with correct words replaced and highlighted
@@ -951,14 +976,31 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             wordCounts[norm] = 0;
           }
           
-          // Check if this word is in correctWords
-          if (correctWords.includes(norm)) {
+          // Check if this word has any mapping (indexed or simple)
+          const hasIndexedMapping = indexedFixedWordsMap[norm] && indexedFixedWordsMap[norm][wordCounts[norm]] !== undefined;
+          const hasSimpleMapping = fixedWordsMap[norm] && wordCounts[norm] === 0; // Only for first occurrence (index 0)
+          
+          console.log('🔍 Popup - Word:', word, 'norm:', norm, 'count:', wordCounts[norm]);
+          console.log('🔍 Popup - hasIndexedMapping:', hasIndexedMapping);
+          console.log('🔍 Popup - hasSimpleMapping:', hasSimpleMapping);
+          console.log('🔍 Popup - indexedFixedWordsMap[norm]:', indexedFixedWordsMap[norm]);
+          console.log('🔍 Popup - fixedWordsMap[norm]:', fixedWordsMap[norm]);
+          
+          if (hasIndexedMapping || hasSimpleMapping) {
+            console.log('🔍 Popup - Processing word:', word, 'norm:', norm, 'count:', wordCounts[norm]);
+            console.log('🔍 Popup - indexedFixedWordsMap[norm]:', indexedFixedWordsMap[norm]);
+            console.log('🔍 Popup - fixedWordsMap[norm]:', fixedWordsMap[norm]);
+            
             // Get the correct answer for this specific occurrence
             let correctAnswer = word;
-            if (indexedFixedWordsMap[norm] && indexedFixedWordsMap[norm][wordCounts[norm]] !== undefined) {
+            if (hasIndexedMapping) {
               correctAnswer = indexedFixedWordsMap[norm][wordCounts[norm]];
-            } else if (fixedWordsMap[norm]) {
+              console.log('🔍 Popup - Using indexed mapping:', correctAnswer);
+            } else if (hasSimpleMapping) {
               correctAnswer = fixedWordsMap[norm];
+              console.log('🔍 Popup - Using simple mapping:', correctAnswer);
+            } else {
+              console.log('🔍 Popup - No mapping found, using original:', correctAnswer);
             }
             
             // Apply furigana conversion to both original word and correct answer
@@ -994,11 +1036,25 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               font-size: 1.2rem !important;
             }
             .highlight-japanese-popup ruby { 
-              font-size: 1.2rem !important; 
+              font-size: 1.2rem !important;
+              display: inline !important;
+              line-height: 1.2 !important;
+              vertical-align: baseline !important;
+              position: relative !important;
+              white-space: nowrap !important;
             }
             .highlight-japanese-popup rt { 
-              font-size: 0.6em !important; 
-              color: #666 !important; 
+              font-size: 0.4em !important; 
+              color: #666 !important;
+              line-height: 1 !important;
+              display: block !important;
+              text-align: center !important;
+              position: absolute !important;
+              top: -0.6em !important;
+              left: 0 !important;
+              right: 0 !important;
+              width: 100% !important;
+              z-index: 5 !important;
             }
             .highlight-japanese-popup .explanation-text {
               padding: 20px;
@@ -1022,16 +1078,18 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             .highlight-japanese-popup .correct-part {
               background-color: #00838f !important;
               color: white !important;
-              padding: 2px 2px !important;
+              padding: 8px 6px 4px 6px !important;
               font-weight: bold !important;
               display: inline-block !important;
               border-radius: 4px !important;
+              line-height: 1.4 !important;
             }
             .highlight-japanese-popup .explanation-part {
               background-color: #f5f5f5 !important;
               color: #333 !important;
-              padding: 2px 2px !important;
+              padding: 8px 6px 4px 6px !important;
               display: inline-block !important;
+              line-height: 1.4 !important;
             }
             .highlight-japanese-popup .correct-part ruby,
             .highlight-japanese-popup .explanation-part ruby {

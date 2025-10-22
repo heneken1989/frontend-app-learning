@@ -23,6 +23,7 @@ import HiddenAfterDue from './hidden-after-due';
 import { SequenceNavigation } from './sequence-navigation';
 import PersistentNavigationBar from './sequence-navigation/PersistentNavigationBar';
 import SequenceContent from './SequenceContent';
+import { checkTestModeFromURL } from '../../../custom-components/TestSeriesPage/utils/testSectionManager';
 
 const Sequence = ({
   unitId = null,
@@ -189,23 +190,34 @@ const Sequence = ({
   );
 
   if (sequenceStatus === 'loaded') {
+    // Check if we're in test mode
+    const isTestMode = checkTestModeFromURL(window.location.pathname);
+    
+    console.log('🔍 [Sequence] Test mode check:', {
+      pathname: window.location.pathname,
+      isTestMode: isTestMode,
+      willRenderPersistentBar: !isTestMode
+    });
+
     return (
       <div>
-        {/* Persistent Navigation Bar - rendered outside main content flow */}
-        <PersistentNavigationBar
-          courseId={courseId}
-          sequenceId={sequenceId}
-          unitId={unitId}
-          onClickPrevious={() => {
-            logEvent('edx.ui.lms.sequence.previous_selected', 'persistent');
-            handlePrevious();
-          }}
-          onClickNext={() => {
-            logEvent('edx.ui.lms.sequence.next_selected', 'persistent');
-            handleNext();
-          }}
-          isAtTop={false}
-        />
+        {/* Persistent Navigation Bar - only render if NOT in test mode */}
+        {!isTestMode && (
+          <PersistentNavigationBar
+            courseId={courseId}
+            sequenceId={sequenceId}
+            unitId={unitId}
+            onClickPrevious={() => {
+              logEvent('edx.ui.lms.sequence.previous_selected', 'persistent');
+              handlePrevious();
+            }}
+            onClickNext={() => {
+              logEvent('edx.ui.lms.sequence.next_selected', 'persistent');
+              handleNext();
+            }}
+            isAtTop={false}
+          />
+        )}
         
         <SequenceExamWrapper
           sequence={sequence}

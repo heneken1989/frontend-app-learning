@@ -7,6 +7,7 @@ export const PaymentSuccess = lazy(() => import('./custom-components/PaymentSucc
 export const PaymentCancel = lazy(() => import('./custom-components/PaymentCancel'));
 export const ProgressPage = lazy(() => import('./custom-components/ProgressPage'));
 export const EnrollmentStatusRoute = lazy(() => import('./custom-components/EnrollmentStatus/src/EnrollmentStatusRoute'));
+export const TestSeriesPage = lazy(() => import('./custom-components/TestSeriesPage'));
 
 // Lazy load courseware components
 export const CoursewareContainer = lazy(() => import('./courseware'));

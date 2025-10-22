@@ -13,7 +13,8 @@ export function useSequenceNavigationMetadata(currentSequenceId, currentUnitId) 
   const sequence = useModel('sequences', currentSequenceId);
   const courseId = useSelector(state => state.courseware.courseId);
   const courseStatus = useSelector(state => state.courseware.courseStatus);
-  const { entranceExamData: { entranceExamPassed } } = useModel('coursewareMeta', courseId);
+  const { entranceExamData } = useModel('coursewareMeta', courseId);
+  const entranceExamPassed = entranceExamData?.entranceExamPassed;
   const sequenceStatus = useSelector(state => state.courseware.sequenceStatus);
 
   // If we don't know the sequence and unit yet, then assume no.
@@ -37,13 +38,13 @@ export function useSequenceNavigationMetadata(currentSequenceId, currentUnitId) 
   }
 
   const sequenceIndex = sequenceIds.indexOf(currentSequenceId);
-  const unitIndex = sequence.unitIds.indexOf(currentUnitId);
+  const unitIndex = sequence?.unitIds?.indexOf(currentUnitId) ?? -1;
 
   const isFirstSequence = sequenceIndex === 0;
   const isFirstUnitInSequence = unitIndex === 0;
   const isFirstUnit = isFirstSequence && isFirstUnitInSequence;
   const isLastSequence = sequenceIndex === sequenceIds.length - 1;
-  const isLastUnitInSequence = unitIndex === sequence.unitIds.length - 1;
+  const isLastUnitInSequence = unitIndex === (sequence?.unitIds?.length ?? 0) - 1;
   const isLastUnit = isLastSequence && isLastUnitInSequence;
   const sequenceNavigationDisabled = sequence.navigationDisabled;
   const navigationDisabledPrevSequence = sequenceNavigationDisabled && isFirstUnitInSequence;
@@ -57,8 +58,8 @@ export function useSequenceNavigationMetadata(currentSequenceId, currentUnitId) 
     nextLink = `/course/${courseId}/course-end`;
   } else {
     const nextIndex = unitIndex + 1;
-    if (nextIndex < sequence.unitIds.length) {
-      const nextUnitId = sequence.unitIds[nextIndex];
+    if (nextIndex < (sequence?.unitIds?.length ?? 0)) {
+      const nextUnitId = sequence?.unitIds?.[nextIndex];
       nextLink = `/course/${courseId}/${currentSequenceId}/${nextUnitId}`;
     } else if (nextSequenceId) {
       nextLink = `/course/${courseId}/${nextSequenceId}/first`;
@@ -68,7 +69,7 @@ export function useSequenceNavigationMetadata(currentSequenceId, currentUnitId) 
   let previousLink;
   const previousIndex = unitIndex - 1;
   if (previousIndex >= 0) {
-    const previousUnitId = sequence.unitIds[previousIndex];
+    const previousUnitId = sequence?.unitIds?.[previousIndex];
     previousLink = `/course/${courseId}/${currentSequenceId}/${previousUnitId}`;
   } else if (previousSequenceId) {
     previousLink = `/course/${courseId}/${previousSequenceId}/last`;

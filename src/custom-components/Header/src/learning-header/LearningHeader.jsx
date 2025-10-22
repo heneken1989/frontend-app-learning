@@ -7,6 +7,11 @@ import { Button, Icon } from '@openedx/paragon';
 import useEnrollmentAlert from '../../../../alerts/enrollment-alert';
 import useLogistrationAlert from '../../../../alerts/logistration-alert';
 import UnitTimer from '../../../../courseware/course/sequence/Unit/UnitTimer';
+import TestTimer from '../../../TestSeriesPage/TestTimer';
+import TestHeader from '../../../TestSeriesPage/components/TestHeader';
+import TestNavigationBar from '../../../TestSeriesPage/components/TestNavigationBar';
+import useTestDetection from '../../../TestSeriesPage/hooks/useTestDetection';
+import { extractCourseInfoFromURL } from '../../../TestSeriesPage/utils/testSectionManager';
 import {
   fetchUnitById, fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId,
 } from '../../../../courseware/course/sequence/Unit/urls';
@@ -438,7 +443,7 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         />
       </div>
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        {['聴解', '言葉。漢字', '文法', '読解', '模試テスト'].map((label) => (
+        {['聴解', '言葉。漢字', '文法', '読解'].map((label) => (
           <MultiLevelDropdown
             key={label}
             label={label}
@@ -450,6 +455,31 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
             setPreloadedData={setPreloadedData}
           />
         ))}
+        <div
+          className="nav-item test-series-link"
+          style={{
+            position: 'relative',
+            padding: '8px 16px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            background: '#0097a9',
+            color: '#fff',
+            fontWeight: '600',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease',
+          }}
+          onClick={() => window.location.href = '/learning/test-series'}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#007a8a';
+            e.target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#0097a9';
+            e.target.style.transform = 'translateY(0)';
+          }}
+        >
+          📝 模試テスト
+        </div>
         {/* Hidden Auto Enroll All button */}
         {/* 
         <div
@@ -545,13 +575,21 @@ const LearningHeader = ({
   showUserDropdown = true, 
   courseId = null, 
   unitId = null,
+  // Test Timer props (for manual override)
+  isTestMode = false,
+  testId = null,
+  testTimeInMinutes = null,
+  onTestTimeExpired = null,
+  onTestTimeUpdate = null,
+  // Preloaded data for test detection
+  preloadedData = {},
 }) => {
 
   const { authenticatedUser } = useContext(AppContext);
   const [timeLimit, setTimeLimit] = useState(null);
   const [hasQuiz, setHasQuiz] = useState(false);
   const [courses, setCourses] = useState([]);
-  const [preloadedData, setPreloadedData] = useState({});
+  const [internalPreloadedData, setInternalPreloadedData] = useState({});
   const [openLevel, setOpenLevel] = useState(null);
   const [hoveredSkill, setHoveredSkill] = useState(null);
   const [hoveredLevel, setHoveredLevel] = useState(null);
@@ -562,6 +600,44 @@ const LearningHeader = ({
 
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
+
+  // Extract courseId from URL if not provided
+  const [extractedCourseId, setExtractedCourseId] = useState(courseId);
+  
+  useEffect(() => {
+    if (!courseId && unitId) {
+      try {
+        const path = window.location ? window.location.pathname : '';
+        const parsed = extractCourseInfoFromURL(path);
+        if (parsed && parsed.courseId) {
+          setExtractedCourseId(parsed.courseId);
+        }
+      } catch (e) {
+        // no-op
+      }
+    }
+  }, [courseId, unitId]);
+
+  // Use test detection hook
+  const { testConfig, getTestTimerProps } = useTestDetection(
+    unitId, 
+    extractedCourseId, 
+    null, // sectionId not available in header context
+    internalPreloadedData
+  );
+
+  // Debug: log detection and localStorage snapshots in header
+  useEffect(() => {
+    try {
+      const path = window.location ? window.location.pathname : '';
+      const parsed = extractCourseInfoFromURL(path);
+      if (typeof window !== 'undefined' && window.testStorage && typeof window.testStorage.snapshot === 'function') {
+        window.testStorage.snapshot();
+      }
+    } catch (e) {
+      // no-op
+    }
+  }, [unitId, courseId, extractedCourseId, testConfig]);
 
   useEffect(() => {
     let didCancel = false;
@@ -667,14 +743,19 @@ const LearningHeader = ({
             preloadedDataMap[courseId] = courseData;
           });
           
-          setPreloadedData(preloadedDataMap);
+          setInternalPreloadedData(preloadedDataMap);
           console.log('✅ All dropdown data preloaded successfully!');
         };
         
-        preloadAllData();
+        // Only preload if no external preloadedData provided
+        if (Object.keys(preloadedData).length === 0) {
+          preloadAllData();
+        } else {
+          setInternalPreloadedData(preloadedData);
+        }
       })
       .catch(err => {
-        console.error('Failed to fetch courses:', err);
+        // Failed to fetch courses
       });
   }, []);
 
@@ -682,13 +763,50 @@ const LearningHeader = ({
     // Handle time expiration logic here
   };
 
+
+  // If in test mode, render TestHeader and TestNavigationBar instead of regular header
+  if (testConfig.isTestMode || isTestMode) {
+      return (
+        <>
+          <TestHeader
+            intl={intl}
+            testName={testConfig.testName || 'Test'}
+            testTimeInMinutes={testConfig.testTimeInMinutes || testTimeInMinutes || 60}
+            onTestTimeExpired={onTestTimeExpired || (() => {
+              console.log('Test time expired for:', testConfig.testName || 'Unknown Test');
+            })}
+            onTestTimeUpdate={onTestTimeUpdate || ((timeLeft) => {
+              // Debug log removed
+            })}
+            unitId={unitId}
+            sequenceId={testConfig.sequenceId}
+          />
+          <TestNavigationBar
+            courseId={courseId || extractedCourseId}
+            sequenceId={testConfig.sequenceId}
+            unitId={unitId}
+            onClickNext={() => {
+              // TestNavigationBar handles its own navigation
+              // This is just a placeholder - actual navigation is handled by TestNavigationBar
+              console.log('🔍 [LearningHeader] onClickNext called - TestNavigationBar will handle navigation');
+              console.log('🔍 [LearningHeader] Current URL:', window.location.href);
+              console.log('🔍 [LearningHeader] TestNavigationBar should handle this');
+            }}
+            isAtTop={false}
+          />
+        </>
+      );
+  }
+
+
   return (
     <header className="learning-header">
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
       <div className="container-xl py-2 d-flex align-items-center">
         {/* Logo removed */}
-        <NavigationMenu courses={courses} preloadedData={preloadedData} setPreloadedData={setPreloadedData} />
+        <NavigationMenu courses={courses} preloadedData={internalPreloadedData} setPreloadedData={setInternalPreloadedData} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center justify-content-end" style={{ lineHeight: 1, gap: '8px' }}>
+          {/* Unit Timer for individual quizzes */}
           {unitId && (timeLimit !== null && timeLimit !== undefined) ? (
             <UnitTimer
               key={`${unitId}-${timerKey}`}
@@ -849,6 +967,14 @@ LearningHeader.propTypes = {
   showUserDropdown: PropTypes.bool,
   courseId: PropTypes.string,
   unitId: PropTypes.string,
+  // Test Timer props (for manual override)
+  isTestMode: PropTypes.bool,
+  testId: PropTypes.string,
+  testTimeInMinutes: PropTypes.number,
+  onTestTimeExpired: PropTypes.func,
+  onTestTimeUpdate: PropTypes.func,
+  // Preloaded data for test detection
+  preloadedData: PropTypes.object,
 };
 
 

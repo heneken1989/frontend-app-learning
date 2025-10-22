@@ -1,0 +1,160 @@
+.test-header {
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  position: sticky;
+}
+
+/* Teal bar under header (matches LearningHeader visual) */
+.test-header::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 12px; /* thickness of the bar */
+  background: #2f7f95; /* teal */
+}
+
+.test-header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.125rem 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 30px;
+}
+
+.test-header-timer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.timer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.progress-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.timer-icon,
+.progress-icon {
+  font-size: 0.8rem;
+}
+
+/* Space progress (quiz count) 100px from the timer */
+.timer-info .progress-icon {
+  margin-left: 100px;
+}
+
+.timer-text,
+.progress-text {
+  font-weight: 500;
+}
+
+.test-header-title {
+  flex: 1;
+  text-align: left;
+  padding: 0 1rem;
+}
+
+.test-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.test-header-user {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+// Removed user info styles as we're not using them in the new design
+
+// Responsive design
+@media (max-width: 768px) {
+  .test-header-container {
+    padding: 0.125rem 1rem;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-height: auto;
+  }
+  
+  .test-header-title {
+    order: 1;
+    text-align: center;
+  }
+  
+  .test-header-timer {
+    order: 2;
+    align-items: center;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .test-title {
+    font-size: 1rem;
+  }
+  
+  .timer-info,
+  .progress-info {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .test-header-container {
+    padding: 0.125rem;
+  }
+  
+  .test-title {
+    font-size: 0.9rem;
+  }
+  
+  .timer-info {
+    font-size: 0.8rem;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .timer-info .progress-icon {
+    margin-left: 0; /* reset spacing on small screens */
+  }
+  
+  .progress-info {
+    font-size: 0.8rem;
+  }
+}
+
+// Simple animation for test header appearance
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.test-header {
+  animation: slideDown 0.3s ease-out;
+}

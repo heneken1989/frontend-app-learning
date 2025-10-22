@@ -79,8 +79,9 @@ function GetCourseExitNavigation(courseId, intl) {
     isEnrolled,
     userHasPassingGrade,
     courseExitPageIsActive,
-    entranceExamData: { entranceExamPassed },
+    entranceExamData,
   } = useModel('coursewareMeta', courseId);
+  const entranceExamPassed = entranceExamData?.entranceExamPassed;
   const { canViewCertificate } = useModel('courseHomeMeta', courseId);
   const exitMode = getCourseExitMode(
     certificateData,
