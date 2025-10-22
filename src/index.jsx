@@ -13,11 +13,9 @@ import {
 import { Helmet } from 'react-helmet';
 import { fetchLiveTab } from './course-home/data/thunks';
 
-import messages from './i18n';
 import { UserMessagesProvider } from './generic/user-messages';
 
 import './index.scss';
-import { CourseExit } from './courseware/course/course-exit';
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy loaded components
@@ -43,7 +41,6 @@ import {
 } from './lazyComponents';
 
 import { fetchDatesTab, fetchOutlineTab, fetchProgressTab } from './course-home/data';
-import { fetchCourse } from './courseware/data';
 import { store } from './store';
 import NoticesProvider from './generic/notices';
 import PathFixesProvider from './generic/path-fixes';
@@ -228,5 +225,5 @@ initialize({
       }, 'LearnerAppConfig');
     },
   },
-  messages,
+  messages: [], // Empty messages array for i18n
 });

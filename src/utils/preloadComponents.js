@@ -14,7 +14,7 @@ export const preloadCriticalComponents = () => {
         console.warn('Failed to preload component:', err);
       });
     });
-  }, 2000); // Wait 2 seconds after page load
+  }, 500); // Reduced from 2 seconds to 500ms for faster preloading
 };
 
 // Preload components on hover (for better UX)
