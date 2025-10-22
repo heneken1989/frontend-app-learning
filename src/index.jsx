@@ -16,6 +16,7 @@ import { fetchLiveTab } from './course-home/data/thunks';
 import { UserMessagesProvider } from './generic/user-messages';
 
 import './index.scss';
+// Critical CSS is included in index.scss
 import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy loaded components
@@ -59,6 +60,8 @@ const TestComponent = () => (
 
 subscribe(APP_READY, () => {
   const root = createRoot(document.getElementById('root'));
+
+  // CSS is already loaded with the main bundle
 
   // Start preloading critical components
   preloadCriticalComponents();
