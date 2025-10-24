@@ -18,6 +18,10 @@ const tutorConfig = {
       'Access-Control-Allow-Origin': '*',
     },
   },
+  // TẮT HOÀN TOÀN CODE SPLITTING
+  optimization: {
+    splitChunks: false,
+  },
 };
 
 module.exports = merge(devConfig, tutorConfig);

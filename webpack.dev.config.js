@@ -5,21 +5,8 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const config = createConfig('webpack-dev');
 
-// TẮT HOÀN TOÀN CODE SPLITTING - Gộp tất cả thành 1 file
-config.optimization.splitChunks = {
-  chunks: 'all',
-  cacheGroups: {
-    // Gộp TẤT CẢ thành 1 file duy nhất
-    default: {
-      name: 'bundle',
-      chunks: 'all',
-      priority: 1,
-      enforce: true,
-      minSize: 0,
-      maxSize: 0,
-    },
-  },
-};
+// TẮT HOÀN TOÀN CODE SPLITTING
+config.optimization.splitChunks = false;
 
 config.resolve.alias = {
   ...config.resolve.alias,
