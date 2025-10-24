@@ -34,26 +34,38 @@ config.output = {
   chunkFilename: '[name].[contenthash].chunk.js',
 };
 
-// Code splitting configuration
+// Code splitting configuration - Optimized for fewer chunks
 config.optimization = {
   ...config.optimization,
   splitChunks: {
     chunks: "all",
-    minSize: 20000,
-    maxSize: 244000,
+    minSize: 100000,        // Tăng từ 20KB lên 100KB
+    maxSize: 500000,        // Tăng từ 244KB lên 500KB
+    maxAsyncRequests: 5,    // Giới hạn async chunks
+    maxInitialRequests: 3,  // Giới hạn initial chunks
     cacheGroups: {
       vendor: {
         test: /[\\/]node_modules[\\/]/,
         name: 'vendors',
         chunks: 'all',
         priority: 10,
+        enforce: true,      // Bắt buộc tạo vendor chunk
       },
       common: {
         name: 'common',
-        minChunks: 2,
+        minChunks: 3,       // Tăng từ 2 lên 3
         chunks: 'all',
         priority: 5,
         reuseExistingChunk: true,
+        enforce: true,
+      },
+      // Gộp các thư viện React
+      react: {
+        test: /[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/,
+        name: 'react-vendor',
+        chunks: 'all',
+        priority: 15,
+        enforce: true,
       },
     },
   },
