@@ -44,28 +44,25 @@ config.optimization = {
     maxAsyncRequests: 5,    // Giới hạn async chunks
     maxInitialRequests: 3,  // Giới hạn initial chunks
     cacheGroups: {
+      // Gộp TẤT CẢ vendor libraries thành 1 file lớn
       vendor: {
         test: /[\\/]node_modules[\\/]/,
         name: 'vendors',
         chunks: 'all',
-        priority: 10,
-        enforce: true,      // Bắt buộc tạo vendor chunk
+        priority: 20,
+        enforce: true,
+        minSize: 0,         // Bỏ qua minSize cho vendor
+        maxSize: 0,         // Không giới hạn kích thước
       },
+      // Gộp code chung thành 1 file
       common: {
         name: 'common',
-        minChunks: 3,       // Tăng từ 2 lên 3
+        minChunks: 2,
         chunks: 'all',
-        priority: 5,
+        priority: 10,
         reuseExistingChunk: true,
         enforce: true,
-      },
-      // Gộp các thư viện React
-      react: {
-        test: /[\\/]node_modules[\\/](react|react-dom|react-router)[\\/]/,
-        name: 'react-vendor',
-        chunks: 'all',
-        priority: 15,
-        enforce: true,
+        minSize: 50000,     // Chỉ tách khi >= 50KB
       },
     },
   },
