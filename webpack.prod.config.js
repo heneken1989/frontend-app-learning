@@ -15,6 +15,12 @@ config.optimization = {
   concatenateModules: false,
 };
 
+// TẮT NEW RELIC PLUGINS ĐỂ TRÁNH LỖI 403
+config.plugins = config.plugins.filter(plugin => {
+  const pluginName = plugin.constructor.name;
+  return !pluginName.includes('NewRelic') && !pluginName.includes('NewRelicSourceMap');
+});
+
 config.plugins.push(
   new CopyPlugin({
     patterns: [
