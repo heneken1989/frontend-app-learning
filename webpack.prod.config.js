@@ -21,7 +21,7 @@ config.optimization = {
         chunks: 'all',
         priority: 30,
         reuseExistingChunk: true,
-        enforce: true,
+        enforce: true,d
       },
       // Redux ecosystem - tách riêng
       redux: {

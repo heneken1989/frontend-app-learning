@@ -14,7 +14,7 @@ export const preloadCriticalComponents = () => {
   // Tier 3: Secondary components - preload sau 1.5s
   const tier3Components = [
     () => import('../courseware'),
-    () => import('../course-home/progress-tab'),
+    () => import('../course-home/progress-tab/ProgressTab'),
     () => import('../custom-components/ProgressPage'),
   ];
 
