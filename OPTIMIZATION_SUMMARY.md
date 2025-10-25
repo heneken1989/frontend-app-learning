@@ -70,16 +70,31 @@ npm run build:single
 
 ## Kết quả sau khi tối ưu
 
-### Với `npm run build` (3-5 chunks):
-- `runtime.[hash].js` - Runtime code
+### Với `npm run build` (2-3 chunks):
 - `vendors.[hash].js` - Tất cả vendor libraries (gộp)
 - `app.[hash].js` - Main application code
-- Và 1-2 chunks async nếu cần
+- Và 1 chunk async nếu cần
 
 ### Với `npm run build:single` (1 file duy nhất):
 - `app.[hash].js` - Tất cả code trong 1 file
 - Không có code splitting
 - Ít HTTP requests nhất có thể
+
+## 🚀 **Tối ưu hóa mới (V3):**
+
+### Giảm số lượng chunks xuống mức tối thiểu:
+- **maxInitialRequests**: 3 → 2 chunks ban đầu
+- **maxAsyncRequests**: 5 → 3 chunks async
+- **minSize**: 200KB → 500KB
+- **maxSize**: 2MB → 3MB
+- **minChunks**: 10 → 20
+- **Tắt runtime chunk** để ít file hơn
+
+### Kết quả mong đợi:
+- **Chỉ 2-3 chunks** thay vì 5+ chunks
+- **Chunks lớn hơn** (500KB-3MB)
+- **Ít HTTP requests** hơn đáng kể
+- **Load nhanh hơn** vì ít file pending
 
 ## Lưu ý
 - **Cân bằng tối ưu**: Không quá ít chunks (file lớn) và không quá nhiều chunks (nhiều requests)

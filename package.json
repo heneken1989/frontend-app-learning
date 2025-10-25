@@ -12,6 +12,7 @@
   "scripts": {
     "build": "fedx-scripts webpack",
     "build:single": "DISABLE_CODE_SPLITTING=true fedx-scripts webpack",
+    "build:minimal": "fedx-scripts webpack",
     "bundlewatch": "bundlewatch",
     "i18n_extract": "fedx-scripts formatjs extract",
     "lint": "fedx-scripts eslint --ext .js --ext .jsx --ext .ts --ext .tsx .",

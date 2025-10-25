@@ -22,15 +22,15 @@ if (DISABLE_CODE_SPLITTING) {
     chunkIds: 'deterministic',
   };
 } else {
-  // Code splitting với ít chunks nhất có thể
+  // Code splitting với ít chunks nhất có thể - TỐI ƯU HÓA THÊM
   config.optimization = {
     ...config.optimization,
     splitChunks: {
       chunks: 'all',
-      maxInitialRequests: 3, // Chỉ 3 chunks ban đầu: runtime, vendors, app
-      maxAsyncRequests: 5,   // Chỉ 5 chunks async
-      minSize: 200000,      // Tăng lên 200KB để chunks lớn hơn
-      maxSize: 2000000,      // Tăng lên 2MB để ít chunks hơn
+      maxInitialRequests: 2, // Chỉ 2 chunks ban đầu: vendors, app
+      maxAsyncRequests: 3,   // Chỉ 3 chunks async
+      minSize: 500000,      // Tăng lên 500KB để chunks lớn hơn
+      maxSize: 3000000,      // Tăng lên 3MB để ít chunks hơn
       cacheGroups: {
         // Tất cả vendor libraries - gộp thành 1 chunk duy nhất
         vendor: {
@@ -43,15 +43,13 @@ if (DISABLE_CODE_SPLITTING) {
         },
         // Default group - tăng minChunks để giảm chunks
         default: {
-          minChunks: 10, // Tăng lên 10 để ít chunks hơn
+          minChunks: 20, // Tăng lên 20 để ít chunks hơn
           priority: -20,
           reuseExistingChunk: true,
         },
       },
     },
-    runtimeChunk: {
-      name: 'runtime',
-    },
+    runtimeChunk: false, // Tắt runtime chunk để ít file hơn
     usedExports: true,
     sideEffects: false,
     providedExports: true,
