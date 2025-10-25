@@ -9,57 +9,39 @@ config.optimization = {
   ...config.optimization,
   splitChunks: {
     chunks: 'all',
-    maxInitialRequests: 30,
-    maxAsyncRequests: 30,
-    minSize: 20000,
-    maxSize: 244000,
+    maxInitialRequests: 8, // Giảm từ 30 xuống 8 để ít HTTP requests hơn
+    maxAsyncRequests: 15,  // Giảm từ 30 xuống 15
+    minSize: 50000,       // Tăng từ 20KB lên 50KB
+    maxSize: 500000,       // Tăng từ 244KB lên 500KB
     cacheGroups: {
-      // React core libraries - tách riêng
-      react: {
-        test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom)[\\/]/,
-        name: 'react',
+      // React + Redux - gộp lại để giảm requests
+      reactRedux: {
+        test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|@reduxjs|redux|react-redux|reselect)[\\/]/,
+        name: 'react-redux',
         chunks: 'all',
         priority: 30,
         reuseExistingChunk: true,
         enforce: true,
       },
-      // Redux ecosystem - tách riêng
-      redux: {
-        test: /[\\/]node_modules[\\/](@reduxjs|redux|react-redux|reselect)[\\/]/,
-        name: 'redux',
-        chunks: 'all',
-        priority: 25,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // Chart libraries - tách riêng
+      // Chart libraries - chỉ tách khi cần thiết
       charts: {
         test: /[\\/]node_modules[\\/](chart\.js|react-chartjs-2|recharts)[\\/]/,
         name: 'charts',
+        chunks: 'async', // Chỉ load khi cần
+        priority: 25,
+        reuseExistingChunk: true,
+        enforce: true,
+      },
+      // FontAwesome + Lodash - gộp lại
+      utilities: {
+        test: /[\\/]node_modules[\\/](@fortawesome|lodash)[\\/]/,
+        name: 'utilities',
         chunks: 'all',
         priority: 25,
         reuseExistingChunk: true,
         enforce: true,
       },
-      // FontAwesome icons - tách riêng
-      fontawesome: {
-        test: /[\\/]node_modules[\\/](@fortawesome)[\\/]/,
-        name: 'fontawesome',
-        chunks: 'all',
-        priority: 25,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // Lodash utilities - tách riêng
-      lodash: {
-        test: /[\\/]node_modules[\\/](lodash)[\\/]/,
-        name: 'lodash',
-        chunks: 'all',
-        priority: 25,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // EdX platform libraries - tách riêng
+      // EdX platform libraries - gộp tất cả
       edx: {
         test: /[\\/]node_modules[\\/](@edx|@openedx)[\\/]/,
         name: 'edx-platform',
@@ -68,7 +50,7 @@ config.optimization = {
         reuseExistingChunk: true,
         enforce: true,
       },
-      // Other vendor libraries
+      // Other vendor libraries - gộp tất cả còn lại
       vendor: {
         test: /[\\/]node_modules[\\/]/,
         name: 'vendors',
@@ -77,18 +59,9 @@ config.optimization = {
         reuseExistingChunk: true,
         minChunks: 1,
       },
-      // Common code được sử dụng nhiều lần
-      common: {
-        name: 'common',
-        minChunks: 3,
-        chunks: 'all',
-        priority: 5,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // Default group cho code không match với group nào khác
+      // Default group - tăng minChunks để giảm chunks
       default: {
-        minChunks: 2,
+        minChunks: 3,
         priority: -20,
         reuseExistingChunk: true,
       },
@@ -131,14 +104,25 @@ config.resolve.modules = [
   'node_modules'
 ];
 
-// Tối ưu hóa output
+// Tối ưu hóa output - giảm hash length để ngắn hơn
 config.output = {
   ...config.output,
-  filename: '[name].[contenthash:8].js',
-  chunkFilename: '[name].[contenthash:8].chunk.js',
-  assetModuleFilename: 'assets/[name].[contenthash:8][ext]',
+  filename: '[name].[contenthash:6].js',
+  chunkFilename: '[name].[contenthash:6].chunk.js',
+  assetModuleFilename: 'assets/[name].[contenthash:6][ext]',
   clean: true,
 };
+
+// Thêm tối ưu hóa cho performance
+config.performance = {
+  hints: 'warning',
+  maxEntrypointSize: 1000000, // 1MB
+  maxAssetSize: 1000000, // 1MB
+};
+
+// Tối ưu hóa resolve
+config.resolve.extensions = ['.js', '.jsx', '.ts', '.tsx'];
+config.resolve.symlinks = false;
 
 // Thêm plugin để tối ưu hóa bundle size
 const TerserPlugin = require('terser-webpack-plugin');
