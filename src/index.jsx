@@ -65,6 +65,13 @@ subscribe(APP_READY, () => {
 
   // Start preloading critical components
   preloadCriticalComponents();
+  
+  // TỐI ƯU HÓA: Preload heavy libraries sau khi app đã load
+  import('./utils/preloadComponents').then(module => {
+    if (module.preloadHeavyLibraries) {
+      module.preloadHeavyLibraries();
+    }
+  });
 
   root.render(
     <StrictMode>

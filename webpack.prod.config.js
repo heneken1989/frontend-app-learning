@@ -114,14 +114,50 @@ config.optimization.minimizer = [
         drop_console: true,
         drop_debugger: true,
         pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+        // TỐI ƯU HÓA THÊM: Loại bỏ code không sử dụng
+        unused: true,
+        dead_code: true,
+        // Tối ưu hóa loops và conditions
+        loops: true,
+        conditionals: true,
+        evaluate: true,
+        // Loại bỏ các biến không sử dụng
+        keep_fargs: false,
+        keep_fnames: false,
       },
       mangle: {
         safari10: true,
+        // Tối ưu hóa tên biến
+        keep_fnames: false,
+        toplevel: true,
+      },
+      // Tối ưu hóa output
+      format: {
+        comments: false,
+        ascii_only: true,
       },
     },
     extractComments: false,
+    parallel: true, // Sử dụng multiple cores
   }),
 ];
+
+// TỐI ƯU HÓA THÊM: Module concatenation
+config.optimization.concatenateModules = true;
+
+// TỐI ƯU HÓA THÊM: Scope hoisting
+config.optimization.providedExports = true;
+config.optimization.usedExports = true;
+config.optimization.sideEffects = false;
+
+// TỐI ƯU HÓA THÊM: Tree shaking cho CSS
+config.optimization.splitChunks.cacheGroups.styles = {
+  name: 'styles',
+  test: /\.(css|scss|sass)$/,
+  chunks: 'all',
+  enforce: true,
+  priority: 20,
+};
 
 
 module.exports = config;

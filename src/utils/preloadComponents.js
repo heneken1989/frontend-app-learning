@@ -32,6 +32,25 @@ export const preloadCriticalComponents = () => {
   }
 };
 
+// TỐI ƯU HÓA MỚI: Lazy load các thư viện nặng
+export const preloadHeavyLibraries = () => {
+  // Chỉ preload khi cần thiết
+  const heavyLibraries = [
+    () => import('chart.js'), // Chỉ load khi cần vẽ chart
+    () => import('recharts'), // Chỉ load khi cần vẽ chart
+    () => import('lodash'), // Chỉ load khi cần utility functions
+  ];
+
+  // Preload sau khi trang đã load hoàn toàn
+  setTimeout(() => {
+    heavyLibraries.forEach(importFn => {
+      importFn().catch(err => {
+        console.warn('Failed to preload heavy library:', err);
+      });
+    });
+  }, 5000); // Delay 5 giây để không ảnh hưởng đến load time ban đầu
+};
+
 // Preload components on hover (for better UX)
 export const preloadOnHover = (importFn) => {
   return () => {
