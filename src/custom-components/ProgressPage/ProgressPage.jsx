@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getConfig } from '@edx/frontend-platform';
 import {
   Button, Card, ProgressBar, useWindowSize,
 } from '@openedx/paragon';
-import {
-  PieChart, Pie, Cell, Legend, Tooltip,
-} from 'recharts';
 import LearningHeader from '../Header/src/learning-header/LearningHeader';
 import Footer from '../Footer';
+
+// Lazy load recharts components to reduce initial bundle size
+const PieChart = lazy(() => import('recharts').then(module => ({ default: module.PieChart })));
+const Pie = lazy(() => import('recharts').then(module => ({ default: module.Pie })));
+const Cell = lazy(() => import('recharts').then(module => ({ default: module.Cell })));
+const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
 
 const ProgressPage = () => {
   const { courseId, subsequenceId } = useParams();
@@ -115,24 +118,26 @@ const ProgressPage = () => {
           padding: 32, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', alignItems: 'center',
         }}
         >
-          <PieChart width={400} height={400}>
-            <Pie
-              data={donutData}
-              cx="50%"
-              cy="50%"
-              innerRadius={110}
-              outerRadius={160}
-              startAngle={90}
-              endAngle={-270}
-              dataKey="value"
-              stroke="none"
-            >
-              {donutData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
+          <Suspense fallback={<div>Loading chart...</div>}>
+            <PieChart width={400} height={400}>
+              <Pie
+                data={donutData}
+                cx="50%"
+                cy="50%"
+                innerRadius={110}
+                outerRadius={160}
+                startAngle={90}
+                endAngle={-270}
+                dataKey="value"
+                stroke="none"
+              >
+                {donutData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </Suspense>
           {/* Custom Legend */}
           <div style={{
             display: 'flex', justifyContent: 'center', marginTop: 24, gap: 32,
