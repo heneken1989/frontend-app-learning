@@ -4,79 +4,62 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 const config = createConfig('webpack-prod');
 
-// TỐI ƯU HÓA CODE SPLITTING CHO PRODUCTION - CHIA NHỎ APP.JS
-config.optimization = {
-  ...config.optimization,
-  splitChunks: {
-    chunks: 'all',
-    maxInitialRequests: 8, // Giảm từ 30 xuống 8 để ít HTTP requests hơn
-    maxAsyncRequests: 15,  // Giảm từ 30 xuống 15
-    minSize: 50000,       // Tăng từ 20KB lên 50KB
-    maxSize: 500000,       // Tăng từ 244KB lên 500KB
-    cacheGroups: {
-      // React + Redux - gộp lại để giảm requests
-      reactRedux: {
-        test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|@reduxjs|redux|react-redux|reselect)[\\/]/,
-        name: 'react-redux',
-        chunks: 'all',
-        priority: 30,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // Chart libraries - chỉ tách khi cần thiết
-      charts: {
-        test: /[\\/]node_modules[\\/](chart\.js|react-chartjs-2|recharts)[\\/]/,
-        name: 'charts',
-        chunks: 'async', // Chỉ load khi cần
-        priority: 25,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // FontAwesome + Lodash - gộp lại
-      utilities: {
-        test: /[\\/]node_modules[\\/](@fortawesome|lodash)[\\/]/,
-        name: 'utilities',
-        chunks: 'all',
-        priority: 25,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // EdX platform libraries - gộp tất cả
-      edx: {
-        test: /[\\/]node_modules[\\/](@edx|@openedx)[\\/]/,
-        name: 'edx-platform',
-        chunks: 'all',
-        priority: 20,
-        reuseExistingChunk: true,
-        enforce: true,
-      },
-      // Other vendor libraries - gộp tất cả còn lại
-      vendor: {
-        test: /[\\/]node_modules[\\/]/,
-        name: 'vendors',
-        chunks: 'all',
-        priority: 10,
-        reuseExistingChunk: true,
-        minChunks: 1,
-      },
-      // Default group - tăng minChunks để giảm chunks
-      default: {
-        minChunks: 3,
-        priority: -20,
-        reuseExistingChunk: true,
+// TỐI ƯU HÓA CODE SPLITTING CHO PRODUCTION - GIẢM SỐ LƯỢNG CHUNKS
+// Tùy chọn: Tắt hoàn toàn code splitting để chỉ có 1 file
+const DISABLE_CODE_SPLITTING = process.env.DISABLE_CODE_SPLITTING === 'true';
+
+if (DISABLE_CODE_SPLITTING) {
+  // Tắt hoàn toàn code splitting - chỉ có 1 file app.js
+  config.optimization = {
+    ...config.optimization,
+    splitChunks: false,
+    runtimeChunk: false,
+    usedExports: true,
+    sideEffects: false,
+    providedExports: true,
+    concatenateModules: true,
+    moduleIds: 'deterministic',
+    chunkIds: 'deterministic',
+  };
+} else {
+  // Code splitting với ít chunks nhất có thể
+  config.optimization = {
+    ...config.optimization,
+    splitChunks: {
+      chunks: 'all',
+      maxInitialRequests: 3, // Chỉ 3 chunks ban đầu: runtime, vendors, app
+      maxAsyncRequests: 5,   // Chỉ 5 chunks async
+      minSize: 200000,      // Tăng lên 200KB để chunks lớn hơn
+      maxSize: 2000000,      // Tăng lên 2MB để ít chunks hơn
+      cacheGroups: {
+        // Tất cả vendor libraries - gộp thành 1 chunk duy nhất
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+          priority: 10,
+          reuseExistingChunk: true,
+          enforce: true,
+        },
+        // Default group - tăng minChunks để giảm chunks
+        default: {
+          minChunks: 10, // Tăng lên 10 để ít chunks hơn
+          priority: -20,
+          reuseExistingChunk: true,
+        },
       },
     },
-  },
-  runtimeChunk: {
-    name: 'runtime',
-  },
-  usedExports: true,
-  sideEffects: false,
-  providedExports: true,
-  concatenateModules: true,
-  moduleIds: 'deterministic',
-  chunkIds: 'deterministic',
-};
+    runtimeChunk: {
+      name: 'runtime',
+    },
+    usedExports: true,
+    sideEffects: false,
+    providedExports: true,
+    concatenateModules: true,
+    moduleIds: 'deterministic',
+    chunkIds: 'deterministic',
+  };
+}
 
 config.plugins.push(
   new CopyPlugin({
@@ -113,11 +96,11 @@ config.output = {
   clean: true,
 };
 
-// Thêm tối ưu hóa cho performance
+// Thêm tối ưu hóa cho performance - tăng giới hạn để ít chunks hơn
 config.performance = {
   hints: 'warning',
-  maxEntrypointSize: 1000000, // 1MB
-  maxAssetSize: 1000000, // 1MB
+  maxEntrypointSize: 2000000, // 2MB - tăng để cho phép chunks lớn hơn
+  maxAssetSize: 2000000, // 2MB - tăng để cho phép chunks lớn hơn
 };
 
 // Tối ưu hóa resolve

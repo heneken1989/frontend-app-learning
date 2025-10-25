@@ -57,18 +57,29 @@
 - **Cache hiệu quả** hơn
 
 ## Cách test
+
+### Tùy chọn 1: Code splitting tối ưu (3-5 chunks)
 ```bash
 npm run build
 ```
 
-Kiểm tra thư mục `dist/` để xem các chunks được tạo:
+### Tùy chọn 2: Chỉ 1 file duy nhất (tắt code splitting)
+```bash
+npm run build:single
+```
+
+## Kết quả sau khi tối ưu
+
+### Với `npm run build` (3-5 chunks):
 - `runtime.[hash].js` - Runtime code
-- `react-redux.[hash].js` - React + Redux libraries (gộp)
-- `utilities.[hash].js` - FontAwesome + Lodash (gộp)
-- `edx-platform.[hash].js` - EdX platform libraries (gộp)
-- `vendors.[hash].js` - Other vendor libraries (gộp)
-- `app.[hash].js` - Main application code (nhỏ hơn nhiều)
-- `charts.[hash].js` - Chart libraries (chỉ load khi cần)
+- `vendors.[hash].js` - Tất cả vendor libraries (gộp)
+- `app.[hash].js` - Main application code
+- Và 1-2 chunks async nếu cần
+
+### Với `npm run build:single` (1 file duy nhất):
+- `app.[hash].js` - Tất cả code trong 1 file
+- Không có code splitting
+- Ít HTTP requests nhất có thể
 
 ## Lưu ý
 - **Cân bằng tối ưu**: Không quá ít chunks (file lớn) và không quá nhiều chunks (nhiều requests)
