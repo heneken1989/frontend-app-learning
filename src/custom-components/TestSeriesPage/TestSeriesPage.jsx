@@ -1371,7 +1371,7 @@ const TestSeriesPage = ({ intl }) => {
   if (!authenticatedUser) {
     return (
       <div className="d-flex flex-column min-vh-100">
-        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} isTestMode={false} />
+        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} />
         <main className="flex-grow-1">
           <div className="test-series-page">
             <div className="login-prompt">
@@ -1392,7 +1392,7 @@ const TestSeriesPage = ({ intl }) => {
   if (loading) {
     return (
       <div className="d-flex flex-column min-vh-100">
-        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} isTestMode={false} />
+        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} />
         <main className="flex-grow-1">
           <div className="test-series-page">
             <div className="loading-container">
@@ -1408,7 +1408,7 @@ const TestSeriesPage = ({ intl }) => {
   if (error) {
     return (
       <div className="d-flex flex-column min-vh-100">
-        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} isTestMode={false} />
+        <LearningHeader intl={intl} courses={[]} preloadedData={preloadedData} setPreloadedData={setPreloadedData} />
         <main className="flex-grow-1">
           <div className="test-series-page">
             <div className="error-container">

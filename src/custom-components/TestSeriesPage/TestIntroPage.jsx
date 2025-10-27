@@ -233,8 +233,6 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
         courses={[]} 
         preloadedData={{}} 
         setPreloadedData={() => {}}
-        isTestMode={false}
-        unitId={null}
       />
       <main className="flex-grow-1 test-intro-main">
         <div className="test-intro-container">

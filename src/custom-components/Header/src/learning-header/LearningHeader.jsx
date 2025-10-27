@@ -622,9 +622,9 @@ const LearningHeader = ({
     }
   }, [courseId, unitId]);
 
-  // Use test detection hook - ONLY if not explicitly disabled
+  // Use test detection hook
   const { testConfig, getTestTimerProps } = useTestDetection(
-    isTestMode === false ? null : unitId, // Pass null if test mode explicitly disabled
+    unitId, 
     extractedCourseId, 
     null, // sectionId not available in header context
     internalPreloadedData
@@ -769,8 +769,7 @@ const LearningHeader = ({
 
 
   // If in test mode, render TestHeader and TestNavigationBar instead of regular header
-  // BUT only if isTestMode is not explicitly set to false
-  if ((testConfig.isTestMode && isTestMode !== false) || (isTestMode && isTestMode !== false)) {
+  if (testConfig.isTestMode || isTestMode) {
       return (
         <>
           <TestHeader
