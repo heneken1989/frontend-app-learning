@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
-import { AppContext } from '@edx/frontend-platform/react';
+import { AppContext, getConfig } from '@edx/frontend-platform/react';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { Button, Card, Alert } from '@openedx/paragon';
 import { Minus, Plus } from '@openedx/paragon/icons';
@@ -13,6 +13,16 @@ import {
 } from '../../courseware/course/sequence/Unit/urls';
 import { initializeTestSections, setCurrentTestSection, saveTestSequences } from './utils/testSectionManager';
 import './TestSeriesPage.scss';
+
+// Get dynamic LMS base URL
+const getLmsBaseUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
+    return 'http://local.openedx.io:8000';
+  } else {
+    // Production - use LMS subdomain
+    return 'https://lms.nihongodrill.com';
+  }
+};
 
 const TestSeriesPage = ({ intl }) => {
   const { authenticatedUser } = React.useContext(AppContext);
@@ -415,7 +425,8 @@ const TestSeriesPage = ({ intl }) => {
       }
       
       // Call navigation API to get course outline
-      const response = await fetch(`http://local.openedx.io:8000/api/course_home/v1/navigation/${courseId}`, {
+      const lmsBaseUrl = getLmsBaseUrl();
+      const response = await fetch(`${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -475,9 +486,10 @@ const TestSeriesPage = ({ intl }) => {
       console.log('🔍 [fetchTestResults] Context user:', authenticatedUser);
       
       // Only fetch results for specific section if provided
+      const lmsBaseUrl = getLmsBaseUrl();
       const apiUrl = sectionId 
-        ? `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=50`
-        : `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${userId}&limit=50`;
+        ? `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=50`
+        : `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=50`;
 
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -869,7 +881,8 @@ const TestSeriesPage = ({ intl }) => {
       console.log('🔍 [fetchTestHistory] Section ID:', sectionId);
       
       // Try with specific section ID first
-      let apiUrl = `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=10`;
+      const lmsBaseUrl = getLmsBaseUrl();
+      let apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=10`;
       
       console.log(`📡 API URL (with section): ${apiUrl}`);
 
@@ -893,7 +906,7 @@ const TestSeriesPage = ({ intl }) => {
       // If no results with specific section ID, try without section filter
       if (!data || !data.success || !data.summaries || data.summaries.length === 0) {
         console.log('🔍 No results with specific section, trying without section filter...');
-        apiUrl = `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${userId}&limit=10`;
+        apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=10`;
         
         console.log(`📡 API URL (without section): ${apiUrl}`);
 
