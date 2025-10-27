@@ -135,7 +135,11 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
         }
 
         // First get all test results to find the correct section_id
-        const debugUrl = `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${authenticatedUser.username}`;
+        // Get dynamic LMS base URL
+        const lmsBaseUrl = window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')
+          ? 'http://local.openedx.io:8000'
+          : 'https://lms.nihongodrill.com';
+        const debugUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${authenticatedUser.username}`;
         console.log('🔍 Fetching all test results:', debugUrl);
         const debugResponse = await fetch(debugUrl, {
           method: 'GET',
@@ -164,7 +168,7 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
           return;
         }
 
-        const apiUrl = `http://local.openedx.io:8000/courseware/get_test_summary/?user_id=${authenticatedUser.username}&section_id=${sectionId}&limit=3`;
+        const apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${authenticatedUser.username}&section_id=${sectionId}&limit=3`;
         console.log('🌐 Fetching from URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
@@ -230,6 +234,7 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
         preloadedData={{}} 
         setPreloadedData={() => {}}
         isTestMode={false}
+        unitId={null}
       />
       <main className="flex-grow-1 test-intro-main">
         <div className="test-intro-container">
