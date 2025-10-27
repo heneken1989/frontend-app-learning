@@ -26,6 +26,10 @@ import { courseInfoDataShape } from './LearningHeaderCourseInfo';
 import messages from './messages';
 import EnrollmentStatus from '../../../EnrollmentStatus/src/EnrollmentStatus';
 import './NavigationMenu.scss';
+import { getCachedMenuData, setCachedMenuData, clearMenuCache } from './menuCache';
+
+// Add cache clear button for development (remove in production)
+const clearCacheButton = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
 
 const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
@@ -689,16 +693,30 @@ const LearningHeader = ({
   }, [unitId]);
 
   useEffect(() => {
-    fetchAllCourses()
-      .then(data => {
-        setCourses(data);
+    const loadMenuData = async () => {
+      try {
+        // 1. Try to get cached menu data first
+        const cachedData = getCachedMenuData();
+        if (cachedData) {
+          console.log('✅ Using cached menu data from localStorage');
+          setCourses(cachedData.courses || []);
+          setInternalPreloadedData(cachedData.preloadedData || {});
+          return;
+        }
+
+        console.log('📡 Fetching menu data from API...');
         
-        // Preload all sections and sequences for all courses immediately
-        const preloadAllData = async () => {
+        // 2. Fetch fresh data
+        const coursesData = await fetchAllCourses();
+        setCourses(coursesData);
+        
+        // Only preload if no external preloadedData provided
+        if (Object.keys(preloadedData).length === 0) {
+          // TỐI ƯU HÓA: Fetch sections and sequences sequentially to reduce load
           const preloadedDataMap = {};
           
-          // Process all courses in parallel for faster loading
-          const coursePromises = data.map(async (course) => {
+          // Process courses sequentially to avoid overloading
+          for (const course of coursesData) {
             try {
               // Fetch sections for this course
               const sectionsData = await fetchSectionsByCourseId(course.id);
@@ -707,56 +725,42 @@ const LearningHeader = ({
                 sequences: {}
               };
               
-              // Fetch sequences for each section in parallel
-              const sectionPromises = sectionsData.map(async (section) => {
+              // Fetch sequences for each section
+              for (const section of sectionsData) {
                 try {
                   const sequencesData = await fetchSequencesBySectionId(section.id);
-                  return { sectionId: section.id, sequences: sequencesData };
+                  courseData.sequences[section.id] = sequencesData;
                 } catch (err) {
                   console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
-                  return { sectionId: section.id, sequences: [] };
+                  courseData.sequences[section.id] = [];
                 }
-              });
+              }
               
-              const sectionResults = await Promise.all(sectionPromises);
-              
-              // Map sequences to section IDs
-              sectionResults.forEach(({ sectionId, sequences }) => {
-                courseData.sequences[sectionId] = sequences;
-              });
-              
-              return { courseId: course.id, courseData };
+              preloadedDataMap[course.id] = courseData;
             } catch (err) {
               console.warn(`Failed to fetch sections for course ${course.id}:`, err);
-              return { 
-                courseId: course.id, 
-                courseData: { sections: [], sequences: {} } 
-              };
+              preloadedDataMap[course.id] = { sections: [], sequences: {} };
             }
-          });
-          
-          // Wait for all courses to complete
-          const results = await Promise.all(coursePromises);
-          
-          // Build final preloaded data map
-          results.forEach(({ courseId, courseData }) => {
-            preloadedDataMap[courseId] = courseData;
-          });
+          }
           
           setInternalPreloadedData(preloadedDataMap);
-          console.log('✅ All dropdown data preloaded successfully!');
-        };
-        
-        // Only preload if no external preloadedData provided
-        if (Object.keys(preloadedData).length === 0) {
-          preloadAllData();
+          
+          // 3. Cache the data for next time
+          setCachedMenuData({
+            courses: coursesData,
+            preloadedData: preloadedDataMap
+          });
+          
+          console.log('✅ Menu data loaded and cached successfully!');
         } else {
           setInternalPreloadedData(preloadedData);
         }
-      })
-      .catch(err => {
-        // Failed to fetch courses
-      });
+      } catch (err) {
+        console.error('Failed to load menu data:', err);
+      }
+    };
+    
+    loadMenuData();
   }, []);
 
   const handleTimeExpired = () => {
