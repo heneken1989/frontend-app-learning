@@ -141,7 +141,33 @@ const CourseOutlineTray = ({ intl }) => {
     };
   }, [isOpen]);
 
-
+  // Scroll to active unit when popup opens
+  useEffect(() => {
+    if (isOpen && unitId) {
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const activeUnit = document.querySelector(`[data-unit-id="${unitId}"]`);
+        if (activeUnit) {
+          // Get the scrollable container
+          const scrollContainer = document.querySelector('.outline-tray-content');
+          if (scrollContainer) {
+            // Calculate scroll position to center the active unit
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const unitRect = activeUnit.getBoundingClientRect();
+            const scrollPosition = unitRect.top - containerRect.top + scrollContainer.scrollTop - (containerRect.height / 2);
+            
+            scrollContainer.scrollTo({
+              top: scrollPosition,
+              behavior: 'smooth'
+            });
+          } else {
+            // Fallback to default behavior
+            activeUnit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 200);
+    }
+  }, [isOpen, unitId]);
 
   if (!isEnabledSidebar || isActiveEntranceExam || currentSidebar !== ID) {
     return null;
