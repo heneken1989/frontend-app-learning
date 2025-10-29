@@ -101,6 +101,17 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
   const [showSummary, setShowSummary] = React.useState(false);
 
   const handleStartTest = () => {
+    // Clear all test timers and transition states from localStorage
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Clearing all test data from localStorage');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('testTimer_') || key.startsWith('moduleTransition_')) {
+          console.log('🗑️ Removing:', key);
+          localStorage.removeItem(key);
+        }
+      });
+    }
+    
     // Create new test session when starting test
     const sessionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('currentTestSessionId', sessionId);
@@ -217,6 +228,17 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
   const handleStartNewTest = () => {
     // Keep the summary but hide it
     setShowSummary(false);
+    
+    // Clear all test timers and transition states from localStorage
+    if (typeof window !== 'undefined') {
+      console.log('🧹 Clearing all test data from localStorage (Take Test Again)');
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('testTimer_') || key.startsWith('moduleTransition_')) {
+          console.log('🗑️ Removing:', key);
+          localStorage.removeItem(key);
+        }
+      });
+    }
     
     // Create new test session for new test
     const sessionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

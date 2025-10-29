@@ -45,6 +45,7 @@ const TestSeriesPage = ({ intl }) => {
   const [testResults, setTestResults] = useState({});
   const [testCompletionStatus, setTestCompletionStatus] = useState({});
   const [testQuestionCounts, setTestQuestionCounts] = useState({});
+  const [testUnitTitles, setTestUnitTitles] = useState({}); // Store unit titles for each test
   const [expandedTestId, setExpandedTestId] = useState(null);
   const [testHistory, setTestHistory] = useState({});
   const [expandedCourseId, setExpandedCourseId] = useState(null);
@@ -143,24 +144,29 @@ const TestSeriesPage = ({ intl }) => {
           setIndividualTests(individualTests);
           
           
-          // Fetch question counts for each test
-          console.log('🔍 ===== FETCHING QUESTION COUNTS =====');
+          // Fetch unit titles and calculate question counts ONLY from Unit Title parsing
+          console.log('🔍 ===== FETCHING UNIT TITLES AND CALCULATING QUESTION COUNTS FROM UNIT TITLES =====');
           const questionCounts = {};
+          const unitTitles = {};
           for (const test of individualTests) {
             // Use the same testId logic as in render
             const testId = test.sequenceId?.split('block@')[1] || test.unitId || test.id;
-            console.log(`🔍 Getting questions for test "${test.name}" (${testId}) with sequenceId: ${test.sequenceId}`);
-            const questionCount = await getTestQuestionCount(test.sequenceId);
-            if (questionCount !== null) {
-              questionCounts[testId] = questionCount;
-              console.log(`📊 Test "${test.name}": ${questionCount} questions`);
+            console.log(`🔍 Getting unit titles for test "${test.name}" (${testId}) with sequenceId: ${test.sequenceId}`);
+            const unitData = await getTestUnitTitlesAndCount(test.sequenceId);
+            if (unitData !== null) {
+              questionCounts[testId] = unitData.questionCount;
+              unitTitles[testId] = unitData.unitTitles;
+              console.log(`📊 Test "${test.name}": ${unitData.questionCount} questions (${unitData.unitCount} units)`);
+              console.log(`📋 Unit titles:`, unitData.unitTitles.map(u => u.title));
             } else {
-              console.log(`📊 Test "${test.name}": No question count available`);
+              console.log(`📊 Test "${test.name}": No unit data available`);
             }
           }
           console.log('📊 Final questionCounts:', questionCounts);
+          console.log('📋 Final unitTitles:', unitTitles);
           setTestQuestionCounts(questionCounts);
-          console.log('🔍 ===== END FETCHING QUESTION COUNTS =====');
+          setTestUnitTitles(unitTitles);
+          console.log('🔍 ===== END FETCHING UNIT TITLES AND CALCULATING QUESTION COUNTS FROM UNIT TITLES =====');
           
           // Calculate test statistics
           const stats = calculateTestStats(testSeries, individualTests);
@@ -406,10 +412,28 @@ const TestSeriesPage = ({ intl }) => {
 
 
 
-  // Function to get total questions count for a test using navigation API
-  const getTestQuestionCount = async (sequenceId) => {
+  // Function to parse unit title and count actual questions
+  const parseUnitTitleForQuestionCount = (unitTitle) => {
+    if (!unitTitle) return 1; // Default to 1 question if no title
+    
+    // Check if title contains multiple questions (e.g., "3.1-3.2-3.3")
+    if (unitTitle.includes('-')) {
+      // Split by '-' and count the parts
+      const parts = unitTitle.split('-');
+      const questionCount = parts.length;
+      console.log(`📊 Unit "${unitTitle}" contains ${questionCount} questions:`, parts);
+      return questionCount;
+    }
+    
+    // Single question (e.g., "1.1", "2.3")
+    console.log(`📊 Unit "${unitTitle}" contains 1 question`);
+    return 1;
+  };
+
+  // Function to get unit titles and count from sequence using navigation API
+  const getTestUnitTitlesAndCount = async (sequenceId) => {
     try {
-      console.log(`🔍 Fetching questions for sequenceId: ${sequenceId}`);
+      console.log(`🔍 Fetching unit titles for sequenceId: ${sequenceId}`);
       
       // Extract course ID from sequence ID
       // sequenceId format: block-v1:Manabi+N52+2026+type@sequential+block@...
@@ -418,7 +442,7 @@ const TestSeriesPage = ({ intl }) => {
       const courseId = parts.length > 1 ? `course-v1:${parts[0].replace('block-v1:', '')}` : null;
       console.log(`🔍 Extracted courseId: ${courseId}`);
       
-      // If no course ID found, return null (no default count)
+      // If no course ID found, return null
       if (!courseId) {
         console.log(`❌ No course ID found in sequenceId: ${sequenceId}`);
         return null;
@@ -448,10 +472,39 @@ const TestSeriesPage = ({ intl }) => {
           if (sequence) {
             console.log(`📊 Found sequence:`, sequence);
             
-            // Use children.length as total questions
-            const questionCount = sequence.children.length;
-            console.log(`📊 Question count: ${questionCount} (total children in sequence)`);
-            return questionCount || 5; // Return at least 5 if no children found
+            // Get unit titles from sequence children
+            const unitTitles = [];
+            const unitCount = sequence.children ? sequence.children.length : 0;
+            let totalQuestions = 0;
+            
+            if (sequence.children) {
+              sequence.children.forEach((childId, index) => {
+                const childBlock = data.blocks[childId];
+                if (childBlock && childBlock.display_name) {
+                  const unitTitle = childBlock.display_name;
+                  const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
+                  
+                  unitTitles.push({
+                    id: childId,
+                    title: unitTitle,
+                    index: index + 1,
+                    questionCount: questionsInUnit
+                  });
+                  
+                  totalQuestions += questionsInUnit;
+                }
+              });
+            }
+            
+            console.log(`📊 Unit titles:`, unitTitles);
+            console.log(`📊 Unit count: ${unitCount}`);
+            console.log(`📊 Total questions: ${totalQuestions}`);
+            
+            return {
+              unitCount,
+              unitTitles,
+              questionCount: totalQuestions // Total questions based on parsed unit titles
+            };
           } else {
             console.log(`❌ Sequence not found in blocks. Available keys:`, Object.keys(data.blocks));
           }
@@ -466,10 +519,11 @@ const TestSeriesPage = ({ intl }) => {
       console.log(`🔍 API failed, returning null`);
       return null;
     } catch (error) {
-      console.error('❌ Error fetching question count:', error);
+      console.error('❌ Error fetching unit titles:', error);
       return null;
     }
   };
+
 
   const fetchTestResults = async (sectionId) => {
     try {
@@ -531,7 +585,7 @@ const TestSeriesPage = ({ intl }) => {
         Object.entries(groupedSummaries).forEach(([testSessionId, summaries]) => {
           // Calculate totals for this test session
           let totalCorrectAnswers = 0;
-          let totalQuestions = 0; // Keep original total questions (don't sum)
+          let totalQuestions = 0; // Will be calculated from Unit Title parsing
           let totalAnsweredQuestions = 0;
           let latestCompletedAt = null;
           let sectionId = null;
@@ -540,10 +594,6 @@ const TestSeriesPage = ({ intl }) => {
           
           summaries.forEach((summary) => {
             totalCorrectAnswers += summary.correct_answers || 0; // Sum correct answers
-            // Keep the original total_questions (don't sum)
-            if (totalQuestions === 0) {
-              totalQuestions = summary.total_questions || 0;
-            }
             totalAnsweredQuestions += summary.answered_questions || 0;
             
             // Get the latest completion date
@@ -562,6 +612,20 @@ const TestSeriesPage = ({ intl }) => {
               allWrongAnswers = allWrongAnswers.concat(summary.questions.filter(q => !q.is_correct));
             }
           });
+          
+          // Get total questions from Unit Title parsing instead of API
+          if (totalQuestions === 0 && sectionId) {
+            // Find the test and get question count from Unit Title parsing
+            const testId = Object.keys(testQuestionCounts).find(id => {
+              // Find test by matching sectionId
+              return individualTests.some(test => {
+                const testSectionId = test.sequenceId?.split('block@')[1];
+                return testSectionId === sectionId && testQuestionCounts[id];
+              });
+            });
+            totalQuestions = testQuestionCounts[testId] || 0;
+            console.log(`📊 Using Unit Title parsing for total questions: ${totalQuestions} (sectionId: ${sectionId})`);
+          }
           
           // Calculate wrong answers = total_questions - correct_answers
           const totalIncorrectAnswers = Math.max(0, totalQuestions - totalCorrectAnswers);
@@ -642,8 +706,11 @@ const TestSeriesPage = ({ intl }) => {
     
     const totalSeries = testSeries.length;
     
-    // Calculate total questions from testQuestionCounts
+    // Calculate total questions ONLY from Unit Title parsing logic
     const totalQuestions = Object.values(testQuestionCounts).reduce((sum, count) => sum + count, 0);
+    
+    // Also calculate total units for additional statistics
+    const totalUnits = Object.values(testUnitTitles).reduce((sum, units) => sum + (units ? units.length : 0), 0);
     
     return {
       totalTests,
@@ -651,7 +718,8 @@ const TestSeriesPage = ({ intl }) => {
       pendingTests,
       averageScore,
       totalSeries,
-      totalQuestions
+      totalQuestions,
+      totalUnits
     };
   };
 
@@ -805,6 +873,17 @@ const TestSeriesPage = ({ intl }) => {
               </div>
             </Card>
           </div>
+          <div className="col-md-2">
+            <Card className="stat-card">
+              <div className="stat-content">
+                <div className="stat-icon total-units">📚</div>
+                <div className="stat-info">
+                  <h3 className="stat-number">{testStats.totalUnits || 0}</h3>
+                  <p className="stat-label">Total Units</p>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
         <div className="row mt-3">
           <div className="col-12">
@@ -826,6 +905,39 @@ const TestSeriesPage = ({ intl }) => {
               </div>
             </Card>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Function to render unit titles for a test
+  const renderUnitTitles = (testId) => {
+    const units = testUnitTitles[testId] || [];
+    
+    if (units.length === 0) {
+      return (
+        <div className="unit-titles-empty">
+          <p className="text-muted mb-0">No unit information available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="unit-titles">
+        <div className="unit-titles-header">
+          <h6 className="mb-2">📚 Test Units ({units.length} units)</h6>
+        </div>
+        <div className="unit-titles-list">
+          {units.map((unit, index) => (
+            <div key={unit.id} className="unit-title-item">
+              <div className="unit-info">
+                <span className="unit-title">{unit.title}</span>
+                <span className="unit-question-count">
+                  ({unit.questionCount || 1} question{unit.questionCount > 1 ? 's' : ''})
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -962,16 +1074,12 @@ const TestSeriesPage = ({ intl }) => {
           .map(([testSessionId, summaries]) => {
             // Calculate totals for this test session
             let totalCorrectAnswers = 0;
-            let totalQuestions = 0; // Keep original total questions (don't sum)
+            let totalQuestions = 0; // Will be calculated from Unit Title parsing
             let totalAnsweredQuestions = 0;
             let latestCompletedAt = null;
             
             summaries.forEach((summary) => {
               totalCorrectAnswers += summary.correct_answers || 0; // Sum correct answers
-              // Keep the original total_questions (don't sum)
-              if (totalQuestions === 0) {
-                totalQuestions = summary.total_questions || 0;
-              }
               totalAnsweredQuestions += summary.answered_questions || 0;
               
               // Get the latest completion date
@@ -979,6 +1087,20 @@ const TestSeriesPage = ({ intl }) => {
                 latestCompletedAt = summary.completed_at;
               }
             });
+            
+            // Get total questions from Unit Title parsing instead of API
+            if (totalQuestions === 0 && sectionId) {
+              // Find the test and get question count from Unit Title parsing
+              const testId = Object.keys(testQuestionCounts).find(id => {
+                // Find test by matching sectionId
+                return individualTests.some(test => {
+                  const testSectionId = test.sequenceId?.split('block@')[1];
+                  return testSectionId === sectionId && testQuestionCounts[id];
+                });
+              });
+              totalQuestions = testQuestionCounts[testId] || 0;
+              console.log(`📊 Using Unit Title parsing for total questions: ${totalQuestions} (sectionId: ${sectionId})`);
+            }
             
             // Calculate wrong answers = total_questions - correct_answers
             const totalIncorrectAnswers = Math.max(0, totalQuestions - totalCorrectAnswers);
@@ -1333,11 +1455,18 @@ const TestSeriesPage = ({ intl }) => {
                   </div>
                 </div>
                 
-                {/* Expanded row for test history */}
+                {/* Expanded row for test history and unit titles */}
                 {expandedTestId === testId && (
                   <div className="table-row-expanded">
                     <div className="expanded-content">
-                      {renderTestHistory(testId)}
+                      <div className="row">
+                        <div className="col-md-6">
+                          {renderTestHistory(testId)}
+                        </div>
+                        <div className="col-md-6">
+                          {renderUnitTitles(testId)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

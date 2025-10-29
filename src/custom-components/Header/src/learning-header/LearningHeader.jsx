@@ -784,6 +784,7 @@ const LearningHeader = ({
             })}
             unitId={unitId}
             sequenceId={testConfig.sequenceId}
+            courseId={courseId || extractedCourseId}
           />
           <TestNavigationBar
             courseId={courseId || extractedCourseId}

@@ -133,22 +133,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           }
           break;
         case 'quiz.data.ready':
-          // Debug: Log message from template
-          console.log('🔍 Received quiz.data.ready message:', event.data);
-          console.log('🔍 Event data type:', typeof event.data);
-          console.log('🔍 Event data keys:', Object.keys(event.data || {}));
-          
           // Handle quiz data directly from quiz iframe
           // Check if template wants to show popup
           if (event.data.templateConfig && event.data.templateConfig.showPopup === false) {
-            console.log('🔍 Template config shows popup disabled');
             return;
           }
           
           // Check if this is template 39, 40, 63, 65, or 67 to show script button
           if (event.data.quizData && (event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63 || event.data.quizData.templateId === 65 || event.data.quizData.templateId === 67)) {
-            console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button`);
-            console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
             // Don't auto-show popup for template 39, 40, 63, 65, and 67
@@ -157,8 +149,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           // Check if this is template 41 - only show script button after submission
           if (event.data.quizData && event.data.quizData.templateId === 41) {
-            console.log(`🔍 Template ${event.data.quizData.templateId} detected - showing script button after submission`);
-            console.log(`🔍 Template ${event.data.quizData.templateId} quiz data:`, event.data.quizData);
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
             // Don't auto-show popup for template 41
@@ -167,10 +157,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           // If no templateConfig or showPopup is true/undefined, show popup
           if (event.data.quizData) {
-            console.log('🔍 Calling showTestPopup with quizData:', event.data.quizData);
             showTestPopup(event.data.quizData);
-          } else {
-            console.log('🔍 No quizData in event.data');
           }
           break;
         default:
@@ -250,11 +237,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   };
 
   const handleShowScript = () => {
-    console.log('🔍 ShowScript button clicked, isScriptVisible:', isScriptVisible);
-    
     if (isScriptVisible) {
       // Hide script popup
-      console.log('🔍 Hiding script popup');
       const existingPopup = document.getElementById('test-popup');
       if (existingPopup) {
         existingPopup.remove();
@@ -267,14 +251,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       setIsScriptVisible(false);
     } else {
       // Show script popup
-        console.log('🔍 Template 39/40/41/63/65/67 quiz data:', template63QuizData);
-      
       if (template63QuizData) {
-        console.log(`🔍 Showing script popup for template ${template63QuizData.templateId}`);
         showTestPopup(template63QuizData);
         setIsScriptVisible(true);
       } else {
-        console.log('🔍 No template 39/40/41/63/65/67 quiz data available');
         
         // Fallback: try to get from localStorage
         try {
@@ -286,14 +266,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             if (timeDiff < 10000) { // Only if data is less than 10 seconds old
               const quizData = JSON.parse(storedData);
               if (quizData && (quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 41 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67)) {
-                console.log(`🔍 Found template ${quizData.templateId} data in localStorage`);
                 showTestPopup(quizData);
                 setIsScriptVisible(true);
               }
             }
           }
         } catch (error) {
-          console.error('🔍 Error getting quiz data for script:', error);
+          // Error getting quiz data
         }
       }
     }
@@ -302,8 +281,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   // Function to decode script text from encoded format
   const decodeScriptText = (encodedText) => {
     if (!encodedText) return '';
-    
-    console.log('🔍 decodeScriptText input:', encodedText);
     
     // First decode escape characters
     let decodedText = encodedText
@@ -329,8 +306,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g, function(match, p1, p2) {
       return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
     });
-    
-    console.log('🔍 decodeScriptText output:', decodedText);
     
     return decodedText;
   };
