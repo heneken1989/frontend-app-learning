@@ -6,7 +6,7 @@
 
 const CACHE_KEY = 'dropdown_menu_cache';
 const CACHE_VERSION_KEY = 'dropdown_menu_cache_version';
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
+const CACHE_EXPIRY = 1 * 60 * 1000; // 1 minute
 const CURRENT_CACHE_VERSION = '1.0.1'; // Increment this when menu structure changes
 
 /**
