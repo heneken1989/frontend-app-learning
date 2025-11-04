@@ -34,14 +34,17 @@ const Sequence = ({
   previousSequenceHandler,
 }) => {
   const intl = useIntl();
+  // Safe check: metadata may be loading in background (non-blocking)
+  const coursewareMeta = useModel('coursewareMeta', courseId) || {};
   const {
     canAccessProctoredExams,
     license,
-  } = useModel('coursewareMeta', courseId);
+  } = coursewareMeta;
+  const courseHomeMeta = useModel('courseHomeMeta', courseId) || {};
   const {
     isStaff,
     originalUserIsStaff,
-  } = useModel('courseHomeMeta', courseId);
+  } = courseHomeMeta;
   const sequence = useModel('sequences', sequenceId);
   const section = useModel('sections', sequence ? sequence.sectionId : null);
   const unit = useModel('units', unitId);

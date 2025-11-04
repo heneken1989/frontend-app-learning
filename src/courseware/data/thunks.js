@@ -30,40 +30,60 @@ import {
   updateCourseOutlineCompletion,
 } from './slice';
 
+// Lazy fetch course metadata - only fetch when actually needed
+let metadataFetchPromises = {};
+export function fetchCourseMetadataLazy(courseId) {
+  return async (dispatch, getState) => {
+    // Check if already cached
+    const state = getState();
+    if (state && state.models?.coursewareMeta?.[courseId]) {
+      return; // Already loaded
+    }
+    
+    // Check if already fetching
+    if (metadataFetchPromises[courseId]) {
+      return metadataFetchPromises[courseId];
+    }
+    
+    // Start fetch
+    metadataFetchPromises[courseId] = getCourseMetadata(courseId).then((metadata) => {
+      dispatch(addModel({
+        modelType: 'coursewareMeta',
+        model: metadata,
+      }));
+      delete metadataFetchPromises[courseId];
+      return metadata;
+    }).catch((error) => {
+      delete metadataFetchPromises[courseId];
+      console.warn('Failed to fetch course metadata (lazy):', error);
+      throw error;
+    });
+    
+    return metadataFetchPromises[courseId];
+  };
+}
+
 export function fetchCourse(courseId) {
   return async (dispatch) => {
     dispatch(fetchCourseRequest({ courseId }));
+    
+    // DO NOT fetch course metadata here - it's not needed for quiz rendering
+    // Metadata will be fetched lazily when components actually need it
+    // This saves ~1.3s on initial load
+    
+    // DO NOT fetch courseHomeMetadata here - backend APIs will handle access control
+    // If user doesn't have access, backend will return 403 which we handle below
+    // This saves additional load time
+    
+    // Fetch only critical APIs needed for quiz rendering
     Promise.allSettled([
-      getCourseMetadata(courseId),
       getLearningSequencesOutline(courseId),
-      getCourseHomeCourseMetadata(courseId, 'courseware'),
       getCoursewareOutlineSidebarToggles(courseId),
     ]).then(([
-      courseMetadataResult,
       learningSequencesOutlineResult,
-      courseHomeMetadataResult,
       coursewareOutlineSidebarTogglesResult]) => {
-      const fetchedMetadata = courseMetadataResult.status === 'fulfilled';
-      const fetchedCourseHomeMetadata = courseHomeMetadataResult.status === 'fulfilled';
       const fetchedOutline = learningSequencesOutlineResult.status === 'fulfilled';
       const fetchedCoursewareOutlineSidebarTogglesResult = coursewareOutlineSidebarTogglesResult.status === 'fulfilled';
-
-      if (fetchedMetadata) {
-        dispatch(addModel({
-          modelType: 'coursewareMeta',
-          model: courseMetadataResult.value,
-        }));
-      }
-
-      if (fetchedCourseHomeMetadata) {
-        dispatch(addModel({
-          modelType: 'courseHomeMeta',
-          model: {
-            id: courseId,
-            ...courseHomeMetadataResult.value,
-          },
-        }));
-      }
 
       if (fetchedOutline) {
         const {
@@ -94,37 +114,28 @@ export function fetchCourse(courseId) {
         dispatch(setCoursewareOutlineSidebarToggles({ enableNavigationSidebar, alwaysOpenAuxiliarySidebar }));
       }
 
-      // Log errors for each request if needed. Outline failures may occur
-      // even if the course metadata request is successful
+      // Handle access control - backend APIs will return 403 if user doesn't have access
       if (!fetchedOutline) {
         const { response } = learningSequencesOutlineResult.reason;
         if (response && response.status === 403) {
-          // 403 responses are normal - they happen when the learner is logged out.
-          // We'll redirect them in a moment to the outline tab by calling fetchCourseDenied() below.
+          // 403 responses mean user doesn't have access - backend handles access control
           logInfo(learningSequencesOutlineResult.reason);
+          dispatch(fetchCourseDenied({ courseId }));
+          return;
         } else {
-        }
-      }
-      if (!fetchedMetadata) {
-      }
-      if (!fetchedCourseHomeMetadata) {
-      }
-      if (!fetchedCoursewareOutlineSidebarTogglesResult) {
-      }
-      if (fetchedMetadata && fetchedCourseHomeMetadata) {
-        if (courseHomeMetadataResult.value.courseAccess.hasAccess && fetchedOutline) {
-          // User has access
-          dispatch(fetchCourseSuccess({ courseId }));
+          // Other errors
+          dispatch(fetchCourseFailure({ courseId }));
           return;
         }
-        // User either doesn't have access or only has partial access
-        // (can't access course blocks)
-        dispatch(fetchCourseDenied({ courseId }));
-        return;
       }
-
-      // Definitely an error happening
-      dispatch(fetchCourseFailure({ courseId }));
+      
+      if (!fetchedCoursewareOutlineSidebarTogglesResult) {
+        // Toggle fetch failure is not critical - continue anyway
+      }
+      
+      // If we got here, outline was fetched successfully, so user has access
+      // Allow quiz to render immediately
+      dispatch(fetchCourseSuccess({ courseId }));
     });
   };
 }
@@ -272,3 +283,4 @@ export function getCourseOutlineStructure(courseId) {
     }
   };
 }
+

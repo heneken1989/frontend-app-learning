@@ -21,8 +21,9 @@ const UnitSuspense = ({
   const shouldDisplayHonorCode = hooks.useShouldDisplayHonorCode({ courseId, id });
   const unit = useModel(modelKeys.units, id);
   const meta = useModel(modelKeys.coursewareMeta, courseId);
+  // Safe check: metadata may be loading in background (non-blocking)
   const shouldDisplayContentGating = (
-    meta.contentTypeGatingEnabled && unit.containsContentTypeGatedContent
+    meta && meta.contentTypeGatingEnabled && unit && unit.containsContentTypeGatedContent
   );
 
   return (

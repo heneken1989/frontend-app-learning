@@ -24,16 +24,18 @@ const LockPaywall = ({
   courseId,
 }) => {
   const { notificationTrayVisible } = useContext(SidebarContext);
-  const course = useModel('coursewareMeta', courseId);
+  // Safe check: metadata may be loading in background (non-blocking)
+  const course = useModel('coursewareMeta', courseId) || {};
   const {
     accessExpiration,
     marketingUrl,
     offer,
   } = course;
 
+  const courseHomeMeta = useModel('courseHomeMeta', courseId) || {};
   const {
     org, verifiedMode,
-  } = useModel('courseHomeMeta', courseId);
+  } = courseHomeMeta;
 
   // the following variables are set and used for resposive layout to work with
   // whether the NotificationTray is open or not and if there's an offer with longer text

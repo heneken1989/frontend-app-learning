@@ -16,10 +16,10 @@ const ContentTools = ({
     !sidebarIsOpen && (
       <div className="content-tools">
         <div className="d-flex justify-content-end align-items-end m-0">
-          {course.showCalculator && (
+          {course?.showCalculator && (
             <Calculator />
           )}
-          {course.notes.enabled && (
+          {course?.notes?.enabled && (
             <NotesVisibility course={course} />
           )}
         </div>

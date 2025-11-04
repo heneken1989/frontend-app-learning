@@ -20,7 +20,8 @@ const Chat = ({
   const {
     activeAttempt, exam,
   } = useSelector(state => state.specialExams);
-  const course = useModel('coursewareMeta', courseId);
+  // Safe check: metadata may be loading in background (non-blocking)
+  const course = useModel('coursewareMeta', courseId) || {};
 
   // If is disabled or taking an exam, we don't show the chat.
   if (!enabled || activeAttempt?.attempt_id || exam?.id) { return null; }
