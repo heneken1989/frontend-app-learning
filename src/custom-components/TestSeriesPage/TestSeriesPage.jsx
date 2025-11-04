@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 import { AppContext, getConfig } from '@edx/frontend-platform/react';
@@ -145,28 +145,31 @@ const TestSeriesPage = ({ intl }) => {
           
           
           // Fetch unit titles and calculate question counts ONLY from Unit Title parsing
-          console.log('🔍 ===== FETCHING UNIT TITLES AND CALCULATING QUESTION COUNTS FROM UNIT TITLES =====');
+          
           const questionCounts = {};
           const unitTitles = {};
           for (const test of individualTests) {
             // Use the same testId logic as in render
             const testId = test.sequenceId?.split('block@')[1] || test.unitId || test.id;
-            console.log(`🔍 Getting unit titles for test "${test.name}" (${testId}) with sequenceId: ${test.sequenceId}`);
             const unitData = await getTestUnitTitlesAndCount(test.sequenceId);
             if (unitData !== null) {
               questionCounts[testId] = unitData.questionCount;
               unitTitles[testId] = unitData.unitTitles;
-              console.log(`📊 Test "${test.name}": ${unitData.questionCount} questions (${unitData.unitCount} units)`);
-              console.log(`📋 Unit titles:`, unitData.unitTitles.map(u => u.title));
             } else {
-              console.log(`📊 Test "${test.name}": No unit data available`);
+              
             }
           }
-          console.log('📊 Final questionCounts:', questionCounts);
-          console.log('📋 Final unitTitles:', unitTitles);
           setTestQuestionCounts(questionCounts);
           setTestUnitTitles(unitTitles);
-          console.log('🔍 ===== END FETCHING UNIT TITLES AND CALCULATING QUESTION COUNTS FROM UNIT TITLES =====');
+          
+          
+          // Re-fetch results now that we have accurate question counts per test (ensures totals like 2/6)
+          // Pass overrides to avoid relying on async state updates
+          try {
+            await fetchTestResults(null, questionCounts, unitTitles);
+          } catch (e) {
+            // ignore
+          }
           
           // Calculate test statistics
           const stats = calculateTestStats(testSeries, individualTests);
@@ -199,22 +202,14 @@ const TestSeriesPage = ({ intl }) => {
                 testPreloadedData[course.id].sequences[section.id] = sequencesData;
               }
             } catch (err) {
-              console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
+              
             }
           }
           
           initializeTestSections(testPreloadedData);
           
 
-          // Fetch test results for each section using course section ID
-          for (const { section } of allTestSections) {
-            // Use course section ID from API data, not cookie section ID
-            const testSectionId = section.id; // This is course section ID
-            await fetchTestResults(testSectionId);
-          }
-          
-          // Also fetch all data once to get complete picture
-          await fetchTestResults(null);
+          // Single consolidated fetch using precomputed maps is done below
           
           
           return; // Skip the old logic below
@@ -284,7 +279,7 @@ const TestSeriesPage = ({ intl }) => {
       }
     });
     
-    console.log(`🔍 Matched ${matchCount} tests with results`);
+    
   }, [individualTests, testResults]);
 
   // Recalculate stats when test results change
@@ -359,15 +354,23 @@ const TestSeriesPage = ({ intl }) => {
                 [summary.unit_id]: true
               }));
               
+              const sectionId = summary.section_id;
+              const parsedTotal = typeof testQuestionCounts[sectionId] === 'number' ? testQuestionCounts[sectionId] : 0;
+              const titles = testUnitTitles[sectionId] || [];
+              const titlesTotal = Array.isArray(titles) ? titles.reduce((sum, u) => sum + (u?.questionCount || 1), 0) : 0;
+              const totalQuestions = parsedTotal || titlesTotal || 0; // enforce Unit Title total
+              const correctAnswers = summary.correct_answers || 0;
+              const calculatedScore = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+
               setTestResults(prev => ({
                 ...prev,
                 [summary.unit_id]: {
-                  score: summary.percentage || 0,
-                  correctAnswers: summary.correct_answers || 0,
-                  totalQuestions: summary.total_questions || 0,
+                  score: calculatedScore,
+                  correctAnswers: correctAnswers,
+                  totalQuestions: totalQuestions,
                   completedAt: completedAt,
                   answeredQuestions: summary.answered_questions || 0,
-                  sectionId: summary.section_id,
+                  sectionId: sectionId,
                   testSessionId: testCompleted.testSessionId
                 }
               }));
@@ -421,26 +424,27 @@ const TestSeriesPage = ({ intl }) => {
       // Split by '-' and count the parts
       const parts = unitTitle.split('-');
       const questionCount = parts.length;
-      console.log(`📊 Unit "${unitTitle}" contains ${questionCount} questions:`, parts);
       return questionCount;
     }
     
     // Single question (e.g., "1.1", "2.3")
-    console.log(`📊 Unit "${unitTitle}" contains 1 question`);
     return 1;
   };
 
-  // Function to get unit titles and count from sequence using navigation API
+  // Caches to avoid redundant fetches: per-course navigation and per-sequence parsed unit data
+  const courseNavCacheRef = useRef({}); // { [courseId]: blocks }
+  const sequenceUnitDataCacheRef = useRef({}); // { [sequenceId]: { unitCount, unitTitles, questionCount } }
+
+  // Function to get unit titles and count from sequence using navigation API (with caching)
   const getTestUnitTitlesAndCount = async (sequenceId) => {
     try {
-      console.log(`🔍 Fetching unit titles for sequenceId: ${sequenceId}`);
       
       // Extract course ID from sequence ID
       // sequenceId format: block-v1:Manabi+N52+2026+type@sequential+block@...
       // Split by '+type@' and take the first part
       const parts = sequenceId.split('+type@');
       const courseId = parts.length > 1 ? `course-v1:${parts[0].replace('block-v1:', '')}` : null;
-      console.log(`🔍 Extracted courseId: ${courseId}`);
+      
       
       // If no course ID found, return null
       if (!courseId) {
@@ -448,29 +452,60 @@ const TestSeriesPage = ({ intl }) => {
         return null;
       }
       
-      // Call navigation API to get course outline
-      const lmsBaseUrl = getLmsBaseUrl();
-      const response = await fetch(`${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`📊 Navigation API Response:`, data);
+      // Return immediately if we already parsed this sequence
+      if (sequenceUnitDataCacheRef.current[sequenceId]) {
         
-        if (data.blocks) {
-          console.log(`🔍 Available sequence IDs:`, Object.keys(data.blocks));
-          console.log(`🔍 Looking for sequenceId: ${sequenceId}`);
+        return sequenceUnitDataCacheRef.current[sequenceId];
+      }
+
+      let blocks = courseNavCacheRef.current[courseId];
+
+      // Call navigation API to get course outline only if not cached
+      if (!blocks) {
+        const lmsBaseUrl = getLmsBaseUrl();
+        try {
+          const response = await fetch(`${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            // Log error but don't spam console
+            if (response.status === 500) {
+              console.warn(`⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
+            } else {
+              console.log(`⚠️ Failed to get course outline: ${response.status}`);
+            }
+            // Return null gracefully instead of throwing
+            return null;
+          }
+
+          const data = await response.json();
           
-          // Find the sequence block
-          const sequence = data.blocks[sequenceId];
+          if (!data.blocks) {
+            console.warn(`⚠️ Navigation API response missing blocks for course ${courseId}`);
+            return null;
+          }
+          blocks = data.blocks;
+          courseNavCacheRef.current[courseId] = blocks; // cache per course
+        } catch (error) {
+          // Handle network errors gracefully
+          console.warn(`⚠️ Error fetching navigation for course ${courseId}:`, error.message);
+          return null;
+        }
+      }
+
+      if (blocks) {
+        
+        
+        // Find the sequence block
+        const sequence = blocks[sequenceId];
           if (sequence) {
-            console.log(`📊 Found sequence:`, sequence);
+            
             
             // Get unit titles from sequence children
             const unitTitles = [];
@@ -479,7 +514,7 @@ const TestSeriesPage = ({ intl }) => {
             
             if (sequence.children) {
               sequence.children.forEach((childId, index) => {
-                const childBlock = data.blocks[childId];
+                const childBlock = blocks[childId];
                 if (childBlock && childBlock.display_name) {
                   const unitTitle = childBlock.display_name;
                   const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
@@ -496,36 +531,31 @@ const TestSeriesPage = ({ intl }) => {
               });
             }
             
-            console.log(`📊 Unit titles:`, unitTitles);
-            console.log(`📊 Unit count: ${unitCount}`);
-            console.log(`📊 Total questions: ${totalQuestions}`);
             
-            return {
+            
+            const parsed = {
               unitCount,
               unitTitles,
               questionCount: totalQuestions // Total questions based on parsed unit titles
             };
+            sequenceUnitDataCacheRef.current[sequenceId] = parsed; // cache per sequence
+            return parsed;
           } else {
-            console.log(`❌ Sequence not found in blocks. Available keys:`, Object.keys(data.blocks));
+            
           }
-        } else {
-          console.log(`❌ No blocks found in response`);
-        }
-      } else {
-        console.log(`❌ Failed to get course outline: ${response.status}`);
       }
       
       // No fallback - return null if API fails
-      console.log(`🔍 API failed, returning null`);
+      
       return null;
     } catch (error) {
-      console.error('❌ Error fetching unit titles:', error);
+      
       return null;
     }
   };
 
 
-  const fetchTestResults = async (sectionId) => {
+  const fetchTestResults = async (sectionId, questionCountsOverride = null, unitTitlesOverride = null) => {
     try {
       if (!authenticatedUser) {
         return;
@@ -535,9 +565,7 @@ const TestSeriesPage = ({ intl }) => {
       const authUser = getAuthenticatedUser();
       const userId = authUser?.userId || authUser?.id || authenticatedUser?.userId || authenticatedUser?.id || 'anonymous';
       
-      console.log('🔍 [fetchTestResults] Using user ID:', userId);
-      console.log('🔍 [fetchTestResults] Auth user:', authUser);
-      console.log('🔍 [fetchTestResults] Context user:', authenticatedUser);
+      
       
       // Only fetch results for specific section if provided
       const lmsBaseUrl = getLmsBaseUrl();
@@ -574,15 +602,19 @@ const TestSeriesPage = ({ intl }) => {
           groupedSummaries[testSessionId].push(summary);
         });
         
-        console.log('🔍 Grouped summaries by test_session_id:', groupedSummaries);
+        
         
         // Process grouped test results
         const resultsMap = {};
         const completionMap = {};
         const attemptsMap = {};
 
+        // Prefer override maps if provided to avoid async state timing issues
+        const questionCountMap = questionCountsOverride || testQuestionCounts;
+        const unitTitlesMap = unitTitlesOverride || testUnitTitles;
+
         // Process each test session group
-        Object.entries(groupedSummaries).forEach(([testSessionId, summaries]) => {
+        for (const [testSessionId, summaries] of Object.entries(groupedSummaries)) {
           // Calculate totals for this test session
           let totalCorrectAnswers = 0;
           let totalQuestions = 0; // Will be calculated from Unit Title parsing
@@ -613,18 +645,16 @@ const TestSeriesPage = ({ intl }) => {
             }
           });
           
-          // Get total questions from Unit Title parsing instead of API
-          if (totalQuestions === 0 && sectionId) {
-            // Find the test and get question count from Unit Title parsing
-            const testId = Object.keys(testQuestionCounts).find(id => {
-              // Find test by matching sectionId
-              return individualTests.some(test => {
-                const testSectionId = test.sequenceId?.split('block@')[1];
-                return testSectionId === sectionId && testQuestionCounts[id];
-              });
-            });
-            totalQuestions = testQuestionCounts[testId] || 0;
-            console.log(`📊 Using Unit Title parsing for total questions: ${totalQuestions} (sectionId: ${sectionId})`);
+          // Determine total questions. Prefer persisted total from API; fallback to Unit Title parsing map
+          if (sectionId) {
+            // Enforce Unit Title totals with robust fallback from stored titles
+            const parsedTotal = typeof questionCountMap[sectionId] === 'number' ? questionCountMap[sectionId] : 0;
+            const titles = unitTitlesMap[sectionId] || [];
+            const titlesTotal = Array.isArray(titles) ? titles.reduce((sum, u) => sum + (u?.questionCount || 1), 0) : 0;
+            totalQuestions = parsedTotal || titlesTotal || 0;
+            
+          } else {
+            
           }
           
           // Calculate wrong answers = total_questions - correct_answers
@@ -654,11 +684,12 @@ const TestSeriesPage = ({ intl }) => {
           
           completionMap[testId] = true;
           attemptsMap[testId] = 1; // Each test session counts as 1 attempt
-        });
+        }
 
-        console.log('📊 Processed grouped results:', resultsMap);
+        
 
-        setTestResults(prev => ({ ...prev, ...resultsMap }));
+        // Replace results with freshly computed map to avoid mixing old totals
+        setTestResults(resultsMap);
         setTestCompletionStatus(prev => ({ ...prev, ...completionMap }));
         setTestAttempts(prev => ({ ...prev, ...attemptsMap }));
         
@@ -1088,18 +1119,13 @@ const TestSeriesPage = ({ intl }) => {
               }
             });
             
-            // Get total questions from Unit Title parsing instead of API
-            if (totalQuestions === 0 && sectionId) {
-              // Find the test and get question count from Unit Title parsing
-              const testId = Object.keys(testQuestionCounts).find(id => {
-                // Find test by matching sectionId
-                return individualTests.some(test => {
-                  const testSectionId = test.sequenceId?.split('block@')[1];
-                  return testSectionId === sectionId && testQuestionCounts[id];
-                });
-              });
-              totalQuestions = testQuestionCounts[testId] || 0;
-              console.log(`📊 Using Unit Title parsing for total questions: ${totalQuestions} (sectionId: ${sectionId})`);
+            // Determine total questions for this section (prefer API total, fallback to parsed map)
+            if (sectionId) {
+              const parsedTotalH = typeof testQuestionCounts[sectionId] === 'number' ? testQuestionCounts[sectionId] : 0;
+              const titlesH = testUnitTitles[sectionId] || [];
+              const titlesTotalH = Array.isArray(titlesH) ? titlesH.reduce((sum, u) => sum + (u?.questionCount || 1), 0) : 0;
+              totalQuestions = parsedTotalH || titlesTotalH || 0;
+              console.log('📊 [History] Total questions (Unit Title parsing):', { sectionId, parsedTotalH, titlesTotalH, totalQuestions });
             }
             
             // Calculate wrong answers = total_questions - correct_answers
@@ -1248,28 +1274,7 @@ const TestSeriesPage = ({ intl }) => {
     );
   };
 
-  // Function to debug test results
-  const debugTestResults = () => {
-    console.log('🔍 ===== TEST RESULTS DEBUG =====');
-    console.log('📊 Total test results:', Object.keys(testResults).length);
-    
-    Object.entries(testResults).forEach(([testId, result]) => {
-      console.log(`📊 Test Session ${testId}:`, {
-        score: result.score,
-        correctAnswers: result.correctAnswers,
-        incorrectAnswers: result.incorrectAnswers,
-        totalQuestions: result.totalQuestions,
-        answeredQuestions: result.answeredQuestions,
-        wrongAnswersCount: result.wrongAnswers?.length || 0,
-        questionsCount: result.questions?.length || 0,
-        groupedFrom: result.groupedFrom || 1,
-        sectionId: result.sectionId,
-        completedAt: result.completedAt
-      });
-    });
-    
-    console.log('🔍 ===== END TEST RESULTS DEBUG =====');
-  };
+  
 
   const renderTestTable = () => {
     const groupedCourses = groupTestsByCourse(individualTests);
@@ -1365,7 +1370,25 @@ const TestSeriesPage = ({ intl }) => {
               console.log(`🔍 No test result found for "${test.name}" with sequenceId: ${test.sequenceId?.split('block@')[1]}`);
             }
             
-            
+            // Decide displayed question count and source, and log decision
+            const displayedDecision = (() => {
+              if (testResult?.totalQuestions) {
+                return { displayedQuestions: testResult.totalQuestions, source: 'testResult' };
+              }
+              if (testQuestionCounts[testId]) {
+                return { displayedQuestions: testQuestionCounts[testId], source: 'testQuestionCounts' };
+              }
+              return { displayedQuestions: null, source: 'none' };
+            })();
+
+            // Use the same total for both the Questions column and Score breakdown
+            const computedTotalQuestions = displayedDecision.displayedQuestions || 0;
+            const computedCorrectAnswers = testResult?.correctAnswers || 0;
+            const computedIncorrectAnswers = Math.max(0, computedTotalQuestions - computedCorrectAnswers);
+            const computedScore = computedTotalQuestions > 0
+              ? Math.round((computedCorrectAnswers / computedTotalQuestions) * 100)
+              : (testResult?.score || 0);
+
             return (
               <React.Fragment key={test.id}>
                 <div 
@@ -1373,7 +1396,6 @@ const TestSeriesPage = ({ intl }) => {
                   onClick={() => {
                     // Use section ID from test result if available, otherwise use sequence ID
                     const sectionId = testResult?.sectionId || test.sequenceId?.split('block@')[1];
-                    console.log(`🔍 Clicking test - testId: ${testId}, sectionId: ${sectionId}`);
                     toggleTestDetails(testId, sectionId);
                   }}
                 >
@@ -1392,10 +1414,8 @@ const TestSeriesPage = ({ intl }) => {
                   <div className="table-cell">60 minutes</div>
                   <div className="table-cell">
                     <div className="question-count-info">
-                      {testResult?.totalQuestions ? (
-                        <span className="question-count">{testResult.totalQuestions}</span>
-                      ) : testQuestionCounts[testId] ? (
-                        <span className="question-count">{testQuestionCounts[testId]}</span>
+                      {displayedDecision.displayedQuestions !== null ? (
+                        <span className="question-count">{displayedDecision.displayedQuestions}</span>
                       ) : (
                         <span className="question-count-loading">-</span>
                       )}
@@ -1410,20 +1430,20 @@ const TestSeriesPage = ({ intl }) => {
                     {isCompleted ? (
                       <div className="score-details">
                         <span className={`score-display ${
-                          score === 100 ? 'score-perfect' : 
-                          score > 0 ? 'score-partial' : 
+                          computedScore === 100 ? 'score-perfect' : 
+                          computedScore > 0 ? 'score-partial' : 
                           'score-zero'
                         }`}>
-                          {score}%
+                          {computedScore}%
                         </span>
                         {testResult && (
                           <div className="score-breakdown">
                             <small className="text-muted">
-                              {testResult.correctAnswers}/{testResult.totalQuestions} correct
+                              {computedCorrectAnswers}/{computedTotalQuestions} correct
                             </small>
-                            {testResult.incorrectAnswers > 0 && (
+                            {computedIncorrectAnswers > 0 && (
                               <small className="text-danger d-block">
-                                {testResult.incorrectAnswers} wrong
+                                {computedIncorrectAnswers} wrong
                               </small>
                             )}
                           </div>

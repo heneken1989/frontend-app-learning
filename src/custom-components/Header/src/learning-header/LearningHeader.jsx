@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { getConfig } from '@edx/frontend-platform';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
@@ -26,10 +26,20 @@ import { courseInfoDataShape } from './LearningHeaderCourseInfo';
 import messages from './messages';
 import EnrollmentStatus from '../../../EnrollmentStatus/src/EnrollmentStatus';
 import './NavigationMenu.scss';
-import { getCachedMenuData, setCachedMenuData, clearMenuCache } from './menuCache';
+import { getCachedMenuData, setCachedMenuData, clearMenuCache, invalidateCache, getCacheInfo, shouldRefreshCache } from './menuCache';
 
 // Add cache clear button for development (remove in production)
 const clearCacheButton = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
+
+// Expose cache management to window for debugging (development only)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  window.menuCacheDebug = {
+    clear: clearMenuCache,
+    invalidate: invalidateCache,
+    info: getCacheInfo,
+    shouldRefresh: shouldRefreshCache
+  };
+}
 
 const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
 
@@ -484,34 +494,39 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         >
           📝 模試テスト
         </div>
-        {/* Hidden Auto Enroll All button */}
-        {/* 
-        <div
-          className="nav-item auto-enroll-link"
-          style={{
-            position: 'relative',
-            padding: '8px 16px',
-            borderRadius: 4,
-            cursor: 'pointer',
-            background: '#28a745',
-            color: '#fff',
-            fontWeight: '600',
-            textDecoration: 'none',
-            transition: 'all 0.2s ease',
-          }}
-          onClick={handleAutoEnrollAllCourses}
-          onMouseEnter={(e) => {
-            e.target.style.background = '#218838';
-            e.target.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = '#28a745';
-            e.target.style.transform = 'translateY(0)';
-          }}
-        >
-          🚀 Auto Enroll All
-        </div>
-        */}
+        {/* Development: Cache refresh button */}
+        {clearCacheButton && (
+          <div
+            className="nav-item cache-refresh-link"
+            style={{
+              position: 'relative',
+              padding: '8px 16px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              background: '#ff9800',
+              color: '#fff',
+              fontWeight: '600',
+              textDecoration: 'none',
+              transition: 'all 0.2s ease',
+              fontSize: '0.85rem',
+            }}
+            onClick={() => {
+              invalidateCache();
+              window.location.reload();
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#f57c00';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = '#ff9800';
+              e.target.style.transform = 'translateY(0)';
+            }}
+            title={`Cache Info: ${JSON.stringify(getCacheInfo())}`}
+          >
+            🔄 Refresh Menu
+          </div>
+        )}
         {/* Hidden EnrollmentStatus */}
         {/* <EnrollmentStatus /> */}
       </div>
@@ -692,76 +707,139 @@ const LearningHeader = ({
     };
   }, [unitId]);
 
-  useEffect(() => {
-    const loadMenuData = async () => {
-      try {
-        // 1. Try to get cached menu data first
-        const cachedData = getCachedMenuData();
-        if (cachedData) {
-          console.log('✅ Using cached menu data from localStorage');
-          setCourses(cachedData.courses || []);
-          setInternalPreloadedData(cachedData.preloadedData || {});
-          return;
-        }
-
-        console.log('📡 Fetching menu data from API...');
+  // Use useCallback to memoize loadMenuData function
+  const loadMenuData = useCallback(async (forceRefresh = false) => {
+    try {
+      // 1. Try to get cached menu data first (unless force refresh)
+      const cachedData = getCachedMenuData(forceRefresh);
+      if (cachedData && !forceRefresh) {
+        // Silently use cached data (no log to avoid spam)
+        setCourses(cachedData.courses || []);
+        setInternalPreloadedData(cachedData.preloadedData || {});
         
-        // 2. Fetch fresh data
-        const coursesData = await fetchAllCourses();
-        setCourses(coursesData);
-        
-        // Only preload if no external preloadedData provided
-        if (Object.keys(preloadedData).length === 0) {
-          // TỐI ƯU HÓA: Fetch sections and sequences sequentially to reduce load
-          const preloadedDataMap = {};
-          
-          // Process courses sequentially to avoid overloading
-          for (const course of coursesData) {
-            try {
-              // Fetch sections for this course
-              const sectionsData = await fetchSectionsByCourseId(course.id);
-              const courseData = {
-                sections: sectionsData,
-                sequences: {}
-              };
-              
-              // Fetch sequences for each section
-              for (const section of sectionsData) {
-                try {
-                  const sequencesData = await fetchSequencesBySectionId(section.id);
-                  courseData.sequences[section.id] = sequencesData;
-                } catch (err) {
-                  console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
-                  courseData.sequences[section.id] = [];
+        // In background, check if cache needs refresh and update if needed
+        // This ensures menu stays fresh without blocking UI
+        setTimeout(async () => {
+          if (shouldRefreshCache()) {
+            // Silently refresh cache in background (no log to avoid spam)
+            // Use the latest loadMenuData function
+            const freshData = await fetchAllCourses();
+            const preloadedDataMap = {};
+            
+            for (const course of freshData) {
+              try {
+                const sectionsData = await fetchSectionsByCourseId(course.id);
+                const courseData = {
+                  sections: sectionsData,
+                  sequences: {}
+                };
+                
+                for (const section of sectionsData) {
+                  try {
+                    const sequencesData = await fetchSequencesBySectionId(section.id);
+                    courseData.sequences[section.id] = sequencesData;
+                  } catch (err) {
+                    courseData.sequences[section.id] = [];
+                  }
                 }
+                
+                preloadedDataMap[course.id] = courseData;
+              } catch (err) {
+                preloadedDataMap[course.id] = { sections: [], sequences: {} };
               }
-              
-              preloadedDataMap[course.id] = courseData;
-            } catch (err) {
-              console.warn(`Failed to fetch sections for course ${course.id}:`, err);
-              preloadedDataMap[course.id] = { sections: [], sequences: {} };
             }
+            
+            setCourses(freshData);
+            setInternalPreloadedData(preloadedDataMap);
+            setCachedMenuData({
+              courses: freshData,
+              preloadedData: preloadedDataMap
+            });
           }
-          
-          setInternalPreloadedData(preloadedDataMap);
-          
-          // 3. Cache the data for next time
-          setCachedMenuData({
-            courses: coursesData,
-            preloadedData: preloadedDataMap
-          });
-          
-          console.log('✅ Menu data loaded and cached successfully!');
-        } else {
-          setInternalPreloadedData(preloadedData);
+        }, 1000);
+        
+        return;
+      }
+
+      console.log('📡 Fetching menu data from API...');
+      
+      // 2. Fetch fresh data
+      const coursesData = await fetchAllCourses();
+      setCourses(coursesData);
+      
+      // Only preload if no external preloadedData provided
+      if (Object.keys(preloadedData).length === 0) {
+        // TỐI ƯU HÓA: Fetch sections and sequences sequentially to reduce load
+        const preloadedDataMap = {};
+        
+        // Process courses sequentially to avoid overloading
+        for (const course of coursesData) {
+          try {
+            // Fetch sections for this course
+            const sectionsData = await fetchSectionsByCourseId(course.id);
+            const courseData = {
+              sections: sectionsData,
+              sequences: {}
+            };
+            
+            // Fetch sequences for each section
+            for (const section of sectionsData) {
+              try {
+                const sequencesData = await fetchSequencesBySectionId(section.id);
+                courseData.sequences[section.id] = sequencesData;
+              } catch (err) {
+                console.warn(`Failed to fetch sequences for section ${section.id}:`, err);
+                courseData.sequences[section.id] = [];
+              }
+            }
+            
+            preloadedDataMap[course.id] = courseData;
+          } catch (err) {
+            console.warn(`Failed to fetch sections for course ${course.id}:`, err);
+            preloadedDataMap[course.id] = { sections: [], sequences: {} };
+          }
         }
-      } catch (err) {
-        console.error('Failed to load menu data:', err);
+        
+        setInternalPreloadedData(preloadedDataMap);
+        
+        // 3. Cache the data for next time
+        setCachedMenuData({
+          courses: coursesData,
+          preloadedData: preloadedDataMap
+        });
+        
+        console.log('✅ Menu data loaded and cached successfully!');
+      } else {
+        setInternalPreloadedData(preloadedData);
+      }
+    } catch (err) {
+      console.error('Failed to load menu data:', err);
+      // On error, clear potentially corrupted cache
+      clearMenuCache();
+    }
+  }, []); // Empty dependency array - only load once on mount
+
+  useEffect(() => {
+    // Check for cache refresh trigger from localStorage (allows other tabs/windows to trigger refresh)
+    const handleStorageChange = (e) => {
+      if (e.key === 'menu_cache_refresh') {
+        console.log('🔄 Cache refresh triggered by another tab/window');
+        loadMenuData(true);
+        // Clear the trigger
+        localStorage.removeItem('menu_cache_refresh');
       }
     };
     
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Initial load only once on mount
     loadMenuData();
-  }, []);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency - only mount once
 
   const handleTimeExpired = () => {
     // Handle time expiration logic here
