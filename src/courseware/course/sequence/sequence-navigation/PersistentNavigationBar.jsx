@@ -139,11 +139,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             return;
           }
           
-          // Check if this is template 31, 39, 40, 63, 65, 67, or 311 to show script button
-          if (event.data.quizData && (event.data.quizData.templateId === 31 || event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63 || event.data.quizData.templateId === 65 || event.data.quizData.templateId === 67 || event.data.quizData.templateId === 311)) {
+          // Check if this is template 31, 37, 39, 40, 63, 65, 67, or 311 to show script button
+          if (event.data.quizData && (event.data.quizData.templateId === 31 || event.data.quizData.templateId === 37 || event.data.quizData.templateId === 39 || event.data.quizData.templateId === 40 || event.data.quizData.templateId === 63 || event.data.quizData.templateId === 65 || event.data.quizData.templateId === 67 || event.data.quizData.templateId === 311)) {
             setShowScriptButton(true);
             setTemplate63QuizData(event.data.quizData); // Store quiz data
-            // Don't auto-show popup for template 31, 39, 40, 63, 65, 67, and 311
+            // Don't auto-show popup for template 31, 37, 39, 40, 63, 65, 67, and 311
             return;
           }
           
@@ -258,19 +258,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         
         // Fallback: try to get from localStorage
         try {
-          const storedData = localStorage.getItem('quizGradeSubmitted');
-          const timestamp = localStorage.getItem('quizGradeSubmittedTimestamp');
-          
-          if (storedData && timestamp) {
-            const timeDiff = Date.now() - parseInt(timestamp);
-            if (timeDiff < 10000) { // Only if data is less than 10 seconds old
-              const quizData = JSON.parse(storedData);
-              if (quizData && (quizData.templateId === 31 || quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 41 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67 || quizData.templateId === 311)) {
-                showTestPopup(quizData);
-                setIsScriptVisible(true);
+            const storedData = localStorage.getItem('quizGradeSubmitted');
+            const timestamp = localStorage.getItem('quizGradeSubmittedTimestamp');
+            
+            if (storedData && timestamp) {
+              const timeDiff = Date.now() - parseInt(timestamp);
+              if (timeDiff < 10000) { // Only if data is less than 10 seconds old
+                const quizData = JSON.parse(storedData);
+                if (quizData && (quizData.templateId === 31 || quizData.templateId === 37 || quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 41 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67 || quizData.templateId === 311)) {
+                  showTestPopup(quizData);
+                  setIsScriptVisible(true);
+                }
               }
             }
-          }
         } catch (error) {
           // Error getting quiz data
         }
@@ -299,11 +299,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Then convert furigana: 事務所(じむしょ) -> <ruby>事務所<rt>じむしょ</rt></ruby>
     // First convert Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
-    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)（([^）]+)）/g, function(match, p1, p2) {
+    // Xử lý cả có và không có khoảng trắng: 上（うえ）hoặc 上 （うえ）
+    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\s*（([^）]+)）/g, function(match, p1, p2) {
       return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
     });
     // Then convert regular parentheses: 車(くるま) -> <ruby>車<rt>くるま</rt></ruby>
-    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\(([^)]+)\)/g, function(match, p1, p2) {
+    // Xử lý cả có và không có khoảng trắng: 上(うえ) hoặc 上 (うえ)
+    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\s*\(([^)]+)\)/g, function(match, p1, p2) {
       return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
     });
     
@@ -389,6 +391,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       padding: 1rem;
       margin-top: 20px;
       margin-bottom: 20px;
+      font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+      font-size: 1.2rem !important;
     `;
     
     // Generate popup content based on template type
@@ -906,14 +910,14 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         // Chỉ Kanji (và vài ký tự đặc biệt)
         const kanjiWord = "[\u4E00-\u9FFF々〆〤ヶ]+";
 
-        // Dấu ngoặc Nhật (全角)
-        const reJaParens = new RegExp("(" + kanjiWord + ")（([^）]+)）", "g");
+        // Dấu ngoặc Nhật (全角) - xử lý cả có và không có khoảng trắng: 上（うえ）hoặc 上 （うえ）
+        const reJaParens = new RegExp("(" + kanjiWord + ")\\s*（([^）]+)）", "g");
         text = text.replace(reJaParens, (match, p1, p2) => {
           return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
         });
 
-        // Dấu ngoặc ASCII (半角)
-        const reAsciiParens = new RegExp("(" + kanjiWord + ")\\(([^)]+)\\)", "g");
+        // Dấu ngoặc ASCII (半角) - xử lý cả có và không có khoảng trắng: 上(うえ) hoặc 上 (うえ)
+        const reAsciiParens = new RegExp("(" + kanjiWord + ")\\s*\\(([^)]+)\\)", "g");
         text = text.replace(reAsciiParens, (match, p1, p2) => {
           return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
         });
@@ -1137,8 +1141,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           </div>
         </div>
       `;
-    } else if (quizData && (quizData.templateId === 31 || quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67 || quizData.templateId === 311)) {
-      // Template 31, 39, 40, 63, 65, 67 & 311: Reading/Listen quizzes - Show Script Text Only
+    } else if (quizData && (quizData.templateId === 31 || quizData.templateId === 37 || quizData.templateId === 39 || quizData.templateId === 40 || quizData.templateId === 63 || quizData.templateId === 65 || quizData.templateId === 67 || quizData.templateId === 311)) {
+      // Template 31, 37, 39, 40, 63, 65, 67 & 311: Reading/Listen quizzes - Show Script Text Only
       const encodedScriptText = quizData.scriptText || '';
       
       // Decode the script text to restore special characters
@@ -1148,9 +1152,9 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       console.log(`🔍 Template ID${quizData.templateId} - quizData.correctAnswer:`, quizData.correctAnswer);
       
       // Add highlighting for correct answer only - only highlight underlined words
-      // Template 31 and 311 (Reading) don't need highlighting, just show script text
+      // Template 31, 37 and 311 (Reading) don't need highlighting, just show script text
       let highlightedScriptText = processedScriptText;
-      if (quizData.templateId !== 31 && quizData.templateId !== 311 && quizData.correctAnswer) {
+      if (quizData.templateId !== 31 && quizData.templateId !== 37 && quizData.templateId !== 311 && quizData.correctAnswer) {
         const correctAnswer = quizData.correctAnswer;
         
         // Debug logging

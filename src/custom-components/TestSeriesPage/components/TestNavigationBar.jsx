@@ -645,17 +645,21 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         console.log('📨 [NavigationBar] Received quiz answers:', event.data);
         console.log('📨 [NavigationBar] Answers array:', event.data.answers);
         
-        const { answers } = event.data;
+        const { answers, templateId } = event.data;
         const totalQuestions = Array.isArray(answers) ? answers.length : 1;
         
         // Calculate results
+        // For template 18 and 37: each answer item = 1 question
+        // Template 18: each dropdown = 1 question
+        // Template 37: each question block = 1 question (multiple questions per quiz)
         const correctCount = answers.filter(a => a.isCorrect).length;
         const answeredCount = answers.length;
         
         console.log('📊 [NavigationBar] Calculated results:', {
           correctCount,
           answeredCount,
-          totalQuestions
+          totalQuestions,
+          templateId
         });
         
         // Get current URL info
@@ -706,13 +710,16 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         // Check if this is a complete test action
         const isCompletingTest = localStorage.getItem('completingTest') === 'true';
         
+        // Determine template_id: use from message if available, otherwise default to 67 (test template)
+        const templateIdToSave = templateId || 67;
+        
         // Prepare data to save
         const requestData = {
           section_id: sectionIdToSave, // Use sequenceId as section_id
           unit_id: extractedUnitId,
           course_id: extractedCourseId,
           user_id: userId,
-          template_id: 67,
+          template_id: templateIdToSave, // Use template_id from quiz answers (18, 37, etc.) or default to 67
           test_session_id: currentTestSessionId,
           status: isCompletingTest ? 'completed' : 'processing', // Set status based on action
           quiz_data: {
