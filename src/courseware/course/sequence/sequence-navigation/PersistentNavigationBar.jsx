@@ -317,6 +317,23 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     // Debug: Log received data
     console.log('🔍 showTestPopup called with quizData:', quizData);
     
+    // Load Google Fonts if not already loaded
+    const fontLinks = [
+      'https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap',
+      'https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap',
+      'https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap'
+    ];
+    
+    fontLinks.forEach(fontUrl => {
+      const existingLink = document.querySelector(`link[href="${fontUrl}"]`);
+      if (!existingLink) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fontUrl;
+        document.head.appendChild(link);
+      }
+    });
+    
     // Remove existing popup if any
     const existingPopup = document.getElementById('test-popup');
     if (existingPopup) {
@@ -1275,6 +1292,10 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             .listen-image-select-popup { 
               font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
               font-size: 1.2rem !important;
+              line-height: 1.2 !important;
+            }
+            .listen-image-select-popup * {
+              font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
             }
             .listen-image-select-popup ruby { 
               font-size: 1.2rem !important; 
@@ -1303,8 +1324,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           
           <!-- Script Text Section -->
           <div class="script-section">
-            <div class="script-title" style="margin: 0 0 10px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center;">スクリプト (Script)</div>
-            <div class="script-text" style="padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.5; color: #333; text-align: left;">
+            <div class="script-title" style="margin: 0 0 10px 0; color: #333; font-size: 1.2rem; font-weight: bold; text-align: center; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;">スクリプト (Script)</div>
+            <div class="script-text" style="padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 1.2rem; line-height: 1.2; color: #333; text-align: left; font-family: 'Noto Serif JP', 'Noto Sans JP', 'Kosugi Maru', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;">
               ${highlightedScriptText}
             </div>
           </div>
