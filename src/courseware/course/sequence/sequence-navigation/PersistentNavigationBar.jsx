@@ -971,10 +971,12 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         const lines = paragraphText.split(/<br\s*\/?>/gi);
         const explanationLines = [];
         
+        // IMPORTANT: wordCounts must be shared across all lines to track occurrences correctly
+        const wordCounts = {};
+        
         lines.forEach((line, lineIndex) => {
           const words = splitWords(line);
           const explanationWords = [];
-          const wordCounts = {};
           
           words.forEach((word, idx) => {
           const norm = normalize(word);
