@@ -11,7 +11,6 @@ import { CourseOutlineSidebarTriggerSlot } from '../../../plugin-slots/CourseOut
 import { CourseOutlineSidebarSlot } from '../../../plugin-slots/CourseOutlineSidebarSlot';
 import { getConfig } from '@edx/frontend-platform';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
-import ModuleTransitionPage from './ModuleTransitionPage';
 import './TestNavigationBar.scss';
 
 /**
@@ -26,10 +25,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   const [hasAudioQuiz, setHasAudioQuiz] = useState(false);
   const [testSessionId, setTestSessionId] = useState(null);
   const [cachedTotalQuestions, setCachedTotalQuestions] = useState(null);
-  const [showModuleTransition, setShowModuleTransition] = useState(false);
-  const [moduleTransitionData, setModuleTransitionData] = useState(null);
-  const [showFinalSummary, setShowFinalSummary] = useState(false);
-  const [finalSummaryData, setFinalSummaryData] = useState(null);
   
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
@@ -140,6 +135,78 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   // Build final summary using module totals from navigation (like TestHeader)
   const prepareFinalSummary = async () => {
     try {
+      // First, ensure the current quiz result is saved with status='completed'
+      const iframe = document.getElementById('unit-iframe');
+      const currentTestSessionId = testSessionId || localStorage.getItem('currentTestSessionId');
+      
+      if (iframe && iframe.contentWindow && currentTestSessionId && unitId && courseId && sequenceId) {
+        console.log('📤 [prepareFinalSummary] Saving final quiz result with status=completed');
+        
+        // Request answers from iframe
+        const answersPromise = new Promise((resolve) => {
+          const messageHandler = (event) => {
+            if (event.data && event.data.type === 'quiz.answers') {
+              window.removeEventListener('message', messageHandler);
+              resolve(event.data.answers || []);
+            }
+          };
+          window.addEventListener('message', messageHandler);
+          iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
+          
+          // Timeout after 3 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', messageHandler);
+            resolve([]);
+          }, 3000);
+        });
+        
+        const answers = await answersPromise;
+        const correctCount = (answers || []).filter(a => a.isCorrect).length;
+        const answeredCount = (answers || []).length;
+        const totalQuestions = Math.max(answeredCount, 1);
+        
+        // Extract IDs from current URL or use provided values
+        const currentUrl = window.location.href;
+        const urlParts = currentUrl.split('/');
+        const coursePart = urlParts.find(p => p.startsWith('course-v1:'));
+        const sequencePart = urlParts.find(p => p.includes('type@sequential'));
+        const unitPart = urlParts.find(p => p.includes('type@vertical'));
+        
+        const extractedCourseId = coursePart || courseId;
+        const extractedUnitId = unitPart?.split('+block@')[1] || unitId;
+        const sectionIdToSave = sequenceId.split('block@')[1];
+        const { userId } = getUserInfo();
+        
+        // Check if already saved to prevent duplicate
+        const saveKey = getUnitSaveKey(currentTestSessionId, extractedUnitId);
+        if (wasUnitSaved(saveKey)) {
+          console.log('⚠️ [prepareFinalSummary] Unit already saved, skipping duplicate save');
+        } else {
+          // Save final quiz result with status='completed'
+          const finalRequestData = {
+            section_id: sectionIdToSave,
+            unit_id: extractedUnitId,
+            course_id: extractedCourseId,
+            user_id: userId,
+            template_id: 67,
+            test_session_id: currentTestSessionId,
+            status: 'completed', // Mark as completed
+            quiz_data: {
+              answers: (answers || []).map(a => a.userAnswer),
+              correctCount,
+              answeredCount,
+              totalQuestions,
+              score: totalQuestions > 0 ? correctCount / totalQuestions : 0
+            }
+          };
+          
+          console.log('📤 [prepareFinalSummary] Saving final result:', finalRequestData);
+          await saveQuizResults(finalRequestData);
+          markUnitSaved(saveKey); // Mark as saved to prevent duplicate
+          console.log('✅ [prepareFinalSummary] Final quiz result saved with status=completed');
+        }
+      }
+      
       const scores = readModuleScores(sequenceId) || {};
       let moduleTotals = {};
 
@@ -200,19 +267,50 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         };
       });
 
-      setFinalSummaryData(merged);
-      setShowFinalSummary(true);
-      // Pause timer if summary is shown
+      // Save results to localStorage and navigate to results page
+      localStorage.setItem('testResults', JSON.stringify({
+        moduleScores: merged,
+        testSessionId: currentTestSessionId,
+        completedAt: new Date().toISOString(),
+        sequenceId: sequenceId
+      }));
+      
+      // Clear module scores after saving
+      clearModuleScores(sequenceId);
+      
+      // Mark test as completed to prevent going back
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('transitionPageActive'));
+        localStorage.setItem(`testCompleted_${sequenceId}`, 'true');
+        // Clear all timer states for this sequence
+        for (let i = 1; i <= 3; i++) {
+          localStorage.removeItem(`testTimer_${sequenceId}_${i}`);
+        }
       }
+      
+      // Navigate to results page with replace to prevent back button
+      navigate('/test-series/results', { replace: true });
     } catch (e) {
       const scores = readModuleScores(sequenceId) || {};
-      setFinalSummaryData(scores);
-      setShowFinalSummary(true);
+      const currentTestSessionId = testSessionId || localStorage.getItem('currentTestSessionId');
+      localStorage.setItem('testResults', JSON.stringify({
+        moduleScores: scores,
+        testSessionId: currentTestSessionId,
+        completedAt: new Date().toISOString(),
+        sequenceId: sequenceId
+      }));
+      clearModuleScores(sequenceId);
+      
+      // Mark test as completed to prevent going back
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('transitionPageActive'));
+        localStorage.setItem(`testCompleted_${sequenceId}`, 'true');
+        // Clear all timer states for this sequence
+        for (let i = 1; i <= 3; i++) {
+          localStorage.removeItem(`testTimer_${sequenceId}_${i}`);
+        }
       }
+      
+      // Navigate to results page with replace to prevent back button
+      navigate('/test-series/results', { replace: true });
     }
   };
 
@@ -270,132 +368,317 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     }
   };
   
-  // Restore module transition state on component mount
+  // Check if test has been completed (timer expired) and prevent access
+  useEffect(() => {
+    if (sequenceId && typeof window !== 'undefined') {
+      const testCompleted = localStorage.getItem(`testCompleted_${sequenceId}`);
+      if (testCompleted === 'true') {
+        console.log('🚫 [TestNavigationBar] Test already completed (timer expired), redirecting to results');
+        // Test was completed (timer expired), redirect to results immediately
+        navigate('/test-series/results', { replace: true });
+        return;
+      }
+    }
+  }, [sequenceId, navigate]);
+
+  // Navigate to module transition page if saved state exists
   useEffect(() => {
     if (sequenceId && unitId && typeof window !== 'undefined') {
+      // Check if test is completed first - don't restore transition if test is completed
+      const testCompleted = localStorage.getItem(`testCompleted_${sequenceId}`);
+      if (testCompleted === 'true') {
+        console.log('🚫 [TestNavigationBar] Test completed, skipping transition restore');
+        return; // Don't restore transition if test is completed
+      }
+      
       const transitionKey = `moduleTransition_${sequenceId}_${unitId}`;
       const savedTransition = localStorage.getItem(transitionKey);
       
       if (savedTransition) {
         try {
           const transitionData = JSON.parse(savedTransition);
-          console.log('🔄 [Restore] Found saved module transition state:', transitionData);
-          setModuleTransitionData(transitionData);
-          setShowModuleTransition(true);
+          console.log('🔄 [Restore] Found saved module transition state, navigating to transition page:', transitionData);
           
-          // Dispatch event to notify timer is paused
-          window.dispatchEvent(new Event('transitionPageActive'));
+          // Save sequenceId and unitId to localStorage for transition page
+          localStorage.setItem('moduleTransition_sequenceId', sequenceId);
+          localStorage.setItem('moduleTransition_unitId', unitId);
+          
+          // Navigate to transition page with replace to prevent back button
+          navigate('/test-series/module-transition', { replace: true });
         } catch (error) {
           console.error('❌ Error parsing saved transition data:', error);
           localStorage.removeItem(transitionKey);
         }
       }
     }
-  }, [sequenceId, unitId]);
+  }, [sequenceId, unitId, navigate]);
   
+  // Parse module number from unit title (e.g., "1.4" -> 1, "2.1" -> 2)
+  // This must be defined BEFORE it's used
+  const parseModuleNumber = (title) => {
+    if (!title) return null;
+    const match = title.match(/^(\d+)\./);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // Parse number of questions from unit title (e.g., "1.1" -> 1, "1.1-1.2-1.3" -> 3)
+  // This must be defined BEFORE it's used
+  const parseUnitTitleForQuestionCount = (unitTitle) => {
+    if (!unitTitle) return 1; // Default to 1 question if no title
+    
+    // Check if title contains multiple questions (e.g., "1.1-1.2-1.3")
+    if (unitTitle.includes('-')) {
+      // Split by '-' and count the parts
+      const parts = unitTitle.split('-');
+      const questionCount = parts.length;
+      return questionCount;
+    }
+    
+    // Single question (e.g., "1.1", "2.3")
+    return 1;
+  };
+
+  // Calculate if current unit is the last question in its module (at component level)
+  // This must be defined BEFORE the useEffect that uses it
+  const currentModule = unit?.title ? parseModuleNumber(unit.title) : null;
+  const currentIndex = sequence?.unitIds ? sequence.unitIds.findIndex(id => id === unitId) : -1;
+  const nextUnitIdForModuleCheck = (currentIndex >= 0 && currentIndex < (sequence?.unitIds?.length || 0) - 1) 
+    ? sequence.unitIds[currentIndex + 1] 
+    : null;
+  
+  // Get next unit data
+  const nextUnitForModuleCheck = useModel('units', nextUnitIdForModuleCheck || '');
+  const nextModule = (nextUnitIdForModuleCheck && nextUnitForModuleCheck && nextUnitForModuleCheck.id === nextUnitIdForModuleCheck) 
+    ? parseModuleNumber(nextUnitForModuleCheck.title) 
+    : null;
+  
+  // Check if current unit is the last question in its module
+  const isLastQuestionInModule = currentModule && nextModule && currentModule !== nextModule;
+  
+  // Check if current unit is the last question in module 3 (final test question)
+  const isLastQuestionInModule3 = currentModule === 3 && !nextUnitIdForModuleCheck;
+
   // Handle module test expiration event
   useEffect(() => {
     const handleModuleExpired = (event) => {
-      const { sequenceId: eventSeqId, currentModule, unitId: eventUnitId } = event.detail;
+      const { sequenceId: eventSeqId, currentModule: expiredModule, unitId: eventUnitId } = event.detail;
       
       // Only handle if this event is for current sequence
       if (eventSeqId === sequenceId && eventUnitId === unitId) {
         console.log('⏰ [Timer Expired] Handling module test expiration:', {
-          currentModule,
+          expiredModule,
           sequenceId: eventSeqId,
           unitId: eventUnitId
         });
         
-        // Check if there's a next unit
-        if (actualNextUnit) {
-          const navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+        // Use the SAME currentModule and nextModule as Finish Module button
+        // These are calculated at component level and accessible via closure
+        console.log('⏰ [Timer Expired] Current module (from component):', currentModule);
+        console.log('⏰ [Timer Expired] Next module (from component):', nextModule);
+        
+        // When timer expires, handle EXACTLY same as "Finish Module" or "Finish Test" button
+        console.log('⏰ [Timer Expired] Handling exactly like Finish Module/Finish Test button');
+        console.log('⏰ [Timer Expired] isLastQuestionInModule3:', isLastQuestionInModule3);
+        console.log('⏰ [Timer Expired] currentModule:', currentModule);
+        console.log('⏰ [Timer Expired] actualNextUnit:', actualNextUnit);
+        console.log('⏰ [Timer Expired] nextUnitIdForModuleCheck:', nextUnitIdForModuleCheck);
+        
+        // Check if this is module 3 - ALWAYS use handleCompleteTest logic (EXACTLY same as Finish Test button)
+        // Finish Test button only shows when isLastQuestionInModule3 is true
+        // But when timer expires in module 3, we should always use handleCompleteTest regardless
+        if (currentModule === 3) {
+          // Module 3 -> test finished: use handleCompleteTest (EXACTLY same as Finish Test button)
+          console.log('🏁 [Timer Expired] Module 3 detected, using handleCompleteTest (same as Finish Test)');
           
-          // Parse module numbers to check for transition
-          const parseModuleNumber = (title) => {
-            if (!title) return null;
-            const match = title.match(/^(\d+)\./);
-            return match ? parseInt(match[1], 10) : null;
-          };
+          // Call handleCompleteTest which handles everything: save answers, fetch summary, save to localStorage, and navigate
+          handleCompleteTest();
+          return;
+        }
+        
+        // Check if this is the last question (no next unit) but not module 3
+        if (!actualNextUnit) {
+          // No next unit -> test finished: show final summary (same as Finish Test button)
+          console.log('🏁 [Timer Expired] No next unit, showing unified final summary');
           
-          const currentUnitTitle = unit?.title;
-          const nextUnitTitle = actualNextUnit?.title;
-          
-          const currentModuleNum = parseModuleNumber(currentUnitTitle);
-          const nextModuleNum = actualNextUnit ? parseModuleNumber(nextUnitTitle) : null;
-          
-          const isModuleTransition = currentModuleNum && nextModuleNum && currentModuleNum !== nextModuleNum;
-          
-          if (isModuleTransition) {
-            console.log('🔄 [Timer Expired] Module transition detected, showing transition page');
-            const transitionData = {
-              currentModule: currentModuleNum,
-              nextModule: nextModuleNum,
-              nextLink: navLink
-            };
-            setModuleTransitionData(transitionData);
-            setShowModuleTransition(true);
-            
-            // Dispatch event to notify timer is paused
-            window.dispatchEvent(new Event('transitionPageActive'));
-            
-            // Save transition state to localStorage
-            if (typeof window !== 'undefined') {
-              const transitionKey = `moduleTransition_${sequenceId}_${unitId}`;
-              localStorage.setItem(transitionKey, JSON.stringify(transitionData));
-              console.log('💾 Saved module transition state:', transitionKey);
-            }
-          } else {
-            console.log('⏭️ [Timer Expired] No module transition, navigating to next unit');
-            if (navLink) {
-              navigate(navLink);
+          // Mark test as completed to prevent going back
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`testCompleted_${sequenceId}`, 'true');
+            // Clear all timer states for this sequence
+            for (let i = 1; i <= 3; i++) {
+              localStorage.removeItem(`testTimer_${sequenceId}_${i}`);
             }
           }
-        } else {
-          // No next unit -> test finished: show the same Final Summary template as Finish button
-          console.log('🏁 [Timer Expired] No next unit, showing unified final summary');
 
-          // Ensure latest module scores include the last answered unit
-          const parseModuleNumber = (title) => {
-            if (!title) return null;
-            const match = title.match(/^(\d+)\./);
-            return match ? parseInt(match[1], 10) : null;
-          };
-          const currentModuleNum = parseModuleNumber(unit?.title);
-          try {
-            // Try to fetch answers from iframe to update module scores one last time
-            const iframe = document.getElementById('unit-iframe');
-            if (iframe && iframe.contentWindow) {
-              const answersPromise = new Promise((resolve) => {
-                const messageHandler = (event) => {
-                  if (event.data && event.data.type === 'quiz.answers') {
-                    window.removeEventListener('message', messageHandler);
-                    resolve(event.data.answers || []);
-                  }
-                };
-                window.addEventListener('message', messageHandler);
-                iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
-              });
-              answersPromise.then((answers) => {
-                const correctCount = (answers || []).filter(a => a.isCorrect).length;
-                const answeredCount = (answers || []).length;
-                // Deduplicate module aggregation per session+unit
-                const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
-                const aggKey = getModuleAggKey(currentSession, unitId);
-                if (!wasModuleAggregated(aggKey)) {
-                  if (currentModuleNum) updateModuleScores(sequenceId, currentModuleNum, correctCount, answeredCount);
-                  markModuleAggregated(aggKey);
+          const iframe = document.getElementById('unit-iframe');
+          if (iframe && iframe.contentWindow) {
+            const answersPromise = new Promise((resolve) => {
+              const messageHandler = (event) => {
+                if (event.data && event.data.type === 'quiz.answers') {
+                  window.removeEventListener('message', messageHandler);
+                  resolve(event.data.answers || []);
                 }
-                prepareFinalSummary();
-              }).catch(() => {
-                prepareFinalSummary();
-              });
-            } else {
+              };
+              window.addEventListener('message', messageHandler);
+              iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
+            });
+            answersPromise.then((answers) => {
+              const correctCount = (answers || []).filter(a => a.isCorrect).length;
+              const answeredCount = (answers || []).length;
+              // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+              const unitTitle = unit?.title || '';
+              const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+              // Deduplicate module aggregation per session+unit
+              const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
+              const aggKey = getModuleAggKey(currentSession, unitId);
+              if (!wasModuleAggregated(aggKey)) {
+                if (currentModule) updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                markModuleAggregated(aggKey);
+              }
               prepareFinalSummary();
-            }
-          } catch (e) {
+            }).catch(() => {
+              prepareFinalSummary();
+            });
+          } else {
             prepareFinalSummary();
           }
+          return;
         }
+        
+        // There's a next unit, handle EXACTLY like Finish Module button
+        // But we need to find the first unit of the NEXT module, not just the next quiz
+        // When timer expires, we should jump to the first unit of next module
+        // Use async function to find first unit of next module via navigation API
+        const targetModule = currentModule ? currentModule + 1 : null;
+        
+        const findFirstUnitOfNextModule = async () => {
+          if (!currentModule || !sequence?.unitIds || !courseId) {
+            return null;
+          }
+          
+          try {
+            const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+              credentials: 'include',
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const seq = data?.blocks?.[sequenceId];
+              if (seq && Array.isArray(seq.children)) {
+                // Find first unit with module number = targetModule
+                for (const childId of seq.children) {
+                  const child = data.blocks[childId];
+                  const title = child?.display_name || '';
+                  const moduleMatch = title.match(/^(\d+)\./);
+                  const modNum = moduleMatch ? parseInt(moduleMatch[1], 10) : null;
+                  
+                  if (modNum === targetModule) {
+                    // Found first unit of next module
+                    return childId;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            console.error('❌ Error fetching navigation API:', e);
+          }
+          
+          return null;
+        };
+        
+        // Find first unit of next module
+        findFirstUnitOfNextModule().then((firstUnitOfNextModule) => {
+          let navLink = null;
+          
+          if (firstUnitOfNextModule) {
+            // Found first unit of next module
+            navLink = pathname.startsWith('/preview')
+              ? `/preview/course/${courseId}/${sequenceId}/${firstUnitOfNextModule}`
+              : `/course/${courseId}/${sequenceId}/${firstUnitOfNextModule}`;
+          } else if (nextModule && nextModule !== currentModule) {
+            // Next quiz is already in next module, use nextLink (same as Finish Module)
+            navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+          } else {
+            // Fallback: use nextLink
+            navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+          }
+          
+          console.log('🔍 [Timer Expired] Current unit title:', unit?.title);
+          console.log('🔍 [Timer Expired] Current module:', currentModule);
+          console.log('🔍 [Timer Expired] Next module:', nextModule);
+          console.log('🔍 [Timer Expired] First unit of next module:', firstUnitOfNextModule);
+          console.log('🔍 [Timer Expired] Next link (calculated):', navLink);
+          
+          // Continue with the same logic as Finish Module button
+          // Get quiz answers and save before showing transition page
+          const iframe = document.getElementById('unit-iframe');
+          if (!iframe) {
+            console.error('❌ [Timer Expired] No iframe found');
+            return;
+          }
+          
+          // Request answers from iframe (EXACTLY same as Finish Module)
+          const messageHandler = (event) => {
+            if (event.data && event.data.type === 'quiz.answers') {
+              console.log('📨 [Timer Expired] Received quiz answers, saving...');
+              window.removeEventListener('message', messageHandler);
+              
+              const { answers } = event.data;
+              const totalQuestions = Array.isArray(answers) ? answers.length : 1;
+              const correctCount = answers.filter(a => a.isCorrect).length;
+              const answeredCount = answers.length;
+              const { userId } = getUserInfo();
+              
+              // Save quiz results (EXACTLY same as Finish Module)
+              const prepareRequestData = () => ({
+                course_id: courseId,
+                section_id: sequenceId.split('block@')[1],
+                unit_id: unitId,
+                user_id: userId,
+                template_id: 67,
+                test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
+                quiz_data: {
+                  answers,
+                  correctCount,
+                  answeredCount,
+                  totalQuestions,
+                  score: correctCount / totalQuestions
+                }
+              });
+              
+              // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+              const unitTitle = unit?.title || '';
+              const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+              
+              saveQuizResults(prepareRequestData())
+                .then(ok => {
+                  if (ok) {
+                    console.log('✅ [Timer Expired] Quiz results saved successfully');
+                    updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                  } else {
+                    console.error('❌ [Timer Expired] Error saving quiz results');
+                  }
+                  // Navigate to transition page regardless of save result (EXACTLY same as Finish Module)
+                  // Use targetModule (currentModule + 1) for transition page
+                  navigateToModuleTransition(currentModule, targetModule, navLink);
+                })
+                .catch(error => {
+                  console.error('❌ [Timer Expired] Error saving quiz results:', error);
+                  // Navigate to transition page even if save fails (EXACTLY same as Finish Module)
+                  navigateToModuleTransition(currentModule, targetModule, navLink);
+                });
+            }
+          };
+          
+          window.addEventListener('message', messageHandler);
+          iframe.contentWindow.postMessage({
+            type: 'quiz.get_answers'
+          }, '*');
+        });
+        
+        return; // Exit early, async logic will handle the rest
+        
       }
     };
     
@@ -404,7 +687,7 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     return () => {
       window.removeEventListener('moduleTestExpired', handleModuleExpired);
     };
-  }, [sequenceId, unitId, actualNextUnit, unit, nextLink, pathname, navigate]);
+  }, [sequenceId, unitId, actualNextUnit, unit, nextLink, pathname, navigate, testSessionId, courseId, sequence, currentModule, nextModule]);
   
   // Helper function to get total questions with fallback to navigation API
   const getTotalQuestions = async () => {
@@ -502,32 +785,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       }, '*');
     }
   };
-
-  // Parse module number from unit title (e.g., "1.4" -> 1, "2.1" -> 2)
-  const parseModuleNumber = (title) => {
-    if (!title) return null;
-    const match = title.match(/^(\d+)\./);
-    return match ? parseInt(match[1], 10) : null;
-  };
-  
-  // Calculate if current unit is the last question in its module (at component level)
-  const currentModule = unit?.title ? parseModuleNumber(unit.title) : null;
-  const currentIndex = sequence?.unitIds ? sequence.unitIds.findIndex(id => id === unitId) : -1;
-  const nextUnitIdForModuleCheck = (currentIndex >= 0 && currentIndex < (sequence?.unitIds?.length || 0) - 1) 
-    ? sequence.unitIds[currentIndex + 1] 
-    : null;
-  
-  // Get next unit data
-  const nextUnitForModuleCheck = useModel('units', nextUnitIdForModuleCheck || '');
-  const nextModule = (nextUnitIdForModuleCheck && nextUnitForModuleCheck && nextUnitForModuleCheck.id === nextUnitIdForModuleCheck) 
-    ? parseModuleNumber(nextUnitForModuleCheck.title) 
-    : null;
-  
-  // Check if current unit is the last question in its module
-  const isLastQuestionInModule = currentModule && nextModule && currentModule !== nextModule;
-  
-  // Check if current unit is the last question in module 3 (final test question)
-  const isLastQuestionInModule3 = currentModule === 3 && !nextUnitIdForModuleCheck;
 
   // Get next unit data from model store
   const getNextUnitData = () => {
@@ -641,7 +898,21 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       console.log('📨 [NavigationBar] Message origin:', event.origin);
       
       // Handle quiz answers from template
+      // Skip if this is being handled by Next button's message handler
+      // (Next button handler will set a flag before sending quiz.get_answers)
       if (event.data && event.data.type === 'quiz.answers') {
+        // Check if Next button is handling this (by checking if message handler was registered)
+        // We'll use a simple check: if the event was triggered by Next button's postMessage
+        // For now, we'll let Next button handler take precedence by checking if it exists
+        // Actually, we should skip this handler if Next button is active
+        // Let's add a flag check
+        const isNextButtonHandling = localStorage.getItem('nextButtonHandling') === 'true';
+        if (isNextButtonHandling) {
+          console.log('⚠️ [NavigationBar] Next button is handling this, skipping global handler');
+          localStorage.removeItem('nextButtonHandling');
+          return; // Let Next button handler take care of it
+        }
+        
         console.log('📨 [NavigationBar] Received quiz answers:', event.data);
         console.log('📨 [NavigationBar] Answers array:', event.data.answers);
         
@@ -1042,15 +1313,97 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       
       // First, save current quiz result by requesting answers from iframe
       const iframe = document.getElementById('unit-iframe');
+      let currentQuizAnswers = null;
+      
       if (iframe && iframe.contentWindow) {
         console.log('📤 [CompleteTest] Requesting answers from iframe');
-        iframe.contentWindow.postMessage({
-          type: 'quiz.get_answers'
-        }, '*');
+        
+        // Wait for answers with promise
+        const answersPromise = new Promise((resolve) => {
+          const messageHandler = (event) => {
+            if (event.data && event.data.type === 'quiz.answers') {
+              window.removeEventListener('message', messageHandler);
+              resolve(event.data.answers || []);
+            }
+          };
+          window.addEventListener('message', messageHandler);
+          iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
+          
+          // Timeout after 3 seconds
+          setTimeout(() => {
+            window.removeEventListener('message', messageHandler);
+            resolve([]);
+          }, 3000);
+        });
+        
+        currentQuizAnswers = await answersPromise;
+        
+        // Save current quiz result to database with status='completed'
+        if (currentQuizAnswers && currentQuizAnswers.length > 0 && unitId && courseId && sequenceId) {
+          // Extract IDs from current URL or use provided values
+          const currentUrl = window.location.href;
+          const urlParts = currentUrl.split('/');
+          const coursePart = urlParts.find(p => p.startsWith('course-v1:'));
+          const unitPart = urlParts.find(p => p.includes('type@vertical'));
+          
+          const extractedCourseId = coursePart || courseId;
+          const extractedUnitId = unitPart?.split('+block@')[1] || unitId;
+          const sectionIdToSave = sequenceId.split('block@')[1];
+          const { userId } = getUserInfo();
+          
+          // Calculate correctCount and actualQuestionCount first (needed for both save and updateModuleScores)
+          const correctCount = currentQuizAnswers.filter(a => a.isCorrect).length;
+          const answeredCount = currentQuizAnswers.length;
+          
+          // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+          const unitTitle = unit?.title || '';
+          const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+          
+          // Check if already saved to prevent duplicate
+          const saveKey = getUnitSaveKey(testSessionId, extractedUnitId);
+          if (wasUnitSaved(saveKey)) {
+            console.log('⚠️ [CompleteTest] Unit already saved, skipping duplicate save');
+          } else {
+            console.log('📤 [CompleteTest] Saving current quiz result with status=completed');
+            
+            // Save current quiz result with status='completed'
+            const currentQuizRequestData = {
+              section_id: sectionIdToSave,
+              unit_id: extractedUnitId,
+              course_id: extractedCourseId,
+              user_id: userId,
+              template_id: 67,
+              test_session_id: testSessionId,
+              status: 'completed', // Mark as completed
+              quiz_data: {
+                answers: currentQuizAnswers.map(a => a.userAnswer),
+                correctCount,
+                answeredCount,
+                totalQuestions: actualQuestionCount,
+                score: actualQuestionCount > 0 ? correctCount / actualQuestionCount : 0
+              }
+            };
+            
+            console.log('📤 [CompleteTest] Saving current quiz result:', currentQuizRequestData);
+            await saveQuizResults(currentQuizRequestData);
+            markUnitSaved(saveKey); // Mark as saved to prevent duplicate
+            console.log('✅ [CompleteTest] Current quiz result saved with status=completed');
+          }
+          
+          // Update module scores in localStorage (IMPORTANT: use actual question count from unit title)
+          if (currentModule) {
+            updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+            console.log('✅ [CompleteTest] Module scores updated in localStorage:', {
+              module: currentModule,
+              correct: correctCount,
+              total: actualQuestionCount
+            });
+          }
+        }
       }
       
-      // Wait for answers to be processed and saved with status='completed'
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait a bit more to ensure all saves are complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Clear the flag
       localStorage.removeItem('completingTest');
@@ -1080,7 +1433,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       const data = await response.json();
       
       if (data.success) {
-        
         // Store summary in localStorage for TestIntroPage to access
         localStorage.setItem('testSummary', JSON.stringify(data.summary));
         
@@ -1090,6 +1442,87 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           completedAt: new Date().toISOString(),
           summary: data.summary
         }));
+        
+        // Also prepare module scores for TestResultsPage (same as prepareFinalSummary)
+        const scores = readModuleScores(sequenceId) || {};
+        let moduleTotals = {};
+
+        // Fetch course navigation and compute totals per module number from unit titles
+        if (courseId && sequenceId) {
+          try {
+            const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+              method: 'GET',
+              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+              credentials: 'include',
+            });
+            if (response.ok) {
+              const navData = await response.json();
+              const seq = navData?.blocks?.[sequenceId];
+              if (seq && Array.isArray(seq.children)) {
+                const totals = {};
+                seq.children.forEach((childId) => {
+                  const child = navData.blocks[childId];
+                  const title = child?.display_name || '';
+                  // Extract module number from the first number before a dot
+                  const moduleMatch = title.match(/^(\d+)\./);
+                  const modNum = moduleMatch ? parseInt(moduleMatch[1], 10) : null;
+                  if (!modNum) {
+                    return; // skip if we can't identify the module
+                  }
+                  // Count questions per unit using the same logic as TestSeriesPage.jsx
+                  // If title contains '-', split and count parts; else count as 1
+                  let questionsInUnit = 1;
+                  if (title.includes('-')) {
+                    const parts = title
+                      .split('-')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    questionsInUnit = Math.max(1, parts.length);
+                  }
+                  totals[modNum] = (totals[modNum] || 0) + questionsInUnit;
+                });
+                moduleTotals = totals;
+              }
+            }
+          } catch (e) {
+            // Ignore fetch errors; fallback to existing totals in scores
+          }
+        }
+
+        // Merge: keep correct from scores, replace total with moduleTotals when available
+        const merged = {};
+        const keys = new Set([
+          ...Object.keys(scores || {}),
+          ...Object.keys(moduleTotals || {}),
+        ]);
+        keys.forEach((k) => {
+          const key = String(k);
+          const scoreEntry = scores[key] || {};
+          merged[key] = {
+            correct: Number(scoreEntry.correct || 0),
+            total: Number(moduleTotals[key] != null ? moduleTotals[key] : (scoreEntry.total || 0)),
+          };
+        });
+
+        // Save results to localStorage for TestResultsPage
+        localStorage.setItem('testResults', JSON.stringify({
+          moduleScores: merged,
+          testSessionId: testSessionId,
+          completedAt: new Date().toISOString(),
+          sequenceId: sequenceId
+        }));
+        
+        // Clear module scores after saving
+        clearModuleScores(sequenceId);
+        
+        // Mark test as completed to prevent going back
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`testCompleted_${sequenceId}`, 'true');
+          // Clear all timer states for this sequence
+          for (let i = 1; i <= 3; i++) {
+            localStorage.removeItem(`testTimer_${sequenceId}_${i}`);
+          }
+        }
         
         // Clear current test session (test completed)
         localStorage.removeItem('currentTestSessionId');
@@ -1104,8 +1537,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           }
         }, '*');
         
-        // Navigate back to TestIntroPage
-        window.location.href = '/learning/test-series/intro';
+        // Navigate to results page (summary page) instead of intro page
+        navigate('/test-series/results', { replace: true });
       } else {
         console.error('❌ Failed to get test summary:', data.error);
         alert('Failed to complete test: ' + data.error);
@@ -1143,202 +1576,28 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     });
   }, 100);
 
-  // Render Module Transition Page if needed
-  if (showFinalSummary && finalSummaryData) {
-    return createPortal(
-      <div
-        className="module-transition-overlay"
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: '#ffffff',
-          zIndex: 200000,
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'center',
-          paddingTop: '64px',
-        }}
-      >
-        <div className="module-transition-card" style={{ width: 'min(880px, 92%)', background: '#fff', border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '16px 20px' }}>
-          <h3 style={{ marginBottom: '1rem' }}>🏁 Test Finished</h3>
-          <div style={{ marginBottom: '1rem' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>Results by Module</div>
-            {Object.keys(finalSummaryData).sort((a,b)=>Number(a)-Number(b)).map(mod => (
-              <div key={mod} className="d-flex justify-content-between" style={{ padding: '6px 0', borderBottom: '1px solid #eee' }}>
-                <span>Module {mod}</span>
-                <span>{finalSummaryData[mod].correct}/{finalSummaryData[mod].total} correct</span>
-              </div>
-            ))}
-          </div>
-          <div className="d-flex gap-2 justify-content-end">
-            <button
-              onClick={async () => {
-                try {
-                  // Try to request answers from iframe to save final result with status=completed
-                  const iframe = document.getElementById('unit-iframe');
-                  let answers = [];
-                  if (iframe && iframe.contentWindow) {
-                    const answersPromise = new Promise((resolve) => {
-                      const messageHandler = (event) => {
-                        if (event.data && event.data.type === 'quiz.answers') {
-                          window.removeEventListener('message', messageHandler);
-                          resolve(event.data.answers || []);
-                        }
-                      };
-                      window.addEventListener('message', messageHandler);
-                      iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
-                    });
-                    answers = await answersPromise;
-                  }
+  // Helper function to navigate to module transition page
+  const navigateToModuleTransition = (currentModuleNum, nextModuleNum, navLink) => {
+    const transitionData = {
+      currentModule: currentModuleNum,
+      nextModule: nextModuleNum,
+      nextLink: navLink
+    };
 
-                  const totalQuestions = Array.isArray(answers) ? answers.length : 1;
-                  const correctCount = Array.isArray(answers) ? answers.filter(a => a.isCorrect).length : 0;
-                  const answeredCount = Array.isArray(answers) ? answers.length : 0;
+    // Save transition state to localStorage
+    if (typeof window !== 'undefined') {
+      const transitionKey = `moduleTransition_${sequenceId}_${unitId}`;
+      localStorage.setItem(transitionKey, JSON.stringify(transitionData));
+      localStorage.setItem('moduleTransition_sequenceId', sequenceId);
+      localStorage.setItem('moduleTransition_unitId', unitId);
+      // Mark that we're in transition page to prevent back navigation
+      localStorage.setItem(`moduleTransitionActive_${sequenceId}`, 'true');
+      console.log('💾 Saved module transition state:', transitionKey);
+    }
 
-                  const sectionIdToSave = sequenceId ? sequenceId.split('block@')[1] : null;
-                  const currentTestSessionId = testSessionId || localStorage.getItem('currentTestSessionId');
-                  if (sectionIdToSave && currentTestSessionId) {
-                    const requestData = {
-                      section_id: sectionIdToSave,
-                      unit_id: unitId,
-                      course_id: courseId,
-                      user_id: getUserInfo().userId,
-                      template_id: 67,
-                      test_session_id: currentTestSessionId,
-                      status: 'completed',
-                      quiz_data: {
-                        answers,
-                        correctCount,
-                        answeredCount,
-                        totalQuestions,
-                        score: totalQuestions > 0 ? (correctCount / totalQuestions) : 0,
-                      },
-                    };
-                    await saveQuizResults(requestData).catch(() => {});
-                  }
-                } catch (e) {
-                  // ignore and proceed to navigate
-                }
-
-                clearModuleScores(sequenceId);
-                navigate('/learning');
-              }}
-              style={{
-                backgroundColor: '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                minWidth: '140px'
-              }}
-            >
-              ⬅️ Back to Home
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-  if (showModuleTransition && moduleTransitionData) {
-    return (
-      <ModuleTransitionPage
-        currentModule={moduleTransitionData.currentModule}
-        nextModule={moduleTransitionData.nextModule}
-        nextLink={moduleTransitionData.nextLink}
-        onCompleteTest={handleCompleteTest}
-        onContinue={async () => {
-          // Save current quiz results before navigating (similar to Next button)
-          try {
-            console.log('📝 [Transition] Saving quiz results before navigation');
-            
-            // Get quiz answers from iframe
-            const iframe = document.getElementById('unit-iframe');
-            if (iframe && iframe.contentWindow) {
-              console.log('📤 [Transition] Requesting answers from iframe');
-              
-              const answersPromise = new Promise((resolve) => {
-                const messageHandler = (event) => {
-                  if (event.data && event.data.type === 'quiz.answers') {
-                    console.log('📨 [Transition] Received quiz answers');
-                    window.removeEventListener('message', messageHandler);
-                    resolve(event.data.answers);
-                  }
-                };
-                
-                window.addEventListener('message', messageHandler);
-                iframe.contentWindow.postMessage({
-                  type: 'quiz.get_answers'
-                }, '*');
-              });
-              
-              const answers = await answersPromise;
-              
-              // Save quiz results (use number of dropdowns as questions)
-              const totalQuestions = Array.isArray(answers) ? answers.length : 1;
-              const correctCount = answers.filter(a => a.isCorrect).length;
-              const answeredCount = answers.length;
-              const { userId } = getUserInfo();
-              
-              const prepareRequestData = () => ({
-                course_id: courseId,
-                section_id: sequenceId.split('block@')[1],
-                unit_id: unitId,
-                user_id: userId,
-                template_id: 67,
-                test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
-                quiz_data: {
-                  answers,
-                  correctCount,
-                  answeredCount,
-                  totalQuestions,
-                  score: correctCount / totalQuestions
-                }
-              });
-              
-              await saveQuizResults(prepareRequestData());
-              
-              console.log('✅ [Transition] Quiz results saved successfully');
-              // Update per-module scores for the module just finished
-              const moduleNumForScores = parseModuleNumber(unit?.title);
-              updateModuleScores(sequenceId, moduleNumForScores, correctCount, answeredCount);
-            }
-          } catch (error) {
-            console.error('❌ [Transition] Error saving quiz results:', error);
-            // Continue anyway even if save fails
-          }
-          
-          setShowModuleTransition(false);
-          
-          // Dispatch event to notify timer can resume (only if there's a next module)
-          if (moduleTransitionData.nextModule) {
-            window.dispatchEvent(new Event('transitionPageInactive'));
-          }
-          
-          // Clear saved transition state
-          if (typeof window !== 'undefined') {
-            const transitionKey = `moduleTransition_${sequenceId}_${unitId}`;
-            localStorage.removeItem(transitionKey);
-            console.log('🗑️ Cleared saved transition state:', transitionKey);
-          }
-          
-          if (moduleTransitionData.nextLink) {
-            navigate(moduleTransitionData.nextLink);
-          } else {
-            // No next link - final module, navigate to learning home
-            console.log('🏁 Final module completed, navigating to learning home');
-            navigate('/learning');
-          }
-        }}
-      />
-    );
-  }
+    // Navigate to transition page with replace to prevent back button
+    navigate('/test-series/module-transition', { replace: true });
+  };
 
   // Render into the persistent container
   return createPortal(
@@ -1363,34 +1622,7 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           {/* Show different buttons based on position */}
           {isLastQuestionInModule3 ? (
             <button
-              onClick={() => {
-                console.log('🔄 [Finish Test Button] Clicked');
-                
-                // Request answers and show final summary
-                const iframe = document.getElementById('unit-iframe');
-                if (iframe && iframe.contentWindow) {
-                  const answersPromise = new Promise((resolve) => {
-                    const messageHandler = (event) => {
-                      if (event.data && event.data.type === 'quiz.answers') {
-                        window.removeEventListener('message', messageHandler);
-                        resolve(event.data.answers);
-                      }
-                    };
-                    window.addEventListener('message', messageHandler);
-                    iframe.contentWindow.postMessage({ type: 'quiz.get_answers' }, '*');
-                  });
-                  answersPromise.then((answers) => {
-                    const correctCount = (answers || []).filter(a => a.isCorrect).length;
-                    const answeredCount = (answers || []).length;
-                    updateModuleScores(sequenceId, currentModule, correctCount, answeredCount);
-                    prepareFinalSummary();
-                  }).catch(() => {
-                    prepareFinalSummary();
-                  });
-                } else {
-                  prepareFinalSummary();
-                }
-              }}
+              onClick={handleCompleteTest}
               style={{
                 backgroundColor: '#dc3545',
                 color: 'white',
@@ -1411,7 +1643,13 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               onClick={() => {
                 console.log('🔄 [Finish Module Button] Clicked');
                 
-                // Just show transition page - save will be handled by transition page
+                // Get quiz answers and save before navigating
+                const iframe = document.getElementById('unit-iframe');
+                if (!iframe) {
+                  console.error('❌ [Finish Module] No iframe found');
+                  return;
+                }
+
                 const navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
                 
                 console.log('🔍 Current unit title:', unit?.title);
@@ -1419,27 +1657,62 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                 console.log('🔍 Next module:', nextModule);
                 console.log('🔍 Next link:', navLink);
                 
-                // Show module transition page
-                setModuleTransitionData({
-                  currentModule,
-                  nextModule,
-                  nextLink: navLink
-                });
-                setShowModuleTransition(true);
+                // Request answers from iframe
+                const messageHandler = (event) => {
+                  if (event.data && event.data.type === 'quiz.answers') {
+                    console.log('📨 [Finish Module] Received quiz answers, saving...');
+                    window.removeEventListener('message', messageHandler);
+                    
+                    const { answers } = event.data;
+                    const totalQuestions = Array.isArray(answers) ? answers.length : 1;
+                    const correctCount = answers.filter(a => a.isCorrect).length;
+                    const answeredCount = answers.length;
+                    const { userId } = getUserInfo();
+                    
+                    // Save quiz results
+                    const prepareRequestData = () => ({
+                      course_id: courseId,
+                      section_id: sequenceId.split('block@')[1],
+                      unit_id: unitId,
+                      user_id: userId,
+                      template_id: 67,
+                      test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
+                      quiz_data: {
+                        answers,
+                        correctCount,
+                        answeredCount,
+                        totalQuestions,
+                        score: correctCount / totalQuestions
+                      }
+                    });
+                    
+                    // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+                    const unitTitle = unit?.title || '';
+                    const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+                    
+                    saveQuizResults(prepareRequestData())
+                      .then(ok => {
+                        if (ok) {
+                          console.log('✅ [Finish Module] Quiz results saved successfully');
+                          updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                        } else {
+                          console.error('❌ [Finish Module] Error saving quiz results');
+                        }
+                        // Navigate to transition page regardless of save result
+                        navigateToModuleTransition(currentModule, nextModule, navLink);
+                      })
+                      .catch(error => {
+                        console.error('❌ [Finish Module] Error saving quiz results:', error);
+                        // Navigate to transition page even if save fails
+                        navigateToModuleTransition(currentModule, nextModule, navLink);
+                      });
+                  }
+                };
                 
-                // Dispatch event to notify timer is paused
-                window.dispatchEvent(new Event('transitionPageActive'));
-                
-                // Save transition state to localStorage
-                if (typeof window !== 'undefined') {
-                  const transitionKey = `moduleTransition_${sequenceId}_${unitId}`;
-                  localStorage.setItem(transitionKey, JSON.stringify({
-                    currentModule,
-                    nextModule,
-                    nextLink: navLink
-                  }));
-                  console.log('💾 Saved module transition state:', transitionKey);
-                }
+                window.addEventListener('message', messageHandler);
+                iframe.contentWindow.postMessage({
+                  type: 'quiz.get_answers'
+                }, '*');
               }}
               style={{
                 backgroundColor: '#28a745',
@@ -1469,6 +1742,9 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               }
 
               try {
+                // Set flag to indicate Next button is handling this
+                localStorage.setItem('nextButtonHandling', 'true');
+                
                 console.log('📤 [Next Button] Sending quiz.get_answers to iframe');
                 iframe.contentWindow.postMessage({
                   type: 'quiz.get_answers'
@@ -1519,6 +1795,17 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                       if (currentModule >= 3) {
                         console.log('🎯 [Next Button] Module 3 or last module detected, showing final transition page');
                         
+                        // Check if already saved to prevent duplicate
+                        const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
+                        const saveKey = getUnitSaveKey(currentSession, unitId);
+                        
+                        if (wasUnitSaved(saveKey)) {
+                          console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                          // Still show final summary
+                          prepareFinalSummary();
+                          return;
+                        }
+                        
                         // Save quiz results first
                         const prepareRequestData = () => ({
                           course_id: courseId,
@@ -1526,7 +1813,7 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                           unit_id: unitId,
                           user_id: userId,
                           template_id: 67,
-                          test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
+                          test_session_id: currentSession,
                           quiz_data: {
                             answers,
                             correctCount,
@@ -1536,19 +1823,18 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                           }
                         });
                         
+                        // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+                        const unitTitle = unit?.title || '';
+                        const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+                        
                         // Save quiz results
-                        fetch(`${getConfig().LMS_BASE_URL}/courseware/save_quiz_results/`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify(prepareRequestData())
-                        })
-                        .then(response => {
-                          if (response.ok) {
+                        saveQuizResults(prepareRequestData())
+                        .then(ok => {
+                          if (ok) {
+                            markUnitSaved(saveKey); // Mark as saved to prevent duplicate
                             console.log('✅ Quiz results saved successfully');
                             // Update per-module scores and show final summary
-                            updateModuleScores(sequenceId, currentModule, correctCount, answeredCount);
+                            updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
                             prepareFinalSummary();
                           } else {
                             console.error('❌ Error saving quiz results');
@@ -1564,14 +1850,25 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                     }
                     
                     if (isModuleTransition) {
-                      // Save quiz results first before showing transition page
+                      // Check if already saved to prevent duplicate
+                      const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
+                      const saveKey = getUnitSaveKey(currentSession, unitId);
+                      
+                      if (wasUnitSaved(saveKey)) {
+                        console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                        // Still navigate to transition page
+                        navigateToModuleTransition(currentModule, nextModule, navLink);
+                        return;
+                      }
+                      
+                      // Save quiz results first before navigating to transition page
                       const prepareRequestData = () => ({
                         course_id: courseId,
                         section_id: sequenceId.split('block@')[1],
                         unit_id: unitId,
                         user_id: userId,
                         template_id: 67,
-                        test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
+                        test_session_id: currentSession,
                         quiz_data: {
                           answers,
                           correctCount,
@@ -1581,82 +1878,92 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                         }
                       });
                       
+                      // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+                      const unitTitle = unit?.title || '';
+                      const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+                      
                       // Save quiz results
                       saveQuizResults(prepareRequestData())
                       .then(ok => {
                         if (ok) {
+                          markUnitSaved(saveKey); // Mark as saved to prevent duplicate
                           console.log('✅ Quiz results saved successfully');
-                          console.log('🔄 Module transition: Showing transition page');
-                          updateModuleScores(sequenceId, currentModule, correctCount, answeredCount);
-                          // Show module transition page
-                          setModuleTransitionData({
-                            currentModule,
-                            nextModule,
-                            nextLink: navLink
-                          });
-                          setShowModuleTransition(true);
+                          console.log('🔄 Module transition: Navigating to transition page');
+                          updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
                         } else {
                           console.error('❌ Error saving quiz results');
-                          // Still show transition page even if save fails
-                          setModuleTransitionData({
-                            currentModule,
-                            nextModule,
-                            nextLink: navLink
-                          });
-                          setShowModuleTransition(true);
                         }
+                        // Navigate to transition page regardless of save result
+                        navigateToModuleTransition(currentModule, nextModule, navLink);
                       })
                       .catch(error => {
                         console.error('❌ Error saving quiz results:', error);
-                        // Still show transition page even if save fails
-                        setModuleTransitionData({
-                          currentModule,
-                          nextModule,
-                          nextLink: navLink
-                        });
-                        setShowModuleTransition(true);
+                        // Navigate to transition page even if save fails
+                        navigateToModuleTransition(currentModule, nextModule, navLink);
                       });
                       return; // Don't navigate yet
                     }
                     
                     // Not a module transition, save and navigate normally
-                    const prepareRequestData = () => ({
-                      course_id: courseId,
-                      section_id: sequenceId.split('block@')[1],
-                      unit_id: unitId,
-                      user_id: userId,
-                      template_id: 67,
-                      test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
-                      quiz_data: {
-                        answers,
-                        correctCount,
-                        answeredCount,
-                        totalQuestions,
-                        score: correctCount / totalQuestions
-                      }
-                    });
+                    // Check if already saved to prevent duplicate
+                    const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
+                    const saveKey = getUnitSaveKey(currentSession, unitId);
                     
-                    // Save quiz results
-                    saveQuizResults(prepareRequestData())
-                      .then(ok => {
-                      if (ok) {
-                        console.log('✅ Quiz results saved successfully');
-                          updateModuleScores(sequenceId, currentModule, correctCount, answeredCount);
-                        console.log('🔍 Navigating to:', navLink);
-                        navigate(navLink);
-                      } else {
-                        console.error('❌ Error saving quiz results');
-                      }
-                    })
-                    .catch(error => {
-                      console.error('❌ Error saving quiz results:', error);
-                    });
-                  }
+                    if (wasUnitSaved(saveKey)) {
+                      console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                      // Still navigate
+                      console.log('🔍 Navigating to:', navLink);
+                      navigate(navLink);
+                    } else {
+                      const prepareRequestData = () => ({
+                        course_id: courseId,
+                        section_id: sequenceId.split('block@')[1],
+                        unit_id: unitId,
+                        user_id: userId,
+                        template_id: 67,
+                        test_session_id: currentSession,
+                        quiz_data: {
+                          answers,
+                          correctCount,
+                          answeredCount,
+                          totalQuestions,
+                          score: correctCount / totalQuestions
+                        }
+                      });
+                      
+                      // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+                      const unitTitle = unit?.title || '';
+                      const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+                      
+                      // Save quiz results
+                      saveQuizResults(prepareRequestData())
+                        .then(ok => {
+                          if (ok) {
+                            markUnitSaved(saveKey); // Mark as saved to prevent duplicate
+                            console.log('✅ Quiz results saved successfully');
+                            updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                            console.log('🔍 Navigating to:', navLink);
+                            navigate(navLink);
+                          } else {
+                            console.error('❌ Error saving quiz results');
+                          }
+                        })
+                        .catch(error => {
+                          console.error('❌ Error saving quiz results:', error);
+                        });
+                    }
+                    }
                 };
                 
                 window.addEventListener('message', messageHandler);
+                
+                // Clear flag after a timeout (in case message never arrives)
+                setTimeout(() => {
+                  localStorage.removeItem('nextButtonHandling');
+                }, 5000);
               } catch (error) {
                 console.error('❌ [Next Button] Error:', error);
+                localStorage.removeItem('nextButtonHandling');
               }
             }}
             style={{
@@ -1689,6 +1996,155 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             }}
           >
             🏁 COMPLETE TEST
+          </button>
+          {/* Test button: Finish Module - always visible for testing */}
+          <button
+            onClick={() => {
+              console.log('🔄 [Test Finish Module Button] Clicked');
+              
+              // Get quiz answers and save before navigating
+              const iframe = document.getElementById('unit-iframe');
+              if (!iframe) {
+                console.error('❌ [Test Finish Module] No iframe found');
+                return;
+              }
+
+              // Find first unit of next module (same logic as timer expiration)
+              const targetModule = currentModule ? currentModule + 1 : null;
+              
+              const findFirstUnitOfNextModule = async () => {
+                if (!currentModule || !sequence?.unitIds || !courseId) {
+                  return null;
+                }
+                
+                try {
+                  const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                  });
+                  
+                  if (response.ok) {
+                    const data = await response.json();
+                    const seq = data?.blocks?.[sequenceId];
+                    if (seq && Array.isArray(seq.children)) {
+                      // Find first unit with module number = targetModule
+                      for (const childId of seq.children) {
+                        const child = data.blocks[childId];
+                        const title = child?.display_name || '';
+                        const moduleMatch = title.match(/^(\d+)\./);
+                        const modNum = moduleMatch ? parseInt(moduleMatch[1], 10) : null;
+                        
+                        if (modNum === targetModule) {
+                          // Found first unit of next module
+                          return childId;
+                        }
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error('❌ [Test Finish Module] Error fetching navigation API:', e);
+                }
+                
+                return null;
+              };
+              
+              // Find first unit of next module
+              findFirstUnitOfNextModule().then((firstUnitOfNextModule) => {
+                let navLink = null;
+                
+                if (firstUnitOfNextModule) {
+                  // Found first unit of next module
+                  navLink = pathname.startsWith('/preview')
+                    ? `/preview/course/${courseId}/${sequenceId}/${firstUnitOfNextModule}`
+                    : `/course/${courseId}/${sequenceId}/${firstUnitOfNextModule}`;
+                } else if (nextModule && nextModule !== currentModule) {
+                  // Next quiz is already in next module, use nextLink (fallback)
+                  navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+                } else {
+                  // Fallback: use nextLink
+                  navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+                }
+                
+                console.log('🔍 [Test Finish Module] Current unit title:', unit?.title);
+                console.log('🔍 [Test Finish Module] Current module:', currentModule);
+                console.log('🔍 [Test Finish Module] Target module:', targetModule);
+                console.log('🔍 [Test Finish Module] First unit of next module:', firstUnitOfNextModule);
+                console.log('🔍 [Test Finish Module] Next link (calculated):', navLink);
+                
+                // Request answers from iframe
+                const messageHandler = (event) => {
+                  if (event.data && event.data.type === 'quiz.answers') {
+                    console.log('📨 [Test Finish Module] Received quiz answers, saving...');
+                    window.removeEventListener('message', messageHandler);
+                    
+                    const { answers } = event.data;
+                    const totalQuestions = Array.isArray(answers) ? answers.length : 1;
+                    const correctCount = answers.filter(a => a.isCorrect).length;
+                    const answeredCount = answers.length;
+                    const { userId } = getUserInfo();
+                    
+                    // Save quiz results
+                    const prepareRequestData = () => ({
+                      course_id: courseId,
+                      section_id: sequenceId.split('block@')[1],
+                      unit_id: unitId,
+                      user_id: userId,
+                      template_id: 67,
+                      test_session_id: testSessionId || localStorage.getItem('currentTestSessionId'),
+                      quiz_data: {
+                        answers,
+                        correctCount,
+                        answeredCount,
+                        totalQuestions,
+                        score: correctCount / totalQuestions
+                      }
+                    });
+                    
+                    // Get actual number of questions from unit title (e.g., "1.1-1.2-1.3" = 3 questions)
+                    const unitTitle = unit?.title || '';
+                    const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
+                    
+                    saveQuizResults(prepareRequestData())
+                      .then(ok => {
+                        if (ok) {
+                          console.log('✅ [Test Finish Module] Quiz results saved successfully');
+                          updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                        } else {
+                          console.error('❌ [Test Finish Module] Error saving quiz results');
+                        }
+                        // Navigate to transition page regardless of save result
+                        // Use targetModule (currentModule + 1) for transition page
+                        navigateToModuleTransition(currentModule, targetModule, navLink);
+                      })
+                      .catch(error => {
+                        console.error('❌ [Test Finish Module] Error saving quiz results:', error);
+                        // Navigate to transition page even if save fails
+                        navigateToModuleTransition(currentModule, targetModule, navLink);
+                      });
+                  }
+                };
+                
+                window.addEventListener('message', messageHandler);
+                iframe.contentWindow.postMessage({
+                  type: 'quiz.get_answers'
+                }, '*');
+              });
+            }}
+            style={{
+              backgroundColor: '#ffc107',
+              color: 'black',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              minWidth: '120px',
+              textDecoration: 'none'
+            }}
+          >
+            🧪 TEST: Finish Module
           </button>
         </div>
       </div>

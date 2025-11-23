@@ -28,6 +28,8 @@ import {
   ProgressPage,
   EnrollmentStatusRoute,
   TestSeriesPage,
+  TestResultsPage,
+  ModuleTransitionPage,
   CoursewareContainer,
   CoursewareRedirectLandingPage,
   OutlineTab,
@@ -89,6 +91,8 @@ subscribe(APP_READY, () => {
                     <Route path="/" element={<PageWrap><LearningHome /></PageWrap>} />
                     <Route path="/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
                     <Route path="/test-series" element={<PageWrap><TestSeriesPage /></PageWrap>} />
+                    <Route path="/test-series/results" element={<PageWrap><TestResultsPage /></PageWrap>} />
+                    <Route path="/test-series/module-transition" element={<PageWrap><ModuleTransitionPage /></PageWrap>} />
                     <Route
                       path={DECODE_ROUTES.HOME}
                       element={(

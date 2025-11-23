@@ -101,15 +101,24 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
   const [showSummary, setShowSummary] = React.useState(false);
 
   const handleStartTest = () => {
-    // Clear all test timers and transition states from localStorage
+    // Clear all test timers, transition states, and completed flags from localStorage
     if (typeof window !== 'undefined') {
       console.log('🧹 Clearing all test data from localStorage');
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('testTimer_') || key.startsWith('moduleTransition_')) {
+        if (key.startsWith('testTimer_') || 
+            key.startsWith('moduleTransition_') || 
+            key.startsWith('testCompleted_')) {
           console.log('🗑️ Removing:', key);
           localStorage.removeItem(key);
         }
       });
+      
+      // Also clear testCompleted flag for this specific sequence if sequenceId is available
+      if (testInfo?.sequenceId) {
+        const completedKey = `testCompleted_${testInfo.sequenceId}`;
+        localStorage.removeItem(completedKey);
+        console.log('🗑️ Removed testCompleted flag for sequence:', testInfo.sequenceId);
+      }
     }
     
     // Create new test session when starting test
@@ -229,15 +238,24 @@ const TestIntroPage = ({ intl, testInfo, onStartTest, onBack }) => {
     // Keep the summary but hide it
     setShowSummary(false);
     
-    // Clear all test timers and transition states from localStorage
+    // Clear all test timers, transition states, and completed flags from localStorage
     if (typeof window !== 'undefined') {
       console.log('🧹 Clearing all test data from localStorage (Take Test Again)');
       Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('testTimer_') || key.startsWith('moduleTransition_')) {
+        if (key.startsWith('testTimer_') || 
+            key.startsWith('moduleTransition_') || 
+            key.startsWith('testCompleted_')) {
           console.log('🗑️ Removing:', key);
           localStorage.removeItem(key);
         }
       });
+      
+      // Also clear testCompleted flag for this specific sequence if sequenceId is available
+      if (testInfo?.sequenceId) {
+        const completedKey = `testCompleted_${testInfo.sequenceId}`;
+        localStorage.removeItem(completedKey);
+        console.log('🗑️ Removed testCompleted flag for sequence:', testInfo.sequenceId);
+      }
     }
     
     // Create new test session for new test

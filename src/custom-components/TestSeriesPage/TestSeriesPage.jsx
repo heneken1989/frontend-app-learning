@@ -941,38 +941,6 @@ const TestSeriesPage = ({ intl }) => {
     );
   };
 
-  // Function to render unit titles for a test
-  const renderUnitTitles = (testId) => {
-    const units = testUnitTitles[testId] || [];
-    
-    if (units.length === 0) {
-      return (
-        <div className="unit-titles-empty">
-          <p className="text-muted mb-0">No unit information available</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="unit-titles">
-        <div className="unit-titles-header">
-          <h6 className="mb-2">📚 Test Units ({units.length} units)</h6>
-        </div>
-        <div className="unit-titles-list">
-          {units.map((unit, index) => (
-            <div key={unit.id} className="unit-title-item">
-              <div className="unit-info">
-                <span className="unit-title">{unit.title}</span>
-                <span className="unit-question-count">
-                  ({unit.questionCount || 1} question{unit.questionCount > 1 ? 's' : ''})
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   // Function to render wrong answers details
   const renderWrongAnswers = (testResult) => {
@@ -1008,26 +976,16 @@ const TestSeriesPage = ({ intl }) => {
   // Function to fetch test history for a specific test
   const fetchTestHistory = async (testId, sectionId) => {
     try {
-      console.log(`🔍 Fetching test history for testId: ${testId}, sectionId: ${sectionId}`);
-      
       if (!authenticatedUser) {
-        console.log('❌ No authenticated user');
         return;
       }
 
       const authUser = getAuthenticatedUser();
       const userId = authUser?.userId || authUser?.id || authenticatedUser?.userId || authenticatedUser?.id || 'anonymous';
       
-      console.log('🔍 [fetchTestHistory] Using user ID:', userId);
-      console.log('🔍 [fetchTestHistory] Auth user:', authUser);
-      console.log('🔍 [fetchTestHistory] Context user:', authenticatedUser);
-      console.log('🔍 [fetchTestHistory] Section ID:', sectionId);
-      
       // Try with specific section ID first
       const lmsBaseUrl = getLmsBaseUrl();
       let apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=10`;
-      
-      console.log(`📡 API URL (with section): ${apiUrl}`);
 
       let response = await fetch(apiUrl, {
         method: 'GET',
@@ -1038,20 +996,14 @@ const TestSeriesPage = ({ intl }) => {
         credentials: 'include'
       });
 
-      console.log(`📡 Response status (with section): ${response.status}`);
-
       let data = null;
       if (response.ok) {
         data = await response.json();
-        console.log(`📊 Raw API data (with section):`, data);
       }
 
       // If no results with specific section ID, try without section filter
       if (!data || !data.success || !data.summaries || data.summaries.length === 0) {
-        console.log('🔍 No results with specific section, trying without section filter...');
         apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=10`;
-        
-        console.log(`📡 API URL (without section): ${apiUrl}`);
 
         response = await fetch(apiUrl, {
           method: 'GET',
@@ -1062,27 +1014,18 @@ const TestSeriesPage = ({ intl }) => {
           credentials: 'include'
         });
 
-        console.log(`📡 Response status (without section): ${response.status}`);
-
         if (response.ok) {
           data = await response.json();
-          console.log(`📊 Raw API data (without section):`, data);
         }
       }
 
       if (data && data.success && data.summaries) {
-        console.log(`📊 Found ${data.summaries.length} summaries`);
-        
         // Filter results for this specific test
         let filteredSummaries = data.summaries
-          .filter(summary => {
-            console.log(`🔍 Checking summary section_id: ${summary.section_id} against target: ${sectionId}`);
-            return summary.section_id === sectionId;
-          });
+          .filter(summary => summary.section_id === sectionId);
 
         // If no results found with specific section ID, keep empty array
         if (filteredSummaries.length === 0) {
-          console.log('🔍 No test results found for this section');
           filteredSummaries = []; // Keep empty instead of using all results
         }
 
@@ -1098,8 +1041,6 @@ const TestSeriesPage = ({ intl }) => {
           groupedSummaries[testSessionId].push(summary);
         });
 
-        console.log('🔍 Grouped summaries for test history:', groupedSummaries);
-
         // Process each test session group and create test history
         const testHistory = Object.entries(groupedSummaries)
           .map(([testSessionId, summaries]) => {
@@ -1110,8 +1051,11 @@ const TestSeriesPage = ({ intl }) => {
             let latestCompletedAt = null;
             
             summaries.forEach((summary) => {
-              totalCorrectAnswers += summary.correct_answers || 0; // Sum correct answers
-              totalAnsweredQuestions += summary.answered_questions || 0;
+              const summaryCorrect = summary.correct_answers || 0;
+              const summaryAnswered = summary.answered_questions || 0;
+              
+              totalCorrectAnswers += summaryCorrect; // Sum correct answers
+              totalAnsweredQuestions += summaryAnswered;
               
               // Get the latest completion date
               if (!latestCompletedAt || new Date(summary.completed_at) > new Date(latestCompletedAt)) {
@@ -1125,7 +1069,6 @@ const TestSeriesPage = ({ intl }) => {
               const titlesH = testUnitTitles[sectionId] || [];
               const titlesTotalH = Array.isArray(titlesH) ? titlesH.reduce((sum, u) => sum + (u?.questionCount || 1), 0) : 0;
               totalQuestions = parsedTotalH || titlesTotalH || 0;
-              console.log('📊 [History] Total questions (Unit Title parsing):', { sectionId, parsedTotalH, titlesTotalH, totalQuestions });
             }
             
             // Calculate wrong answers = total_questions - correct_answers
@@ -1160,17 +1103,13 @@ const TestSeriesPage = ({ intl }) => {
             groupedFrom: summary.groupedFrom
           }));
 
-        console.log(`📊 Processed grouped test history:`, testHistory);
-
         setTestHistory(prev => ({
           ...prev,
           [testId]: testHistory
         }));
-      } else {
-        console.log('❌ No successful data or summaries found');
       }
     } catch (error) {
-      console.error('❌ Error fetching test history:', error);
+      console.error('Error fetching test history:', error);
     }
   };
 
@@ -1475,16 +1414,13 @@ const TestSeriesPage = ({ intl }) => {
                   </div>
                 </div>
                 
-                {/* Expanded row for test history and unit titles */}
+                {/* Expanded row for test history */}
                 {expandedTestId === testId && (
                   <div className="table-row-expanded">
                     <div className="expanded-content">
                       <div className="row">
-                        <div className="col-md-6">
+                        <div className="col-md-12">
                           {renderTestHistory(testId)}
-                        </div>
-                        <div className="col-md-6">
-                          {renderUnitTitles(testId)}
                         </div>
                       </div>
                     </div>
