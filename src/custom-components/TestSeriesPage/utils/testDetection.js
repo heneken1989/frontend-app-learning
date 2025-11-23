@@ -165,8 +165,14 @@ export const getAllTestSequences = (preloadedData = {}) => {
 export const isTestModeFromURL = (currentPath) => {
   if (!currentPath) return false;
   
+  // Exclude test-series listing page (not an actual test page)
+  if (currentPath === '/learning/test-series' || currentPath === '/test-series' || currentPath.match(/^\/learning\/test-series\/?$/)) {
+    return false;
+  }
+  
   const testPathPatterns = [
-    '/test-series',
+    '/test-series/results',
+    '/test-series/module-transition',
     '/test/',
     '/mock-test',
     '/模試テスト'

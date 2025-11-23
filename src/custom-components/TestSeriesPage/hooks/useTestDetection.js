@@ -35,6 +35,22 @@ export const useTestDetection = (unitId, courseId, sectionId, preloadedData = {}
 
   // Check if current unit is part of test sequence
   const checkTestSequence = useCallback(() => {
+    // Exclude test-series listing page (not an actual test page) - check FIRST
+    if (location.pathname === '/learning/test-series' || location.pathname === '/test-series' || location.pathname.match(/^\/learning\/test-series\/?$/)) {
+      setTestConfig({
+        isTestMode: false,
+        testId: null,
+        testName: null,
+        testTimeInMinutes: null,
+        courseId: null,
+        sectionId: null,
+        sequenceId: null,
+        testType: null
+      });
+      setIsLoading(false);
+      return;
+    }
+    
     if (!unitId || !courseId) {
       setTestConfig({
         isTestMode: false,
@@ -81,6 +97,22 @@ export const useTestDetection = (unitId, courseId, sectionId, preloadedData = {}
 
   // Check URL for test mode indicators
   const checkURLForTestMode = useCallback(() => {
+    // Exclude test-series listing page (not an actual test page)
+    if (location.pathname === '/learning/test-series' || location.pathname === '/test-series' || location.pathname.match(/^\/learning\/test-series\/?$/)) {
+      setTestConfig(prev => ({
+        ...prev,
+        isTestMode: false,
+        testId: null,
+        testName: null,
+        testTimeInMinutes: null,
+        courseId: null,
+        sectionId: null,
+        sequenceId: null,
+        testType: null
+      }));
+      return;
+    }
+    
     // First try the new testSectionManager approach
     const managerTestInfo = checkTestModeFromURLManager(location.pathname);
     if (managerTestInfo && managerTestInfo.isTestMode) {

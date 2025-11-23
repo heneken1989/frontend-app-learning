@@ -140,9 +140,36 @@ export const extractCourseInfoFromURL = (currentPath) => {
 export const checkTestModeFromURL = (currentPath) => {
   if (!currentPath) return null;
   
+  // Exclude test-series listing page (not an actual test page) - check FIRST before any other logic
+  if (currentPath === '/learning/test-series' || currentPath === '/test-series' || currentPath.match(/^\/learning\/test-series\/?$/)) {
+    return null;
+  }
+  
   // Extract course info from URL
   const courseInfo = extractCourseInfoFromURL(currentPath);
-  if (!courseInfo) return null;
+  if (!courseInfo) {
+    // If no course info, check for other test patterns (but exclude listing page)
+    const testPatterns = [
+      /\/test-series\/results/,
+      /\/test-series\/module-transition/,
+      /\/test\//,
+      /\/mock-test/
+    ];
+    
+    for (const pattern of testPatterns) {
+      if (pattern.test(currentPath)) {
+        return {
+          isTestMode: true,
+          courseId: null,
+          sequenceId: null,
+          sectionId: null,
+          testInfo: null
+        };
+      }
+    }
+    
+    return null;
+  }
   
   const { courseId, sequenceId } = courseInfo;
   
@@ -197,9 +224,10 @@ export const checkTestModeFromURL = (currentPath) => {
     }
   }
   
-  // Check for other test patterns
+  // Check for other test patterns (but exclude listing page - already checked above)
   const testPatterns = [
-    /\/test-series/,
+    /\/test-series\/results/,
+    /\/test-series\/module-transition/,
     /\/test\//,
     /\/mock-test/
   ];

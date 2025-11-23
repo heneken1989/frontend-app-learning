@@ -847,7 +847,14 @@ const LearningHeader = ({
 
 
   // If in test mode, render TestHeader and TestNavigationBar instead of regular header
-  if (testConfig.isTestMode || isTestMode) {
+  // But exclude test-series listing page (not an actual test page)
+  const isTestSeriesListingPage = typeof window !== 'undefined' && (
+    window.location.pathname === '/learning/test-series' || 
+    window.location.pathname === '/test-series' || 
+    window.location.pathname.match(/^\/learning\/test-series\/?$/)
+  );
+  
+  if ((testConfig.isTestMode || isTestMode) && !isTestSeriesListingPage && unitId) {
       return (
         <>
           <TestHeader
