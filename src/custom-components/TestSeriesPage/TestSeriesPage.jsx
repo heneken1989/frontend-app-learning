@@ -16,11 +16,18 @@ import './TestSeriesPage.scss';
 
 // Get dynamic LMS base URL
 const getLmsBaseUrl = () => {
-  if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
-    return 'http://local.openedx.io:8000';
-  } else {
-    // Production - use LMS subdomain
-    return 'https://lms.nihongodrill.com';
+  try {
+    const configUrl = getConfig().LMS_BASE_URL;
+    console.warn('[TestSeriesPage] getLmsBaseUrl - Using getConfig().LMS_BASE_URL:', configUrl);
+    return configUrl;
+  } catch (e) {
+    console.warn('[TestSeriesPage] getLmsBaseUrl - getConfig() failed, using fallback:', e.message);
+    if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
+      return 'http://local.openedx.io:8000';
+    } else {
+      // Production - use LMS subdomain
+      return 'https://lms.nihongodrill.com';
+    }
   }
 };
 
@@ -146,19 +153,39 @@ const TestSeriesPage = ({ intl }) => {
           
           // Fetch unit titles and calculate question counts ONLY from Unit Title parsing
           
+          console.warn('[TestSeriesPage] Starting to fetch unit titles for', individualTests.length, 'tests');
           const questionCounts = {};
           const unitTitles = {};
           for (const test of individualTests) {
             // Use the same testId logic as in render
             const testId = test.sequenceId?.split('block@')[1] || test.unitId || test.id;
+            console.warn('[TestSeriesPage] Fetching unit data for test:', {
+              testId,
+              testName: test.name,
+              sequenceId: test.sequenceId
+            });
+            
             const unitData = await getTestUnitTitlesAndCount(test.sequenceId);
             if (unitData !== null) {
               questionCounts[testId] = unitData.questionCount;
               unitTitles[testId] = unitData.unitTitles;
+              console.warn('[TestSeriesPage] Successfully fetched unit data:', {
+                testId,
+                questionCount: unitData.questionCount,
+                unitCount: unitData.unitCount,
+                unitTitlesCount: unitData.unitTitles.length
+              });
             } else {
-              
+              console.warn('[TestSeriesPage] Failed to fetch unit data for test:', {
+                testId,
+                testName: test.name,
+                sequenceId: test.sequenceId
+              });
             }
           }
+          
+          console.warn('[TestSeriesPage] Final questionCounts:', questionCounts);
+          console.warn('[TestSeriesPage] Final unitTitles keys:', Object.keys(unitTitles));
           setTestQuestionCounts(questionCounts);
           setTestUnitTitles(unitTitles);
           
@@ -463,8 +490,16 @@ const TestSeriesPage = ({ intl }) => {
       // Call navigation API to get course outline only if not cached
       if (!blocks) {
         const lmsBaseUrl = getLmsBaseUrl();
+        const navUrl = `${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`;
+        console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Fetching navigation:', {
+          sequenceId,
+          courseId,
+          lmsBaseUrl,
+          navUrl
+        });
+        
         try {
-          const response = await fetch(`${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`, {
+          const response = await fetch(navUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -473,28 +508,45 @@ const TestSeriesPage = ({ intl }) => {
             credentials: 'include'
           });
 
+          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API response:', {
+            status: response.status,
+            statusText: response.statusText,
+            ok: response.ok,
+            courseId
+          });
+
           if (!response.ok) {
             // Log error but don't spam console
             if (response.status === 500) {
-              console.warn(`⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
+              console.warn(`[TestSeriesPage] ⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
             } else {
-              console.log(`⚠️ Failed to get course outline: ${response.status}`);
+              console.warn(`[TestSeriesPage] ⚠️ Failed to get course outline: ${response.status} for ${navUrl}`);
             }
             // Return null gracefully instead of throwing
             return null;
           }
 
           const data = await response.json();
+          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API data:', {
+            courseId,
+            hasBlocks: !!data.blocks,
+            blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
+            hasSequence: data.blocks ? !!data.blocks[sequenceId] : false
+          });
           
           if (!data.blocks) {
-            console.warn(`⚠️ Navigation API response missing blocks for course ${courseId}`);
+            console.warn(`[TestSeriesPage] ⚠️ Navigation API response missing blocks for course ${courseId}`);
             return null;
           }
           blocks = data.blocks;
           courseNavCacheRef.current[courseId] = blocks; // cache per course
         } catch (error) {
           // Handle network errors gracefully
-          console.warn(`⚠️ Error fetching navigation for course ${courseId}:`, error.message);
+          console.error(`[TestSeriesPage] ⚠️ Error fetching navigation for course ${courseId}:`, {
+            error: error.message,
+            navUrl,
+            stack: error.stack
+          });
           return null;
         }
       }
@@ -505,7 +557,11 @@ const TestSeriesPage = ({ intl }) => {
         // Find the sequence block
         const sequence = blocks[sequenceId];
           if (sequence) {
-            
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Found sequence:', {
+              sequenceId,
+              hasChildren: !!sequence.children,
+              childrenCount: sequence.children ? sequence.children.length : 0
+            });
             
             // Get unit titles from sequence children
             const unitTitles = [];
@@ -519,6 +575,13 @@ const TestSeriesPage = ({ intl }) => {
                   const unitTitle = childBlock.display_name;
                   const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
                   
+                  console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing unit:', {
+                    index: index + 1,
+                    childId,
+                    unitTitle,
+                    questionsInUnit
+                  });
+                  
                   unitTitles.push({
                     id: childId,
                     title: unitTitle,
@@ -527,11 +590,24 @@ const TestSeriesPage = ({ intl }) => {
                   });
                   
                   totalQuestions += questionsInUnit;
+                } else {
+                  console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Missing child block:', {
+                    childId,
+                    index: index + 1,
+                    hasChildBlock: !!childBlock,
+                    hasDisplayName: childBlock ? !!childBlock.display_name : false
+                  });
                 }
               });
             }
             
-            
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Final result:', {
+              sequenceId,
+              unitCount,
+              totalQuestions,
+              unitTitlesCount: unitTitles.length,
+              unitTitles: unitTitles.map(u => ({ title: u.title, questionCount: u.questionCount }))
+            });
             
             const parsed = {
               unitCount,
@@ -541,7 +617,10 @@ const TestSeriesPage = ({ intl }) => {
             sequenceUnitDataCacheRef.current[sequenceId] = parsed; // cache per sequence
             return parsed;
           } else {
-            
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Sequence not found in blocks:', {
+              sequenceId,
+              availableSequenceIds: Object.keys(blocks).filter(k => k.includes('sequential'))
+            });
           }
       }
       
@@ -573,6 +652,13 @@ const TestSeriesPage = ({ intl }) => {
         ? `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=50`
         : `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=50`;
 
+      console.warn('[TestSeriesPage] fetchTestResults - Fetching test results:', {
+        sectionId,
+        userId,
+        lmsBaseUrl,
+        apiUrl
+      });
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -582,11 +668,27 @@ const TestSeriesPage = ({ intl }) => {
         credentials: 'include'
       });
 
+      console.warn('[TestSeriesPage] fetchTestResults - API response:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        sectionId
+      });
+
       if (!response.ok) {
+        console.warn('[TestSeriesPage] fetchTestResults - API request failed:', {
+          status: response.status,
+          apiUrl
+        });
         return;
       }
 
       const data = await response.json();
+      console.warn('[TestSeriesPage] fetchTestResults - API data:', {
+        success: data.success,
+        summariesCount: data.summaries ? data.summaries.length : 0,
+        sectionId
+      });
 
       if (data.success && data.summaries) {
         // Group summaries by test_session_id
@@ -653,8 +755,21 @@ const TestSeriesPage = ({ intl }) => {
             const titlesTotal = Array.isArray(titles) ? titles.reduce((sum, u) => sum + (u?.questionCount || 1), 0) : 0;
             totalQuestions = parsedTotal || titlesTotal || 0;
             
+            console.warn('[TestSeriesPage] fetchTestResults - Calculating totalQuestions:', {
+              testSessionId,
+              sectionId,
+              parsedTotal,
+              titlesTotal,
+              totalQuestions,
+              questionCountMapHasSection: sectionId in questionCountMap,
+              unitTitlesMapHasSection: sectionId in unitTitlesMap,
+              titlesArrayLength: Array.isArray(titles) ? titles.length : 0
+            });
           } else {
-            
+            console.warn('[TestSeriesPage] fetchTestResults - No sectionId found for test session:', {
+              testSessionId,
+              summariesCount: summaries.length
+            });
           }
           
           // Calculate wrong answers = total_questions - correct_answers

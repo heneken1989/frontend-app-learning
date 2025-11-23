@@ -107,13 +107,21 @@ config.resolve.symlinks = false;
 
 // Thêm plugin để tối ưu hóa bundle size
 const TerserPlugin = require('terser-webpack-plugin');
+// Cho phép giữ lại console.warn và console.error cho debugging
+// Có thể bật ENABLE_CONSOLE_LOG=true để giữ tất cả console.log
+const ENABLE_CONSOLE_LOG = process.env.ENABLE_CONSOLE_LOG === 'true';
 config.optimization.minimizer = [
   new TerserPlugin({
     terserOptions: {
       compress: {
-        drop_console: true,
+        // Chỉ drop console.log, console.info, console.debug nếu không bật ENABLE_CONSOLE_LOG
+        // Giữ lại console.warn và console.error cho debugging
+        drop_console: false, // Không drop tất cả console
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+        // Chỉ loại bỏ console.log, console.info, console.debug nếu không bật flag
+        pure_funcs: ENABLE_CONSOLE_LOG 
+          ? [] // Giữ tất cả console nếu bật flag
+          : ['console.log', 'console.info', 'console.debug'], // Chỉ loại bỏ log/info/debug, giữ warn/error
         // TỐI ƯU HÓA THÊM: Loại bỏ code không sử dụng
         unused: true,
         dead_code: true,
