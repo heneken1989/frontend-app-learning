@@ -853,42 +853,42 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   };
 
 
-  // Create persistent container
+  // Create persistent container that stays in place like TestHeader
   useEffect(() => {
-    console.log('🔍 [Container] Creating container for unitId:', unitId);
-    
-    // Always create a new container
-    containerRef.current = document.createElement('div');
-    containerRef.current.id = `test-navigation-container-${unitId}`;
-    containerRef.current.style.cssText = `
-      position: relative;
-      width: 100%;
-      background: white;
-      border-bottom: 1px solid #eee;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 1rem;
-    `;
-    
-    // Insert before the main content area instead of at body start
-    const mainContent = document.querySelector('.courseware-sequence') || document.querySelector('.unit') || document.querySelector('main');
-    if (mainContent) {
-      console.log('🔍 [Container] Found main content, inserting container');
-      mainContent.parentNode.insertBefore(containerRef.current, mainContent);
-    } else {
-      console.log('🔍 [Container] No main content found, inserting at body start');
-      document.body.insertBefore(containerRef.current, document.body.firstChild);
+    if (containerRef.current) {
+      setContainer(containerRef.current);
+      return () => {
+        if (containerRef.current && containerRef.current.parentNode) {
+          containerRef.current.parentNode.removeChild(containerRef.current);
+          containerRef.current = null;
+        }
+      };
     }
-    setContainer(containerRef.current);
+
+    const newContainer = document.createElement('div');
+    newContainer.id = 'test-navigation-container';
+    newContainer.style.cssText = `
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      z-index: 10000;
+      pointer-events: none;
+    `;
+
+    document.body.appendChild(newContainer);
+
+    containerRef.current = newContainer;
+    setContainer(newContainer);
 
     return () => {
-      // Cleanup on component unmount or when unitId changes
       if (containerRef.current && containerRef.current.parentNode) {
-        console.log('🔍 [Container] Removing container for unitId:', unitId);
         containerRef.current.parentNode.removeChild(containerRef.current);
         containerRef.current = null;
       }
     };
-  }, [unitId]); // Re-run when unitId changes
+  }, []);
 
   // Message handling for iframe communication - only handle loading states
   useEffect(() => {
@@ -1604,17 +1604,14 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     <>
       <div className="test-navigation-bar d-flex align-items-center" style={{ 
         padding: '0.5rem',
-        position: 'fixed',
-        bottom: '0',
-        left: '0',
-        right: '0',
-        zIndex: 10000,
+        position: 'relative',
+        width: '100%',
         background: '#ebebeb',
         borderTop: '1px solid #ddd',
         boxShadow: '0 -2px 4px rgba(0,0,0,0.1)',
-        width: '100%',
         height: '50px',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        pointerEvents: 'auto'
       }}>
 
         {/* Center - Next button and Complete Test button */}
