@@ -157,16 +157,21 @@ const TestSeriesPage = ({ intl }) => {
           console.warn('[TestSeriesPage] Starting to fetch unit titles for', individualTests.length, 'tests');
           const questionCounts = {};
           const unitTitles = {};
-          for (const test of individualTests) {
-            // Use the same testId logic as in render
-            const testId = test.sequenceId?.split('block@')[1] || test.unitId || test.id;
-            console.warn('[TestSeriesPage] Fetching unit data for test:', {
-              testId,
-              testName: test.name,
-              sequenceId: test.sequenceId
-            });
-            
-            const unitData = await getTestUnitTitlesAndCount(test.sequenceId);
+          const unitDataResults = await Promise.all(
+            individualTests.map(async (test) => {
+              const testId = test.sequenceId?.split('block@')[1] || test.unitId || test.id;
+              console.warn('[TestSeriesPage] Fetching unit data for test:', {
+                testId,
+                testName: test.name,
+                sequenceId: test.sequenceId
+              });
+              
+              const unitData = await getTestUnitTitlesAndCount(test.sequenceId);
+              return { test, testId, unitData };
+            })
+          );
+
+          unitDataResults.forEach(({ test, testId, unitData }) => {
             if (unitData !== null) {
               questionCounts[testId] = unitData.questionCount;
               unitTitles[testId] = unitData.unitTitles;
@@ -183,7 +188,7 @@ const TestSeriesPage = ({ intl }) => {
                 sequenceId: test.sequenceId
               });
             }
-          }
+          });
           
           console.warn('[TestSeriesPage] Final questionCounts:', questionCounts);
           console.warn('[TestSeriesPage] Final unitTitles keys:', Object.keys(unitTitles));
@@ -461,6 +466,7 @@ const TestSeriesPage = ({ intl }) => {
 
   // Caches to avoid redundant fetches: per-course navigation and per-sequence parsed unit data
   const courseNavCacheRef = useRef({}); // { [courseId]: blocks }
+  const courseNavFetchPromisesRef = useRef({}); // { [courseId]: Promise }
   const sequenceUnitDataCacheRef = useRef({}); // { [sequenceId]: { unitCount, unitTitles, questionCount } }
 
   // Function to get unit titles and count from sequence using navigation API (with caching)
@@ -490,76 +496,79 @@ const TestSeriesPage = ({ intl }) => {
 
       // Call navigation API to get course outline only if not cached
       if (!blocks) {
-        const lmsBaseUrl = getLmsBaseUrl();
-        const navUrl = `${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`;
-        console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Fetching navigation:', {
-          sequenceId,
-          courseId,
-          lmsBaseUrl,
-          navUrl
-        });
-        
-        try {
-          const response = await fetch(navUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-          });
-
-          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok,
-            courseId
-          });
-
-          if (!response.ok) {
-            // Log error but don't spam console
-            if (response.status === 500) {
-              console.warn(`[TestSeriesPage] ⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
-            } else {
-              console.warn(`[TestSeriesPage] ⚠️ Failed to get course outline: ${response.status} for ${navUrl}`);
-            }
-            // Return null gracefully instead of throwing
-            return null;
-          }
-
-          const data = await response.json();
-          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API data:', {
+        if (!courseNavFetchPromisesRef.current[courseId]) {
+          const lmsBaseUrl = getLmsBaseUrl();
+          const navUrl = `${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`;
+          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Fetching navigation:', {
+            sequenceId,
             courseId,
-            hasBlocks: !!data.blocks,
-            blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
-            hasSequence: data.blocks ? !!data.blocks[sequenceId] : false,
-            sequencePreview: data.blocks && data.blocks[sequenceId] ? {
-              type: data.blocks[sequenceId].type,
-              display_name: data.blocks[sequenceId].display_name,
-              hasChildren: !!data.blocks[sequenceId].children,
-              childrenType: Array.isArray(data.blocks[sequenceId].children) ? 'array' : typeof data.blocks[sequenceId].children,
-              childrenLength: Array.isArray(data.blocks[sequenceId].children) ? data.blocks[sequenceId].children.length : (data.blocks[sequenceId].children ? Object.keys(data.blocks[sequenceId].children).length : 0),
-              childrenSample: Array.isArray(data.blocks[sequenceId].children) 
-                ? data.blocks[sequenceId].children.slice(0, 3)
-                : (data.blocks[sequenceId].children && typeof data.blocks[sequenceId].children === 'object' 
-                  ? Object.keys(data.blocks[sequenceId].children).slice(0, 3)
-                  : null)
-            } : null
+            lmsBaseUrl,
+            navUrl
           });
-          
-          if (!data.blocks) {
-            console.warn(`[TestSeriesPage] ⚠️ Navigation API response missing blocks for course ${courseId}`);
-            return null;
-          }
-          blocks = data.blocks;
-          courseNavCacheRef.current[courseId] = blocks; // cache per course
+
+          courseNavFetchPromisesRef.current[courseId] = (async () => {
+            const response = await fetch(navUrl, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include'
+            });
+
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API response:', {
+              status: response.status,
+              statusText: response.statusText,
+              ok: response.ok,
+              courseId
+            });
+
+            if (!response.ok) {
+              if (response.status === 500) {
+                console.warn(`[TestSeriesPage] ⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
+              } else {
+                console.warn(`[TestSeriesPage] ⚠️ Failed to get course outline: ${response.status} for ${navUrl}`);
+              }
+              throw new Error(`Navigation API error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API data:', {
+              courseId,
+              hasBlocks: !!data.blocks,
+              blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
+              hasSequence: data.blocks ? !!data.blocks[sequenceId] : false,
+              sequencePreview: data.blocks && data.blocks[sequenceId] ? {
+                type: data.blocks[sequenceId].type,
+                display_name: data.blocks[sequenceId].display_name,
+                hasChildren: !!data.blocks[sequenceId].children,
+                childrenType: Array.isArray(data.blocks[sequenceId].children) ? 'array' : typeof data.blocks[sequenceId].children,
+                childrenLength: Array.isArray(data.blocks[sequenceId].children) ? data.blocks[sequenceId].children.length : (data.blocks[sequenceId].children ? Object.keys(data.blocks[sequenceId].children).length : 0),
+                childrenSample: Array.isArray(data.blocks[sequenceId].children) 
+                  ? data.blocks[sequenceId].children.slice(0, 3)
+                  : (data.blocks[sequenceId].children && typeof data.blocks[sequenceId].children === 'object' 
+                    ? Object.keys(data.blocks[sequenceId].children).slice(0, 3)
+                    : null)
+              } : null
+            });
+            
+            if (!data.blocks) {
+              console.warn(`[TestSeriesPage] ⚠️ Navigation API response missing blocks for course ${courseId}`);
+              throw new Error('Navigation API missing blocks');
+            }
+
+            courseNavCacheRef.current[courseId] = data.blocks; // cache per course
+            return data.blocks;
+          })().catch((error) => {
+            console.error(`[TestSeriesPage] ⚠️ Error during navigation fetch for course ${courseId}:`, error.message);
+            throw error;
+          });
+        }
+
+        try {
+          blocks = await courseNavFetchPromisesRef.current[courseId];
         } catch (error) {
-          // Handle network errors gracefully
-          console.error(`[TestSeriesPage] ⚠️ Error fetching navigation for course ${courseId}:`, {
-            error: error.message,
-            navUrl,
-            stack: error.stack
-          });
+          delete courseNavFetchPromisesRef.current[courseId];
           return null;
         }
       }
