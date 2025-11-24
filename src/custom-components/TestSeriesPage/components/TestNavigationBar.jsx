@@ -1549,32 +1549,87 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     }
   };
 
-  const handleFinishModuleClick = () => {
+  const findFirstUnitOfModule = async (targetModule) => {
+    if (!targetModule || !courseId || !sequenceId) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const seq = data?.blocks?.[sequenceId];
+        if (seq && Array.isArray(seq.children)) {
+          for (const childId of seq.children) {
+            const child = data.blocks[childId];
+            const title = child?.display_name || '';
+            const moduleMatch = title.match(/^(\d+)\./);
+            const modNum = moduleMatch ? parseInt(moduleMatch[1], 10) : null;
+            if (modNum === targetModule) {
+              return childId;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('❌ Error fetching navigation API for module lookup:', e);
+    }
+    return null;
+  };
+
+  const buildCourseNavLink = (targetUnitId) => {
+    if (!targetUnitId) {
+      return null;
+    }
+    if (pathname.startsWith('/preview')) {
+      return `/preview/course/${courseId}/${sequenceId}/${targetUnitId}`;
+    }
+    return `/course/${courseId}/${sequenceId}/${targetUnitId}`;
+  };
+
+  const handleFinishModuleClick = async () => {
     console.log('🔄 [Finish Module Button] Clicked');
-                
+
     const iframe = document.getElementById('unit-iframe');
     if (!iframe) {
       console.error('❌ [Finish Module] No iframe found');
       return;
     }
-    const navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
-    
+
+    const targetModule = currentModule ? currentModule + 1 : null;
+    let navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+
+    if (targetModule) {
+      const firstUnitOfNextModule = await findFirstUnitOfModule(targetModule);
+      if (firstUnitOfNextModule) {
+        navLink = buildCourseNavLink(firstUnitOfNextModule);
+      } else if (nextModule && nextModule !== currentModule) {
+        navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
+      }
+    }
+
     console.log('🔍 Current unit title:', unit?.title);
     console.log('🔍 Current module:', currentModule);
     console.log('🔍 Next module:', nextModule);
-    console.log('🔍 Next link:', navLink);
-    
+    console.log('🔍 Target module:', targetModule);
+    console.log('🔍 Next link (final):', navLink);
+
     const messageHandler = (event) => {
       if (event.data && event.data.type === 'quiz.answers') {
         console.log('📨 [Finish Module] Received quiz answers, saving...');
         window.removeEventListener('message', messageHandler);
-        
+
         const { answers } = event.data;
         const totalQuestions = Array.isArray(answers) ? answers.length : 1;
         const correctCount = answers.filter(a => a.isCorrect).length;
         const answeredCount = answers.length;
         const { userId } = getUserInfo();
-        
+
         const prepareRequestData = () => ({
           course_id: courseId,
           section_id: sequenceId.split('block@')[1],
@@ -1590,10 +1645,10 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             score: totalQuestions > 0 ? (correctCount / totalQuestions) : 0
           }
         });
-        
+
         const unitTitle = unit?.title || '';
         const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
-        
+
         saveQuizResults(prepareRequestData())
           .then(ok => {
             if (ok) {
@@ -1604,15 +1659,15 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             } else {
               console.error('❌ [Finish Module] Error saving quiz results');
             }
-            navigateToModuleTransition(currentModule, nextModule, navLink);
+            navigateToModuleTransition(currentModule, targetModule, navLink);
           })
           .catch(error => {
             console.error('❌ [Finish Module] Error saving quiz results:', error);
-            navigateToModuleTransition(currentModule, nextModule, navLink);
+            navigateToModuleTransition(currentModule, targetModule, navLink);
           });
       }
     };
-                
+
     window.addEventListener('message', messageHandler);
     iframe.contentWindow.postMessage({
       type: 'quiz.get_answers'

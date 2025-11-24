@@ -1211,7 +1211,10 @@ const TestSeriesPage = ({ intl }) => {
       
       // Try with specific section ID first
       const lmsBaseUrl = getLmsBaseUrl();
-      let apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=10`;
+      const questionsPerAttempt = Math.max(testQuestionCounts[sectionId] || 80, 20);
+      const historyLimit = Math.min(questionsPerAttempt * 5, 800); // allow up to ~5 attempts worth of units
+
+      let apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionId}&limit=${historyLimit}`;
 
       let response = await fetch(apiUrl, {
         method: 'GET',
@@ -1229,7 +1232,7 @@ const TestSeriesPage = ({ intl }) => {
 
       // If no results with specific section ID, try without section filter
       if (!data || !data.success || !data.summaries || data.summaries.length === 0) {
-        apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=10`;
+        apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&limit=${historyLimit}`;
 
         response = await fetch(apiUrl, {
           method: 'GET',
@@ -1315,7 +1318,7 @@ const TestSeriesPage = ({ intl }) => {
               groupedFrom: summaries.length
             };
           })
-          .sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at))
+          .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
           .slice(0, 3) // Get only 3 most recent
           .map((summary, index) => ({
             attemptNumber: index + 1,
