@@ -56,6 +56,7 @@ const TestSeriesPage = ({ intl }) => {
   const [testUnitTitles, setTestUnitTitles] = useState({}); // Store unit titles for each test
   const [expandedTestId, setExpandedTestId] = useState(null);
   const [testHistory, setTestHistory] = useState({});
+  const [testResultsDebugInfo, setTestResultsDebugInfo] = useState(null);
   const [expandedCourseId, setExpandedCourseId] = useState(null);
 
   useEffect(() => {
@@ -754,12 +755,24 @@ const TestSeriesPage = ({ intl }) => {
           groupedSummaries[testSessionId].push(summary);
         });
         
+        console.warn('[TestSeriesPage] fetchTestResults - Grouped summaries overview:', {
+          totalTestSessions: Object.keys(groupedSummaries).length,
+          firstTestSessionIds: Object.keys(groupedSummaries).slice(0, 10),
+          sample: Object.entries(groupedSummaries).slice(0, 1).map(([id, summaries]) => ({
+            testSessionId: id,
+            entries: summaries.length,
+            sectionId: summaries[0]?.section_id,
+            templateId: summaries[0]?.template_id,
+            completedAt: summaries[0]?.completed_at
+          }))
+        });
         
         
         // Process grouped test results
         const resultsMap = {};
         const completionMap = {};
         const attemptsMap = {};
+        const debugResults = [];
 
         // Prefer override maps if provided to avoid async state timing issues
         const questionCountMap = questionCountsOverride || testQuestionCounts;
@@ -846,6 +859,15 @@ const TestSeriesPage = ({ intl }) => {
             groupedFrom: summaries.length,
             summaries: summaries // Keep original summaries for debugging
           };
+          debugResults.push({
+            testSessionId,
+            sectionId,
+            totalQuestions,
+            totalCorrectAnswers,
+            totalAnsweredQuestions,
+            calculatedScore,
+            completedAt: latestCompletedAt
+          });
           
           completionMap[testId] = true;
           attemptsMap[testId] = 1; // Each test session counts as 1 attempt
@@ -858,9 +880,48 @@ const TestSeriesPage = ({ intl }) => {
         setTestCompletionStatus(prev => ({ ...prev, ...completionMap }));
         setTestAttempts(prev => ({ ...prev, ...attemptsMap }));
         
+        const snapshot = {
+          timestamp: new Date().toISOString(),
+          userId,
+          sectionFilter: sectionId,
+          totalSummaries: data.summaries.length,
+          totalTestSessions: Object.keys(groupedSummaries).length,
+          resultCount: Object.keys(resultsMap).length,
+          sampleSummaries: data.summaries.slice(0, 5),
+          sampleResults: debugResults.slice(0, 5)
+        };
+        console.warn('[TestSeriesPage] fetchTestResults - Final results snapshot:', snapshot);
+        setTestResultsDebugInfo(snapshot);
+        
+      } else {
+        console.warn('[TestSeriesPage] fetchTestResults - No summaries returned or success=false', {
+          sectionId,
+          success: data.success,
+          summariesCount: data.summaries ? data.summaries.length : 0,
+          rawData: data
+        });
+        setTestResultsDebugInfo({
+          timestamp: new Date().toISOString(),
+          userId,
+          sectionFilter: sectionId,
+          success: data.success,
+          summariesCount: data.summaries ? data.summaries.length : 0,
+          rawData: data
+        });
       }
     } catch (error) {
-      // Error fetching test results
+      console.error('[TestSeriesPage] fetchTestResults - Unexpected error:', {
+        sectionId,
+        error: error?.message,
+        stack: error?.stack
+      });
+      setTestResultsDebugInfo({
+        timestamp: new Date().toISOString(),
+        userId,
+        sectionFilter: sectionId,
+        error: error?.message,
+        stack: error?.stack
+      });
     }
   };
 
@@ -1378,6 +1439,39 @@ const TestSeriesPage = ({ intl }) => {
     );
   };
 
+  const renderDebugPanel = () => {
+    if (!testResultsDebugInfo) {
+      return null;
+    }
+    return (
+      <div
+        className="alert alert-warning"
+        style={{
+          background: '#fff6e5',
+          border: '1px solid #f0c36d',
+          color: '#5d3b09',
+          fontSize: '0.85rem',
+          marginBottom: '1rem'
+        }}
+      >
+        <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>
+          Test Results Debug Snapshot
+        </div>
+        <pre
+          style={{
+            maxHeight: '240px',
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            margin: 0
+          }}
+        >
+          {JSON.stringify(testResultsDebugInfo, null, 2)}
+        </pre>
+      </div>
+    );
+  };
+
   
 
   const renderTestTable = () => {
@@ -1692,6 +1786,8 @@ const TestSeriesPage = ({ intl }) => {
                 </div>
               </div>
             </div>
+
+            {renderDebugPanel()}
 
             {renderOverviewStats()}
 
