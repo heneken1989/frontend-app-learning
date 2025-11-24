@@ -769,6 +769,7 @@ const TestSeriesPage = ({ intl }) => {
         const resultsMap = {};
         const completionMap = {};
         const attemptsMap = {};
+        const sectionHistoryBuckets = {};
 
         // Prefer override maps if provided to avoid async state timing issues
         const questionCountMap = questionCountsOverride || testQuestionCounts;
@@ -858,6 +859,22 @@ const TestSeriesPage = ({ intl }) => {
           
           completionMap[testId] = true;
           attemptsMap[testId] = 1; // Each test session counts as 1 attempt
+
+          if (sectionId) {
+            if (!sectionHistoryBuckets[sectionId]) {
+              sectionHistoryBuckets[sectionId] = [];
+            }
+            sectionHistoryBuckets[sectionId].push({
+              score: calculatedScore,
+              correctAnswers: totalCorrectAnswers,
+              incorrectAnswers: totalIncorrectAnswers,
+              totalQuestions,
+              answeredQuestions: totalAnsweredQuestions,
+              completedAt: latestCompletedAt,
+              testSessionId,
+              groupedFrom: summaries.length
+            });
+          }
         }
 
         
@@ -866,6 +883,28 @@ const TestSeriesPage = ({ intl }) => {
         setTestResults(resultsMap);
         setTestCompletionStatus(prev => ({ ...prev, ...completionMap }));
         setTestAttempts(prev => ({ ...prev, ...attemptsMap }));
+
+        if (Object.keys(sectionHistoryBuckets).length > 0) {
+          const historyByTestId = {};
+          Object.entries(sectionHistoryBuckets).forEach(([sectionId, historyEntries]) => {
+            const sortedEntries = historyEntries
+              .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
+              .slice(0, 3)
+              .map((entry, index) => ({
+                attemptNumber: index + 1,
+                score: entry.score,
+                correctAnswers: entry.correctAnswers,
+                incorrectAnswers: entry.incorrectAnswers,
+                totalQuestions: entry.totalQuestions,
+                answeredQuestions: entry.answeredQuestions,
+                completedAt: entry.completedAt,
+                testSessionId: entry.testSessionId,
+                groupedFrom: entry.groupedFrom
+              }));
+            historyByTestId[sectionId] = sortedEntries;
+          });
+          setTestHistory(prev => ({ ...prev, ...historyByTestId }));
+        }
         
       }
     } catch (error) {

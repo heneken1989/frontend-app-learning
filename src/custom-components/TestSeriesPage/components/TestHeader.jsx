@@ -113,9 +113,9 @@ const TestHeader = ({
     
     // N5 time per module: Module 1: 13 min, Module 2: 25 min, Module 3: 15 min
     const timeMap = {
-      1: 1,
-      2: 1,
-      3: 1,
+      1: 20,
+      2: 40,
+      3: 35,
       4: 15, // Default for future modules
       5: 15,
     };
