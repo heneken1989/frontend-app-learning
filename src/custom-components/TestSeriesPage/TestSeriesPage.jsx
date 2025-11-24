@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
-import { AppContext, getConfig } from '@edx/frontend-platform/react';
+import { AppContext } from '@edx/frontend-platform/react';
+import { getConfig } from '@edx/frontend-platform';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { Button, Card, Alert } from '@openedx/paragon';
 import { Minus, Plus } from '@openedx/paragon/icons';
@@ -531,7 +532,19 @@ const TestSeriesPage = ({ intl }) => {
             courseId,
             hasBlocks: !!data.blocks,
             blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
-            hasSequence: data.blocks ? !!data.blocks[sequenceId] : false
+            hasSequence: data.blocks ? !!data.blocks[sequenceId] : false,
+            sequencePreview: data.blocks && data.blocks[sequenceId] ? {
+              type: data.blocks[sequenceId].type,
+              display_name: data.blocks[sequenceId].display_name,
+              hasChildren: !!data.blocks[sequenceId].children,
+              childrenType: Array.isArray(data.blocks[sequenceId].children) ? 'array' : typeof data.blocks[sequenceId].children,
+              childrenLength: Array.isArray(data.blocks[sequenceId].children) ? data.blocks[sequenceId].children.length : (data.blocks[sequenceId].children ? Object.keys(data.blocks[sequenceId].children).length : 0),
+              childrenSample: Array.isArray(data.blocks[sequenceId].children) 
+                ? data.blocks[sequenceId].children.slice(0, 3)
+                : (data.blocks[sequenceId].children && typeof data.blocks[sequenceId].children === 'object' 
+                  ? Object.keys(data.blocks[sequenceId].children).slice(0, 3)
+                  : null)
+            } : null
           });
           
           if (!data.blocks) {
@@ -557,33 +570,60 @@ const TestSeriesPage = ({ intl }) => {
         // Find the sequence block
         const sequence = blocks[sequenceId];
           if (sequence) {
+            // Debug: Log chi tiết về sequence structure
             console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Found sequence:', {
               sequenceId,
               hasChildren: !!sequence.children,
-              childrenCount: sequence.children ? sequence.children.length : 0
+              childrenType: Array.isArray(sequence.children) ? 'array' : typeof sequence.children,
+              childrenValue: sequence.children,
+              childrenKeys: sequence.children && typeof sequence.children === 'object' ? Object.keys(sequence.children) : null,
+              childrenCount: Array.isArray(sequence.children) ? sequence.children.length : (sequence.children ? Object.keys(sequence.children).length : 0),
+              sequenceKeys: Object.keys(sequence)
             });
             
             // Get unit titles from sequence children
             const unitTitles = [];
-            const unitCount = sequence.children ? sequence.children.length : 0;
             let totalQuestions = 0;
             
-            if (sequence.children) {
-              sequence.children.forEach((childId, index) => {
-                const childBlock = blocks[childId];
+            // Handle different formats of children (array or object)
+            let childrenArray = [];
+            if (Array.isArray(sequence.children)) {
+              childrenArray = sequence.children;
+            } else if (sequence.children && typeof sequence.children === 'object') {
+              // If children is an object, convert to array
+              childrenArray = Object.values(sequence.children);
+              console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - children is object, converted to array:', {
+                originalKeys: Object.keys(sequence.children),
+                arrayLength: childrenArray.length
+              });
+            }
+            
+            const unitCount = childrenArray.length;
+            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing children:', {
+              unitCount,
+              childrenArrayLength: childrenArray.length,
+              firstFewChildren: childrenArray.slice(0, 5)
+            });
+            
+            if (childrenArray.length > 0) {
+              childrenArray.forEach((childId, index) => {
+                // childId might be a string ID or an object with an id property
+                const actualChildId = typeof childId === 'string' ? childId : (childId?.id || childId);
+                const childBlock = blocks[actualChildId];
+                
                 if (childBlock && childBlock.display_name) {
                   const unitTitle = childBlock.display_name;
                   const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
                   
                   console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing unit:', {
                     index: index + 1,
-                    childId,
+                    childId: actualChildId,
                     unitTitle,
                     questionsInUnit
                   });
                   
                   unitTitles.push({
-                    id: childId,
+                    id: actualChildId,
                     title: unitTitle,
                     index: index + 1,
                     questionCount: questionsInUnit
@@ -592,11 +632,21 @@ const TestSeriesPage = ({ intl }) => {
                   totalQuestions += questionsInUnit;
                 } else {
                   console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Missing child block:', {
-                    childId,
+                    childId: actualChildId,
                     index: index + 1,
                     hasChildBlock: !!childBlock,
-                    hasDisplayName: childBlock ? !!childBlock.display_name : false
+                    hasDisplayName: childBlock ? !!childBlock.display_name : false,
+                    childBlockKeys: childBlock ? Object.keys(childBlock) : null
                   });
+                }
+              });
+            } else {
+              console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - No children found in sequence:', {
+                sequenceId,
+                sequenceStructure: {
+                  keys: Object.keys(sequence),
+                  children: sequence.children,
+                  childrenType: typeof sequence.children
                 }
               });
             }
