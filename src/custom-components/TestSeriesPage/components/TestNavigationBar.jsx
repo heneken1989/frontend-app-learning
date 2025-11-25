@@ -1741,42 +1741,50 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
 
         {/* Center - Next button and Complete Test button */}
         <div className="d-flex align-items-center gap-3" style={{ justifyContent: 'center', flex: 1, flexWrap: 'wrap' }}>
-          <button
-            onClick={handleCompleteTest}
-            style={{
-              backgroundColor: '#dc3545',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              minWidth: '120px',
-              textDecoration: 'none'
-            }}
-          >
-            🏁 Finish Test
-          </button>
-          <button
-            onClick={handleFinishModuleClick}
-            style={{
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              minWidth: '120px',
-              textDecoration: 'none'
-            }}
-          >
-            ✅ Finish Module
-          </button>
-          <button
-            onClick={() => {
+          {/* Finish Test button - only show when at last question of module 3 */}
+          {isLastQuestionInModule3 && (
+            <button
+              onClick={handleCompleteTest}
+              style={{
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                minWidth: '120px',
+                textDecoration: 'none'
+              }}
+            >
+              🏁 Finish Test
+            </button>
+          )}
+          {/* Finish Module button - only show when at last question of module 1 or 2 */}
+          {isLastQuestionInModule && currentModule !== 3 && (
+            <button
+              onClick={handleFinishModuleClick}
+              style={{
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                minWidth: '120px',
+                textDecoration: 'none'
+              }}
+            >
+              ✅ Finish Module
+            </button>
+          )}
+          {/* Next button - only show when NOT at last question of any module */}
+          {!isLastQuestionInModule && !isLastQuestionInModule3 && (
+            <button
+              onClick={() => {
               console.log('🔄 [Button Click] Next button clicked');
               
               // Send message to quiz iframe to get answers
@@ -2023,9 +2031,10 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               minWidth: '100px',
               textDecoration: 'none'
             }}
-          >
+            >
             Next
           </button>
+          )}
         </div>
       </div>
     </>,
