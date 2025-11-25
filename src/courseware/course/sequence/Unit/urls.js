@@ -78,10 +78,24 @@ export const fetchSequencesBySectionId = (sectionId) => {
     });
 };
 
+export const fetchUnitsBySequenceId = (sequenceId) => {
+  return fetch(`${getConfig().LMS_BASE_URL}/api/sequences/${encodeURIComponent(sequenceId)}/units/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch units');
+      }
+      return response.json();
+    })
+    .catch((error) => {
+      throw new Error(`Error fetching units: ${error.message}`);
+    });
+};
+
 export default {
   getIFrameUrl,
   fetchUnitById,
   fetchAllCourses,
   fetchSectionsByCourseId,
   fetchSequencesBySectionId,
+  fetchUnitsBySequenceId,
 };

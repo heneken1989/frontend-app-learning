@@ -10,7 +10,7 @@ import LearningHeader from '../Header/src/learning-header/LearningHeader';
 import TestIntroPage from './TestIntroPage';
 import { fetchTestSeries, fetchIndividualTests, startTest } from './api/testApi';
 import {
-  fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId,
+  fetchAllCourses, fetchSectionsByCourseId, fetchSequencesBySectionId, fetchUnitsBySequenceId,
 } from '../../courseware/course/sequence/Unit/urls';
 import { initializeTestSections, setCurrentTestSection, saveTestSequences } from './utils/testSectionManager';
 import './TestSeriesPage.scss';
@@ -460,226 +460,86 @@ const TestSeriesPage = ({ intl }) => {
     return 1;
   };
 
-  // Caches to avoid redundant fetches: per-course navigation and per-sequence parsed unit data
-  const courseNavCacheRef = useRef({}); // { [courseId]: blocks }
+  // Cache to avoid redundant fetches: per-sequence parsed unit data
   const sequenceUnitDataCacheRef = useRef({}); // { [sequenceId]: { unitCount, unitTitles, questionCount } }
 
-  // Function to get unit titles and count from sequence using navigation API (with caching)
+  // Function to get unit titles and count from sequence using lightweight API (with caching)
   const getTestUnitTitlesAndCount = async (sequenceId) => {
     try {
-      
-      // Extract course ID from sequence ID
-      // sequenceId format: block-v1:Manabi+N52+2026+type@sequential+block@...
-      // Split by '+type@' and take the first part
-      const parts = sequenceId.split('+type@');
-      const courseId = parts.length > 1 ? `course-v1:${parts[0].replace('block-v1:', '')}` : null;
-      
-      
-      // If no course ID found, return null
-      if (!courseId) {
-        console.log(`❌ No course ID found in sequenceId: ${sequenceId}`);
-        return null;
-      }
-      
       // Return immediately if we already parsed this sequence
       if (sequenceUnitDataCacheRef.current[sequenceId]) {
-        
         return sequenceUnitDataCacheRef.current[sequenceId];
       }
 
-      let blocks = courseNavCacheRef.current[courseId];
-
-      // Call navigation API to get course outline only if not cached
-      if (!blocks) {
-        const lmsBaseUrl = getLmsBaseUrl();
-        const navUrl = `${lmsBaseUrl}/api/course_home/v1/navigation/${courseId}`;
-        console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Fetching navigation:', {
-          sequenceId,
-          courseId,
-          lmsBaseUrl,
-          navUrl
-        });
+      // Use lightweight API to get only units of this sequence (not entire course navigation)
+      console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Fetching units for sequence:', {
+        sequenceId
+      });
+      
+      try {
+        const units = await fetchUnitsBySequenceId(sequenceId);
         
-        try {
-          const response = await fetch(navUrl, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            credentials: 'include'
-          });
+        console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Units API response:', {
+          sequenceId,
+          unitsCount: Array.isArray(units) ? units.length : 0,
+          units: Array.isArray(units) ? units.slice(0, 5) : units
+        });
 
-          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API response:', {
-            status: response.status,
-            statusText: response.statusText,
-            ok: response.ok,
-            courseId
-          });
-
-          if (!response.ok) {
-            // Log error but don't spam console
-            if (response.status === 500) {
-              console.warn(`[TestSeriesPage] ⚠️ Navigation API returned 500 for course ${courseId}. This may be a server issue. Continuing without question counts.`);
-            } else {
-              console.warn(`[TestSeriesPage] ⚠️ Failed to get course outline: ${response.status} for ${navUrl}`);
-            }
-            // Return null gracefully instead of throwing
-            return null;
-          }
-
-          const data = await response.json();
-          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Navigation API data:', {
-            courseId,
-            hasBlocks: !!data.blocks,
-            blocksCount: data.blocks ? Object.keys(data.blocks).length : 0,
-            hasSequence: data.blocks ? !!data.blocks[sequenceId] : false,
-            sequencePreview: data.blocks && data.blocks[sequenceId] ? {
-              type: data.blocks[sequenceId].type,
-              display_name: data.blocks[sequenceId].display_name,
-              hasChildren: !!data.blocks[sequenceId].children,
-              childrenType: Array.isArray(data.blocks[sequenceId].children) ? 'array' : typeof data.blocks[sequenceId].children,
-              childrenLength: Array.isArray(data.blocks[sequenceId].children) ? data.blocks[sequenceId].children.length : (data.blocks[sequenceId].children ? Object.keys(data.blocks[sequenceId].children).length : 0),
-              childrenSample: Array.isArray(data.blocks[sequenceId].children) 
-                ? data.blocks[sequenceId].children.slice(0, 3)
-                : (data.blocks[sequenceId].children && typeof data.blocks[sequenceId].children === 'object' 
-                  ? Object.keys(data.blocks[sequenceId].children).slice(0, 3)
-                  : null)
-            } : null
-          });
-          
-          if (!data.blocks) {
-            console.warn(`[TestSeriesPage] ⚠️ Navigation API response missing blocks for course ${courseId}`);
-            return null;
-          }
-          blocks = data.blocks;
-          courseNavCacheRef.current[courseId] = blocks; // cache per course
-        } catch (error) {
-          // Handle network errors gracefully
-          console.error(`[TestSeriesPage] ⚠️ Error fetching navigation for course ${courseId}:`, {
-            error: error.message,
-            navUrl,
-            stack: error.stack
-          });
+        if (!Array.isArray(units) || units.length === 0) {
+          console.warn(`[TestSeriesPage] ⚠️ No units found for sequence ${sequenceId}`);
           return null;
         }
-      }
 
-      if (blocks) {
+        // Process units to extract titles and count questions
+        const unitTitles = [];
+        let totalQuestions = 0;
         
+        units.forEach((unit, index) => {
+          const unitTitle = unit.display_name || '';
+          const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
+          
+          console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing unit:', {
+            index: index + 1,
+            unitId: unit.id,
+            unitTitle,
+            questionsInUnit
+          });
+          
+          unitTitles.push({
+            id: unit.id,
+            title: unitTitle,
+            index: index + 1,
+            questionCount: questionsInUnit
+          });
+          
+          totalQuestions += questionsInUnit;
+        });
         
-        // Find the sequence block
-        const sequence = blocks[sequenceId];
-          if (sequence) {
-            // Debug: Log chi tiết về sequence structure
-            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Found sequence:', {
-              sequenceId,
-              hasChildren: !!sequence.children,
-              childrenType: Array.isArray(sequence.children) ? 'array' : typeof sequence.children,
-              childrenValue: sequence.children,
-              childrenKeys: sequence.children && typeof sequence.children === 'object' ? Object.keys(sequence.children) : null,
-              childrenCount: Array.isArray(sequence.children) ? sequence.children.length : (sequence.children ? Object.keys(sequence.children).length : 0),
-              sequenceKeys: Object.keys(sequence)
-            });
-            
-            // Get unit titles from sequence children
-            const unitTitles = [];
-            let totalQuestions = 0;
-            
-            // Handle different formats of children (array or object)
-            let childrenArray = [];
-            if (Array.isArray(sequence.children)) {
-              childrenArray = sequence.children;
-            } else if (sequence.children && typeof sequence.children === 'object') {
-              // If children is an object, convert to array
-              childrenArray = Object.values(sequence.children);
-              console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - children is object, converted to array:', {
-                originalKeys: Object.keys(sequence.children),
-                arrayLength: childrenArray.length
-              });
-            }
-            
-            const unitCount = childrenArray.length;
-            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing children:', {
-              unitCount,
-              childrenArrayLength: childrenArray.length,
-              firstFewChildren: childrenArray.slice(0, 5)
-            });
-            
-            if (childrenArray.length > 0) {
-              childrenArray.forEach((childId, index) => {
-                // childId might be a string ID or an object with an id property
-                const actualChildId = typeof childId === 'string' ? childId : (childId?.id || childId);
-                const childBlock = blocks[actualChildId];
-                
-                if (childBlock && childBlock.display_name) {
-                  const unitTitle = childBlock.display_name;
-                  const questionsInUnit = parseUnitTitleForQuestionCount(unitTitle);
-                  
-                  console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Processing unit:', {
-                    index: index + 1,
-                    childId: actualChildId,
-                    unitTitle,
-                    questionsInUnit
-                  });
-                  
-                  unitTitles.push({
-                    id: actualChildId,
-                    title: unitTitle,
-                    index: index + 1,
-                    questionCount: questionsInUnit
-                  });
-                  
-                  totalQuestions += questionsInUnit;
-                } else {
-                  console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Missing child block:', {
-                    childId: actualChildId,
-                    index: index + 1,
-                    hasChildBlock: !!childBlock,
-                    hasDisplayName: childBlock ? !!childBlock.display_name : false,
-                    childBlockKeys: childBlock ? Object.keys(childBlock) : null
-                  });
-                }
-              });
-            } else {
-              console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - No children found in sequence:', {
-                sequenceId,
-                sequenceStructure: {
-                  keys: Object.keys(sequence),
-                  children: sequence.children,
-                  childrenType: typeof sequence.children
-                }
-              });
-            }
-            
-            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Final result:', {
-              sequenceId,
-              unitCount,
-              totalQuestions,
-              unitTitlesCount: unitTitles.length,
-              unitTitles: unitTitles.map(u => ({ title: u.title, questionCount: u.questionCount }))
-            });
-            
-            const parsed = {
-              unitCount,
-              unitTitles,
-              questionCount: totalQuestions // Total questions based on parsed unit titles
-            };
-            sequenceUnitDataCacheRef.current[sequenceId] = parsed; // cache per sequence
-            return parsed;
-          } else {
-            console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Sequence not found in blocks:', {
-              sequenceId,
-              availableSequenceIds: Object.keys(blocks).filter(k => k.includes('sequential'))
-            });
-          }
+        console.warn('[TestSeriesPage] getTestUnitTitlesAndCount - Final result:', {
+          sequenceId,
+          unitCount: units.length,
+          totalQuestions,
+          unitTitlesCount: unitTitles.length,
+          unitTitles: unitTitles.map(u => ({ title: u.title, questionCount: u.questionCount }))
+        });
+        
+        const parsed = {
+          unitCount: units.length,
+          unitTitles,
+          questionCount: totalQuestions // Total questions based on parsed unit titles
+        };
+        sequenceUnitDataCacheRef.current[sequenceId] = parsed; // cache per sequence
+        return parsed;
+      } catch (error) {
+        // Handle network errors gracefully
+        console.error(`[TestSeriesPage] ⚠️ Error fetching units for sequence ${sequenceId}:`, {
+          error: error.message,
+          stack: error.stack
+        });
+        return null;
       }
-      
-      // No fallback - return null if API fails
-      
-      return null;
     } catch (error) {
-      
+      console.error(`[TestSeriesPage] ⚠️ Unexpected error in getTestUnitTitlesAndCount:`, error);
       return null;
     }
   };
@@ -1787,10 +1647,11 @@ const TestSeriesPage = ({ intl }) => {
                   <h1 className="h2 mb-2">模試テスト (Test Series)</h1>
                   <p className="text-muted">Track your progress and take practice tests</p>
                 </div>
-              </div>
             </div>
+          </div>
 
-            {renderDebugPanel()}
+            {/* Debug panel hidden - uncomment to show debug info */}
+            {/* {renderDebugPanel()} */}
 
             {renderOverviewStats()}
 
