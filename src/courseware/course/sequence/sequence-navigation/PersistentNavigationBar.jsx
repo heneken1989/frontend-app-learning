@@ -4,6 +4,8 @@ import PropTypes from 'prop-types';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { Button } from '@openedx/paragon';
 import { useModel } from '@src/generic/model-store';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { getConfig } from '@edx/frontend-platform';
 import { GetCourseExitNavigation } from '../../course-exit';
 import { useSequenceNavigationMetadata } from './hooks';
 import messages from './messages';
@@ -29,13 +31,97 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
+  const [accessInfo, setAccessInfo] = useState(null);
+  const [isAtUnitLimit, setIsAtUnitLimit] = useState(false);
 
   const {
     isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink,
   } = useSequenceNavigationMetadata(sequenceId, unitId);
 
-  // Get unit data from model store
+  // Get sequence and unit data from model store
+  const sequence = useModel('sequences', sequenceId);
   const unit = useModel('units', unitId);
+  const section = useModel('sections', sequence?.sectionId);
+  const sectionTitle = section?.title || '';
+
+  // Fetch access_info and check unit limit
+  useEffect(() => {
+    const fetchAccessInfo = async () => {
+      try {
+        const user = getAuthenticatedUser();
+        if (!user) {
+          // Free user - default access
+          setAccessInfo({ access_type: 'free', unit_limit: 20 });
+          return;
+        }
+
+        const lmsBaseUrl = getConfig().LMS_BASE_URL;
+        const response = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-cache', // Prevent caching
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const accessInfoData = data.access_info || { access_type: 'free', unit_limit: 20 };
+          console.log('🔍 [PersistentNavigationBar] Fetched access_info:', accessInfoData);
+          setAccessInfo(accessInfoData);
+        } else {
+          setAccessInfo({ access_type: 'free', unit_limit: 20 });
+        }
+      } catch (error) {
+        console.warn('Failed to fetch access_info, defaulting to free:', error);
+        setAccessInfo({ access_type: 'free', unit_limit: 20 });
+      }
+    };
+
+    fetchAccessInfo();
+    
+    // Refresh access_info when storage changes (e.g., after activating section)
+    const handleStorageChange = (e) => {
+      if (e.key === 'access_info_updated' || !e.key) {
+        fetchAccessInfo();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    // Also listen for custom event for same-origin updates
+    window.addEventListener('accessInfoUpdated', fetchAccessInfo);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('accessInfoUpdated', fetchAccessInfo);
+    };
+  }, []);
+
+  // Check if current unit is at the limit for free users or section_access users
+  useEffect(() => {
+    if (accessInfo && sequence && unitId) {
+      const unitIndex = sequence.unitIds?.indexOf(unitId) ?? -1;
+      
+      // Check section access for section_access users
+      if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
+        // If section title is in allowed_sections, no limit
+        if (sectionTitle && accessInfo.allowed_sections.includes(sectionTitle)) {
+          setIsAtUnitLimit(false);
+          return;
+        }
+        // Otherwise, limit to 20 units (free access)
+        const isAtLimit = unitIndex >= (20 - 1);
+        setIsAtUnitLimit(isAtLimit);
+      } else if (accessInfo.access_type === 'free' && accessInfo.unit_limit) {
+        // Free user: check if current unit is the last allowed unit (index = limit - 1)
+        const isAtLimit = unitIndex >= (accessInfo.unit_limit - 1);
+        setIsAtUnitLimit(isAtLimit);
+      } else {
+        // Subscribed user: no limit
+        setIsAtUnitLimit(false);
+      }
+    } else {
+      setIsAtUnitLimit(false);
+    }
+  }, [accessInfo, sequence, unitId, sectionTitle]);
 
   // Get unit title for display
   const getUnitTitle = () => {
@@ -1534,11 +1620,35 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const renderNextButton = () => {
     const { exitActive, exitText } = courseExitNav;
     const buttonText = (isLastUnitInSequence && exitText) ? exitText : intl.formatMessage(messages.nextButton);
-    const disabled = isLastUnitInSequence;
+    // Disable if last unit OR if free user at unit limit
+    const disabled = isLastUnitInSequence || isAtUnitLimit;
     const variant = 'outline-primary';
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
     const handleNextClick = () => {
+      // Check if user is at unit limit (free users or section_access users without access)
+      if (isAtUnitLimit && accessInfo) {
+        if (accessInfo.access_type === 'section_access' && sectionTitle && !accessInfo.allowed_sections?.includes(sectionTitle)) {
+          // Section access user trying to access non-purchased section
+          const upgrade = window.confirm(
+            `Bạn chưa mua Section "${sectionTitle}". Bạn có muốn nâng cấp để xem tất cả units không?`
+          );
+          if (upgrade) {
+            window.location.href = '/learning/payment';
+          }
+          return; // Block navigation
+        } else if (accessInfo.access_type === 'free') {
+          // Free user
+          const upgrade = window.confirm(
+            'Bạn đã đạt đến giới hạn 20 units miễn phí. Bạn có muốn nâng cấp để xem tất cả units không?'
+          );
+          if (upgrade) {
+            window.location.href = '/learning/payment';
+          }
+          return; // Block navigation
+        }
+      }
+
       // Close popup if it's open when navigating to next unit
       const existingPopup = document.getElementById('test-popup');
       if (existingPopup) {

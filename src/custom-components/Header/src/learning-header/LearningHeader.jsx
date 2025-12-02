@@ -30,6 +30,8 @@ import { getCachedMenuData, setCachedMenuData, clearMenuCache, invalidateCache, 
 
 // Add cache clear button for development (remove in production)
 const clearCacheButton = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
+// Show activate buttons only in development
+const showActivateButtons = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
 
 // Expose cache management to window for debugging (development only)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -494,39 +496,37 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         >
           📝 模試テスト
         </div>
-        {/* Development: Cache refresh button */}
-        {clearCacheButton && (
-          <div
-            className="nav-item cache-refresh-link"
-            style={{
-              position: 'relative',
-              padding: '8px 16px',
-              borderRadius: 4,
-              cursor: 'pointer',
-              background: '#ff9800',
-              color: '#fff',
-              fontWeight: '600',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-              fontSize: '0.85rem',
-            }}
-            onClick={() => {
-              invalidateCache();
-              window.location.reload();
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = '#f57c00';
-              e.target.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = '#ff9800';
-              e.target.style.transform = 'translateY(0)';
-            }}
-            title={`Cache Info: ${JSON.stringify(getCacheInfo())}`}
-          >
-            🔄 Refresh Menu
-          </div>
-        )}
+        {/* Cache refresh button - available in all environments */}
+        <div
+          className="nav-item cache-refresh-link"
+          style={{
+            position: 'relative',
+            padding: '8px 16px',
+            borderRadius: 4,
+            cursor: 'pointer',
+            background: '#ff9800',
+            color: '#fff',
+            fontWeight: '600',
+            textDecoration: 'none',
+            transition: 'all 0.2s ease',
+            fontSize: '0.85rem',
+          }}
+          onClick={() => {
+            invalidateCache();
+            window.location.reload();
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = '#f57c00';
+            e.target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = '#ff9800';
+            e.target.style.transform = 'translateY(0)';
+          }}
+          title={`Cache Info: ${JSON.stringify(getCacheInfo())}`}
+        >
+          🔄 Refresh Menu
+        </div>
         {/* Hidden EnrollmentStatus */}
         {/* <EnrollmentStatus /> */}
       </div>
@@ -616,26 +616,95 @@ const LearningHeader = ({
   const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
   const [timerKey, setTimerKey] = useState(0);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [accessInfo, setAccessInfo] = useState(null);
+  const [isToggling, setIsToggling] = useState(false);
+  const [isActivatingSection, setIsActivatingSection] = useState(false);
+  const [currentSectionInfo, setCurrentSectionInfo] = useState(null);
 
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
-
-  // Extract courseId from URL if not provided
+  
+  // Extract courseId and sequenceId from URL if not provided
   const [extractedCourseId, setExtractedCourseId] = useState(courseId);
+  const [extractedSequenceId, setExtractedSequenceId] = useState(null);
   
   useEffect(() => {
-    if (!courseId && unitId) {
+    if (unitId) {
       try {
         const path = window.location ? window.location.pathname : '';
         const parsed = extractCourseInfoFromURL(path);
-        if (parsed && parsed.courseId) {
-          setExtractedCourseId(parsed.courseId);
+        if (parsed) {
+          if (parsed.courseId && !courseId) {
+            setExtractedCourseId(parsed.courseId);
+          }
+          if (parsed.sequenceId) {
+            setExtractedSequenceId(parsed.sequenceId);
+          }
         }
       } catch (e) {
         // no-op
       }
     }
   }, [courseId, unitId]);
+  
+  // Get sequence and section data for debug
+  // Try multiple sources: unit.sequenceId, extractedSequenceId from URL, or from course outline
+  const sequenceId = unit?.sequenceId || extractedSequenceId;
+  const sequence = useModel('sequences', sequenceId);
+  const section = useModel('sections', sequence?.sectionId);
+  
+  // Fallback: Try to get section from course outline if sequence doesn't have sectionId
+  const course = useModel('coursewareMeta', courseId || extractedCourseId);
+  const [fetchedSection, setFetchedSection] = useState(null);
+  
+  // Fetch section from API if not available in model store
+  useEffect(() => {
+    const fetchSectionInfo = async () => {
+      if (!section && (courseId || extractedCourseId) && sequenceId) {
+        try {
+          const lmsBaseUrl = getConfig().LMS_BASE_URL;
+          // Try to get section info from course outline API
+          const courseIdToUse = courseId || extractedCourseId;
+          if (courseIdToUse) {
+            const sectionsResponse = await fetch(`${lmsBaseUrl}/api/all_courses/${courseIdToUse}/sections/`, {
+              method: 'GET',
+              credentials: 'include',
+            });
+            
+            if (sectionsResponse.ok) {
+              const sectionsData = await sectionsResponse.json();
+              // Find section that contains this sequence
+              for (const sec of sectionsData) {
+                const sequencesResponse = await fetch(`${lmsBaseUrl}/api/sections/${sec.id}/sequences/`, {
+                  method: 'GET',
+                  credentials: 'include',
+                });
+                if (sequencesResponse.ok) {
+                  const sequencesData = await sequencesResponse.json();
+                  const hasSequence = sequencesData.some(seq => seq.id === sequenceId);
+                  if (hasSequence) {
+                    setFetchedSection({
+                      id: sec.id,
+                      title: sec.display_name || sec.title || 'Unknown Section',
+                    });
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('🔍 [LearningHeader] Failed to fetch section info:', error);
+        }
+      }
+    };
+    
+    fetchSectionInfo();
+  }, [section, courseId, extractedCourseId, sequenceId]);
+  
+  // Use fetched section as fallback
+  const currentSection = section || fetchedSection;
 
   // Use test detection hook
   const { testConfig, getTestTimerProps } = useTestDetection(
@@ -841,6 +910,320 @@ const LearningHeader = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency - only mount once
 
+  // Fetch subscription and access info for debugging
+  useEffect(() => {
+    const fetchSubscriptionInfo = async () => {
+      if (!authenticatedUser) {
+        console.log('🔍 [LearningHeader] User not authenticated - no subscription info');
+        return;
+      }
+
+      try {
+        const lmsBaseUrl = getConfig().LMS_BASE_URL;
+        
+        // Fetch subscription status
+        const subscriptionResponse = await fetch(`${lmsBaseUrl}/api/payment/subscription/status/`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (subscriptionResponse.ok) {
+          const subscriptionData = await subscriptionResponse.json();
+          setSubscriptionInfo(subscriptionData);
+          
+          console.log('🔍 [LearningHeader] ===== SUBSCRIPTION INFO =====');
+          console.log('🔍 User:', authenticatedUser.username, '(ID:', authenticatedUser.id, ')');
+          console.log('🔍 Has Subscription:', subscriptionData.has_subscription);
+          console.log('🔍 Subscription Details:', JSON.stringify(subscriptionData.subscription_info, null, 2));
+          console.log('🔍 ============================================');
+        } else {
+          console.warn('🔍 [LearningHeader] Failed to fetch subscription status:', subscriptionResponse.status);
+        }
+
+        // Fetch access info
+        const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (accessResponse.ok) {
+          const accessData = await accessResponse.json();
+          setAccessInfo(accessData.access_info);
+          
+          console.log('🔍 [LearningHeader] ===== ACCESS INFO =====');
+          console.log('🔍 Access Type:', accessData.access_info?.access_type);
+          console.log('🔍 Unit Limit:', accessData.access_info?.unit_limit);
+          console.log('🔍 Allowed Sections:', accessData.access_info?.allowed_sections || []);
+          console.log('🔍 Updated At:', accessData.access_info?.updated_at);
+          console.log('🔍 Full Access Info:', JSON.stringify(accessData.access_info, null, 2));
+          console.log('🔍 ============================================');
+        } else {
+          console.warn('🔍 [LearningHeader] Failed to fetch access info:', accessResponse.status);
+        }
+
+        // Fetch enrollment status for more details
+        const enrollmentResponse = await fetch(`${lmsBaseUrl}/api/payment/enrollment/status/`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (enrollmentResponse.ok) {
+          const enrollmentData = await enrollmentResponse.json();
+          
+          console.log('🔍 [LearningHeader] ===== ENROLLMENT STATUS =====');
+          console.log('🔍 Total Enrolled:', enrollmentData.enrollments?.total_enrolled);
+          console.log('🔍 Total Available:', enrollmentData.enrollments?.total_available);
+          console.log('🔍 Status:', JSON.stringify(enrollmentData.status, null, 2));
+          console.log('🔍 Recent Transactions:', enrollmentData.transactions?.transaction_list?.length || 0);
+          if (enrollmentData.transactions?.transaction_list?.length > 0) {
+            console.log('🔍 Latest Transaction:', JSON.stringify(enrollmentData.transactions.transaction_list[0], null, 2));
+          }
+          console.log('🔍 ============================================');
+        } else {
+          console.warn('🔍 [LearningHeader] Failed to fetch enrollment status:', enrollmentResponse.status);
+        }
+
+      } catch (error) {
+        console.error('🔍 [LearningHeader] Error fetching subscription/access info:', error);
+      }
+    };
+
+    fetchSubscriptionInfo();
+  }, [authenticatedUser]);
+
+  // Debug: Log current section and access info
+  useEffect(() => {
+    if (currentSection && accessInfo) {
+      const sectionTitle = currentSection.title || 'Unknown Section';
+      const hasSectionAccess = accessInfo.access_type === 'section_access' && 
+                               accessInfo.allowed_sections?.includes(sectionTitle);
+      
+      console.log('🔍 [LearningHeader] ===== CURRENT SECTION DEBUG =====');
+      console.log('🔍 Current Section ID:', currentSection.id);
+      console.log('🔍 Current Section Title:', sectionTitle);
+      console.log('🔍 Sequence ID:', sequenceId);
+      console.log('🔍 Unit ID:', unitId);
+      console.log('🔍 Course ID:', courseId || extractedCourseId);
+      console.log('🔍 Section Source:', section ? 'model-store' : (fetchedSection ? 'api-fetch' : 'none'));
+      console.log('🔍 ---');
+      console.log('🔍 Access Type:', accessInfo.access_type);
+      console.log('🔍 Has Section Access:', hasSectionAccess);
+      console.log('🔍 Allowed Sections:', accessInfo.allowed_sections || []);
+      console.log('🔍 Unit Limit:', accessInfo.unit_limit || 'Unlimited');
+      console.log('🔍 Can Access All Units in This Section:', 
+        accessInfo.access_type === 'subscribed' || hasSectionAccess);
+      console.log('🔍 ============================================');
+      
+      setCurrentSectionInfo({
+        id: currentSection.id,
+        title: sectionTitle,
+        hasAccess: hasSectionAccess,
+      });
+    } else if (accessInfo && unitId) {
+      // Log even if section is not available yet
+      console.log('🔍 [LearningHeader] ===== CURRENT SECTION DEBUG (Partial) =====');
+      console.log('🔍 Current Section: Not available yet');
+      console.log('🔍 Sequence ID:', sequenceId || 'Not available');
+      console.log('🔍 Unit ID:', unitId);
+      console.log('🔍 Course ID:', courseId || extractedCourseId);
+      console.log('🔍 ---');
+      console.log('🔍 Access Type:', accessInfo.access_type);
+      console.log('🔍 Allowed Sections:', accessInfo.allowed_sections || []);
+      console.log('🔍 Unit Limit:', accessInfo.unit_limit || 'Unlimited');
+      console.log('🔍 ============================================');
+    }
+  }, [currentSection, accessInfo, sequenceId, unitId, courseId, extractedCourseId, section, fetchedSection]);
+
+  // Toggle subscription status (for testing)
+  const handleToggleSubscription = async () => {
+    if (!authenticatedUser) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
+
+    if (isToggling) return;
+
+    try {
+      setIsToggling(true);
+      const lmsBaseUrl = getConfig().LMS_BASE_URL;
+      const currentStatus = subscriptionInfo?.has_subscription ? 'deactivate' : 'reactivate';
+      
+      // Step 1: Get CSRF token
+      const csrfResponse = await fetch(`${lmsBaseUrl}/api/payment/csrf-token/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!csrfResponse.ok) {
+        throw new Error('Failed to get CSRF token');
+      }
+
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.csrf_token;
+
+      if (!csrfToken) {
+        throw new Error('CSRF token not received');
+      }
+
+      // Step 2: Toggle subscription
+      const response = await fetch(`${lmsBaseUrl}/api/payment/toggle-subscription/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: currentStatus,
+          username: authenticatedUser.username
+        })
+      });
+
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error(`Server returned ${response.status}: ${response.statusText}. Check console for details.`);
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || `Failed to toggle subscription: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Refresh subscription info
+      const subscriptionResponse = await fetch(`${lmsBaseUrl}/api/payment/subscription/status/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (subscriptionResponse.ok) {
+        const subscriptionData = await subscriptionResponse.json();
+        setSubscriptionInfo(subscriptionData);
+      }
+
+      // Refresh access info
+      const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (accessResponse.ok) {
+        const accessData = await accessResponse.json();
+        setAccessInfo(accessData.access_info);
+      }
+
+      alert(`✅ ${result.message}\n\nAccess Type: ${result.access_info.access_type}\nUnit Limit: ${result.access_info.unit_limit || 'Unlimited'}\n\nVui lòng reload trang để thấy thay đổi!`);
+      
+      // Auto reload after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error toggling subscription:', error);
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  // Activate section "読解" access (for testing)
+  const handleActivateSection = async () => {
+    if (!authenticatedUser) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
+
+    if (isActivatingSection) return;
+
+    const sectionName = '読解';
+    const confirmMessage = `Bạn có chắc chắn muốn ACTIVATE section "${sectionName}" cho tài khoản này không?`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setIsActivatingSection(true);
+      const lmsBaseUrl = getConfig().LMS_BASE_URL;
+      
+      // Step 1: Get CSRF token
+      const csrfResponse = await fetch(`${lmsBaseUrl}/api/payment/csrf-token/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (!csrfResponse.ok) {
+        throw new Error('Failed to get CSRF token');
+      }
+
+      const csrfData = await csrfResponse.json();
+      const csrfToken = csrfData.csrf_token;
+
+      if (!csrfToken) {
+        throw new Error('CSRF token not received');
+      }
+
+      // Step 2: Activate section access
+      const response = await fetch(`${lmsBaseUrl}/api/payment/activate-section-access/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          section_name: sectionName
+        })
+      });
+
+      // Check if response is HTML (error page) instead of JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text.substring(0, 200));
+        throw new Error(`Server returned ${response.status}: ${response.statusText}. Check console for details.`);
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        throw new Error(errorData.error || `Failed to activate section access: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Refresh access info
+      const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (accessResponse.ok) {
+        const accessData = await accessResponse.json();
+        setAccessInfo(accessData.access_info);
+        
+        // Dispatch event to notify other components (e.g., SidebarSequence) to refresh
+        window.dispatchEvent(new CustomEvent('accessInfoUpdated'));
+        // Also update localStorage to trigger storage event for cross-tab updates
+        localStorage.setItem('access_info_updated', Date.now().toString());
+      }
+
+      alert(`✅ ${result.message}\n\nSection: ${result.section_name}\nEnrolled Courses: ${result.enrolled_courses}\n\nVui lòng reload trang để thấy thay đổi!`);
+      
+      // Auto reload after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error activating section access:', error);
+      alert(`❌ Lỗi: ${error.message}`);
+    } finally {
+      setIsActivatingSection(false);
+    }
+  };
+
   const handleTimeExpired = () => {
     // Handle time expiration logic here
   };
@@ -905,6 +1288,78 @@ const LearningHeader = ({
               onTimeExpired={handleTimeExpired}
             />
           ) : null}
+          {/* Toggle Subscription Button (for testing - development only) */}
+          {showActivateButtons && authenticatedUser && subscriptionInfo && (
+            <div
+              className="nav-item toggle-subscription-link"
+              style={{
+                position: 'relative',
+                padding: '8px 16px',
+                borderRadius: 4,
+                cursor: isToggling ? 'not-allowed' : 'pointer',
+                background: subscriptionInfo.has_subscription ? '#f44336' : '#4caf50',
+                color: '#fff',
+                fontWeight: '600',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                opacity: isToggling ? 0.6 : 1,
+                fontSize: '0.85rem',
+              }}
+              onClick={handleToggleSubscription}
+              onMouseEnter={(e) => {
+                if (!isToggling) {
+                  e.target.style.opacity = '0.8';
+                  e.target.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isToggling) {
+                  e.target.style.opacity = '1';
+                  e.target.style.transform = 'translateY(0)';
+                }
+              }}
+              title={`Current: ${subscriptionInfo.has_subscription ? 'Subscribed' : 'Free'} - Click to ${subscriptionInfo.has_subscription ? 'Deactivate' : 'Activate'}`}
+            >
+              {isToggling ? '⏳...' : (subscriptionInfo.has_subscription ? '🔴 Deactivate Sub' : '🟢 Activate Sub')}
+            </div>
+          )}
+          {/* Activate Section "読解" Button (for testing - development only) */}
+          {showActivateButtons && authenticatedUser && (
+            <div
+              className="nav-item activate-section-link"
+              style={{
+                position: 'relative',
+                padding: '8px 16px',
+                borderRadius: 4,
+                cursor: isActivatingSection ? 'not-allowed' : 'pointer',
+                background: '#ff9800',
+                color: '#fff',
+                fontWeight: '600',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+                opacity: isActivatingSection ? 0.6 : 1,
+                fontSize: '0.85rem',
+                minWidth: '140px',
+                textAlign: 'center',
+              }}
+              onClick={handleActivateSection}
+              onMouseEnter={(e) => {
+                if (!isActivatingSection) {
+                  e.target.style.opacity = '0.8';
+                  e.target.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActivatingSection) {
+                  e.target.style.opacity = '1';
+                  e.target.style.transform = 'translateY(0)';
+                }
+              }}
+              title="Activate Section 読解 Access (for testing)"
+            >
+              {isActivatingSection ? '⏳ Activating...' : '📚 Activate 読解'}
+            </div>
+          )}
           <div
             className="nav-item payment-link"
             style={{

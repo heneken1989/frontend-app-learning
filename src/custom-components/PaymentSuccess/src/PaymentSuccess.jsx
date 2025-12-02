@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { getConfig } from '@edx/frontend-platform';
 import './PaymentSuccess.scss';
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [isProcessing, setIsProcessing] = useState(false);
   const [transactionData, setTransactionData] = useState({
-    txnRef: searchParams.get('txnRef') || 'DEMO123',
+    txnRef: searchParams.get('txnRef') || searchParams.get('orderCode') || 'DEMO123',
     amount: searchParams.get('amount') || '500000',
     simulator: searchParams.get('simulator') === 'true',
     subscription: searchParams.get('subscription') === 'true',
@@ -16,8 +18,53 @@ const PaymentSuccess = () => {
   });
 
   useEffect(() => {
-    // Log transaction data
-  }, [transactionData]);
+    // Check if this is a PayOS callback (has orderCode, code, status)
+    const orderCode = searchParams.get('orderCode');
+    const code = searchParams.get('code');
+    const status = searchParams.get('status');
+    
+    if (orderCode && (code || status)) {
+      // This is PayOS callback, need to process it
+      handlePayOSCallback(orderCode, code, status);
+    }
+  }, [searchParams]);
+
+  const handlePayOSCallback = async (orderCode, code, status) => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
+    try {
+      const lmsBaseUrl = getConfig().LMS_BASE_URL;
+      // Call backend to process PayOS callback
+      const response = await fetch(`${lmsBaseUrl}/api/payment/callback/?orderCode=${orderCode}&code=${code}&status=${status}&cancel=false`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // Backend will redirect, but if it returns JSON, update state
+        try {
+          const data = await response.json();
+          if (data.success) {
+            setTransactionData(prev => ({
+              ...prev,
+              txnRef: `PAYOS_${orderCode}`,
+              subscription: true,
+              paymentType: 'all_access',
+              enrolledCount: data.enrolledCount || 0,
+              totalCourses: data.totalCourses || 0,
+            }));
+          }
+        } catch {
+          // Response was redirect, that's fine
+        }
+      }
+    } catch (error) {
+      console.error('Error processing PayOS callback:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN', {
     style: 'currency',

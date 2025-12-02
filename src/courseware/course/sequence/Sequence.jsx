@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 
 import {
   sendTrackEvent,
@@ -8,6 +9,8 @@ import {
 } from '@edx/frontend-platform/analytics';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { useSelector } from 'react-redux';
+import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
+import { getConfig } from '@edx/frontend-platform';
 import SequenceExamWrapper from '@edx/frontend-lib-special-exams';
 
 import PageLoading from '@src/generic/PageLoading';
@@ -34,6 +37,9 @@ const Sequence = ({
   previousSequenceHandler,
 }) => {
   const intl = useIntl();
+  const navigate = useNavigate();
+  const [accessInfo, setAccessInfo] = useState(null);
+  
   // Safe check: metadata may be loading in background (non-blocking)
   const coursewareMeta = useModel('coursewareMeta', courseId) || {};
   const {
@@ -51,10 +57,166 @@ const Sequence = ({
   const sequenceStatus = useSelector(state => state.courseware.sequenceStatus);
   const sequenceMightBeUnit = useSelector(state => state.courseware.sequenceMightBeUnit);
   const { enableNavigationSidebar: isEnabledOutlineSidebar } = useSelector(getCoursewareOutlineSidebarSettings);
+
+  // Fetch access_info
+  useEffect(() => {
+    const fetchAccessInfo = async () => {
+      try {
+        const user = getAuthenticatedUser();
+        if (!user) {
+          setAccessInfo({ access_type: 'free', unit_limit: 20 });
+          return;
+        }
+
+        const lmsBaseUrl = getConfig().LMS_BASE_URL;
+        const response = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAccessInfo(data.access_info || { access_type: 'free', unit_limit: 20 });
+        } else {
+          setAccessInfo({ access_type: 'free', unit_limit: 20 });
+        }
+      } catch (error) {
+        console.warn('Failed to fetch access_info:', error);
+        setAccessInfo({ access_type: 'free', unit_limit: 20 });
+      }
+    };
+
+    fetchAccessInfo();
+  }, []);
+
+  // Check if current unit is beyond limit and redirect if needed
+  useEffect(() => {
+    if (accessInfo && sequence && unitId && section) {
+      const unitIndex = sequence.unitIds?.indexOf(unitId) ?? -1;
+      const sectionTitle = section?.title || '';
+      
+      // Check section access for section_access users
+      if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
+        const excludedSections = accessInfo.excluded_sections || [];
+        
+        // Check if section is excluded
+        const isExcluded = excludedSections.includes(sectionTitle);
+        
+        // Check if allowed_sections is ['*'] (all sections)
+        const hasAllSections = accessInfo.allowed_sections.includes('*');
+        
+        // If section is excluded, limit to 20 units
+        if (isExcluded) {
+          if (unitIndex >= 20) {
+            const lastAllowedIndex = 19;
+            const lastAllowedUnitId = sequence.unitIds[lastAllowedIndex];
+            if (lastAllowedUnitId) {
+              console.warn(`Unit ${unitId} is beyond limit for excluded section "${sectionTitle}". Redirecting to last allowed unit.`);
+              navigate(`/course/${courseId}/${sequenceId}/${lastAllowedUnitId}`, { replace: true });
+            }
+          }
+          return; // Exit early for excluded sections
+        }
+        
+        // If has all sections (and not excluded), no limit - allow all units
+        if (hasAllSections) {
+          return; // No limit for all sections access
+        }
+        
+        // If section title is NOT in allowed_sections, limit to 20 units
+        if (sectionTitle && !accessInfo.allowed_sections.includes(sectionTitle)) {
+          if (unitIndex >= 20) {
+            const lastAllowedIndex = 19;
+            const lastAllowedUnitId = sequence.unitIds[lastAllowedIndex];
+            if (lastAllowedUnitId) {
+              console.warn(`Unit ${unitId} is beyond limit for section "${sectionTitle}". Redirecting to last allowed unit.`);
+              navigate(`/course/${courseId}/${sequenceId}/${lastAllowedUnitId}`, { replace: true });
+            }
+          }
+        }
+        // If section is in allowed_sections, no limit - allow all units
+      } else if (accessInfo.access_type === 'free' && accessInfo.unit_limit) {
+        // Free user: check unit limit
+        if (unitIndex >= accessInfo.unit_limit) {
+          const lastAllowedIndex = accessInfo.unit_limit - 1;
+          const lastAllowedUnitId = sequence.unitIds[lastAllowedIndex];
+          if (lastAllowedUnitId) {
+            console.warn(`Unit ${unitId} is beyond limit. Redirecting to last allowed unit.`);
+            navigate(`/course/${courseId}/${sequenceId}/${lastAllowedUnitId}`, { replace: true });
+          }
+        }
+      }
+    }
+  }, [accessInfo, sequence, unitId, courseId, sequenceId, navigate, section]);
+
   const handleNext = () => {
-    const nextIndex = sequence.unitIds.indexOf(unitId) + 1;
+    if (!sequence || !unitId) return;
+    
+    const currentIndex = sequence.unitIds.indexOf(unitId);
+    const nextIndex = currentIndex + 1;
+    
+    // Check access limit for free users or section_access users
+    if (accessInfo) {
+      const sectionTitle = section?.title || '';
+      
+      if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
+        const excludedSections = accessInfo.excluded_sections || [];
+        
+        // Check if section is excluded
+        const isExcluded = excludedSections.includes(sectionTitle);
+        
+        // Check if allowed_sections is ['*'] (all sections)
+        const hasAllSections = accessInfo.allowed_sections.includes('*');
+        
+        // If section is excluded, limit to 20 units
+        if (isExcluded) {
+          if (nextIndex >= 20) {
+            const upgrade = window.confirm(
+              `Section "${sectionTitle}" không được bao gồm trong gói của bạn. Bạn có muốn nâng cấp để xem tất cả units không?`
+            );
+            if (upgrade) {
+              window.location.href = '/learning/payment';
+            }
+            return; // Block navigation
+          }
+          return; // Allow navigation within first 20 units for excluded sections
+        }
+        
+        // If has all sections (and not excluded), no limit - allow navigation
+        if (hasAllSections) {
+          return; // No limit for all sections access
+        }
+        
+        // If section title is NOT in allowed_sections, limit to 20 units
+        if (sectionTitle && !accessInfo.allowed_sections.includes(sectionTitle)) {
+          if (nextIndex >= 20) {
+            const upgrade = window.confirm(
+              `Bạn chưa mua Section "${sectionTitle}". Bạn có muốn nâng cấp để xem tất cả units không?`
+            );
+            if (upgrade) {
+              window.location.href = '/learning/payment';
+            }
+            return; // Block navigation
+          }
+        }
+        // If section is in allowed_sections, no limit - allow navigation
+      } else if (accessInfo.access_type === 'free' && accessInfo.unit_limit) {
+        if (nextIndex >= accessInfo.unit_limit) {
+          const upgrade = window.confirm(
+            'Bạn đã đạt đến giới hạn 20 units miễn phí. Bạn có muốn nâng cấp để xem tất cả units không?'
+          );
+          if (upgrade) {
+            window.location.href = '/learning/payment';
+          }
+          return; // Block navigation
+        }
+      }
+    }
+    
     const newUnitId = sequence.unitIds[nextIndex];
-    handleNavigate(newUnitId);
+    if (newUnitId) {
+      handleNavigate(newUnitId);
+    }
 
     if (nextIndex >= sequence.unitIds.length) {
       nextSequenceHandler();
