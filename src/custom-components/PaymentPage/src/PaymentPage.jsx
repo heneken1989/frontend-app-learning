@@ -3,34 +3,22 @@ import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 import { getConfig } from '@edx/frontend-platform';
 import { AppContext } from '@edx/frontend-platform/react';
 import PropTypes from 'prop-types';
+import LearningHeader from '../../Header/src/learning-header/LearningHeader';
 import './PaymentPage.scss';
 
 const PaymentPage = ({ intl }) => {
   const { authenticatedUser } = useContext(AppContext);
-  const [selectedPackage, setSelectedPackage] = useState('all_access'); // 'all_access', 'section_access', 'all_except_conversation', 'mock_test', or 'comprehensive_sections'
+  const [selectedPackage, setSelectedPackage] = useState('section_access'); // 'section_access', 'all_except_conversation', 'mock_test', or 'comprehensive_sections'
   const [paymentMethod, setPaymentMethod] = useState('payos'); // Default to PayOS
   const [isProcessing, setIsProcessing] = useState(false);
   const [useSimulator, setUseSimulator] = useState(false); // Default to VNPay sandbox
   const [selectedDuration, setSelectedDuration] = useState('1'); // '1', '3', or '6' months
   const [subscriptionInfo, setSubscriptionInfo] = useState(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
-  const [showSubscriptionTab, setShowSubscriptionTab] = useState(false);
+  const [activeTab, setActiveTab] = useState('packages'); // 'packages' or 'subscription'
 
   // Package configurations
   const packages = {
-    all_access: {
-      name: 'Gói All Access',
-      description: 'Truy cập tất cả khóa học',
-      price: 2000,
-      courseName: 'Gói All Access - Truy cập tất cả khóa học',
-      benefits: [
-        '✅ Truy cập không giới hạn tất cả khóa học',
-        '✅ Học bất cứ lúc nào, bất cứ đâu',
-        '✅ Cập nhật khóa học mới miễn phí',
-        '✅ Chứng chỉ hoàn thành',
-        '✅ Hỗ trợ học tập 24/7'
-      ]
-    },
     section_access: {
       name: 'Gói 読解 Section',
       description: 'Truy cập đầy đủ Section 読解',
@@ -40,9 +28,7 @@ const PaymentPage = ({ intl }) => {
       allowedSections: ['読解'],
       benefits: [
         '✅ Truy cập đầy đủ tất cả units trong Section 読解',
-        '✅ Không giới hạn số lượng units',
-        '✅ Học bất cứ lúc nào',
-        '✅ Hỗ trợ học tập'
+        '✅ Không giới hạn số lượng units'
       ]
     },
     all_except_conversation: {
@@ -54,9 +40,7 @@ const PaymentPage = ({ intl }) => {
       excludedSections: ['会話練習'], // Exclude this section
       benefits: [
         '✅ Truy cập tất cả sections trừ 会話練習',
-        '✅ Không giới hạn số lượng units',
-        '✅ Học bất cứ lúc nào',
-        '✅ Hỗ trợ học tập'
+        '✅ Không giới hạn số lượng units'
       ]
     },
     mock_test: {
@@ -68,9 +52,7 @@ const PaymentPage = ({ intl }) => {
       allowedSections: ['模試テスト'],
       benefits: [
         '✅ Truy cập đầy đủ tất cả units trong Section 模試テスト',
-        '✅ Không giới hạn số lượng units',
-        '✅ Học bất cứ lúc nào',
-        '✅ Hỗ trợ học tập'
+        '✅ Không giới hạn số lượng units'
       ]
     },
     comprehensive_sections: {
@@ -84,9 +66,7 @@ const PaymentPage = ({ intl }) => {
         '✅ Truy cập đầy đủ Section 言葉。漢字',
         '✅ Truy cập đầy đủ Section 文法',
         '✅ Truy cập đầy đủ Section 読解',
-        '✅ Không giới hạn số lượng units',
-        '✅ Học bất cứ lúc nào',
-        '✅ Hỗ trợ học tập'
+        '✅ Không giới hạn số lượng units'
       ]
     }
   };
@@ -191,11 +171,11 @@ const PaymentPage = ({ intl }) => {
       // Tạo dữ liệu thanh toán
       const paymentData = {
         amount: currentPrice,
-        courseId: selectedPackage === 'all_access' ? 'ALL_COURSES' : null,
+        courseId: null,
         courseName: currentPackage.courseName,
         currency: 'VND',
         paymentMethod,
-        paymentType: selectedPackage === 'all_access' ? 'all_access' : 'section_access', // Map to backend payment types
+        paymentType: 'section_access', // All packages are section_access now
         sectionName: currentPackage.sectionName || null, // For backward compatibility
         allowedSections: currentPackage.allowedSections || null, // List of allowed sections, or ['*'] for all
         excludedSections: currentPackage.excludedSections || null, // List of excluded sections
@@ -270,39 +250,9 @@ const PaymentPage = ({ intl }) => {
     currency: 'VND',
   }).format(price);
 
-  return (
-    <div className="payment-page" style={{ width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
-      <div className="payment-container" style={{ width: '100%', maxWidth: '100%', padding: '0 10px' }}>
-        {/* Subscription Info Tab */}
-        <div style={{ 
-          marginBottom: '10px', 
-          border: '1px solid #ddd', 
-          borderRadius: '6px', 
-          overflow: 'hidden',
-          background: '#f9f9f9'
-        }}>
-          <div 
-            style={{ 
-              padding: '8px 12px', 
-              background: '#0097a9', 
-              color: 'white', 
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-            onClick={() => setShowSubscriptionTab(!showSubscriptionTab)}
-          >
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
-              📋 Thông tin Subscription hiện tại
-            </h3>
-            <span style={{ fontSize: '16px' }}>
-              {showSubscriptionTab ? '▼' : '▶'}
-            </span>
-          </div>
-          
-          {showSubscriptionTab && (
-            <div style={{ padding: '12px', background: 'white' }}>
+  // Render subscription info content
+  const renderSubscriptionContent = () => (
+            <div style={{ padding: '12px', background: '#ffffff' }}>
               {loadingSubscription ? (
                 <p>Đang tải thông tin...</p>
               ) : subscriptionInfo?.has_subscription && subscriptionInfo?.subscription_info ? (
@@ -452,31 +402,15 @@ const PaymentPage = ({ intl }) => {
                   <p style={{ margin: '6px 0 0 0', fontSize: '0.85rem' }}>Hãy chọn một gói phía dưới để đăng ký!</p>
                 </div>
               )}
-            </div>
-          )}
-        </div>
+    </div>
+  );
 
-        <div className="payment-content">
+  // Render packages/payment content
+  const renderPackagesContent = () => (
+    <div className="payment-content">
           <div className="package-selection" style={{ marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Chọn gói học</h2>
             <div className="package-options" style={{ display: 'flex', gap: '15px', marginBottom: '1rem', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
-              <div
-                className={`package-card ${selectedPackage === 'all_access' ? 'selected' : ''}`}
-                onClick={() => setSelectedPackage('all_access')}
-                style={{
-                  flex: '1 1 180px',
-                  minWidth: '180px',
-                  padding: '12px',
-                  border: selectedPackage === 'all_access' ? '2px solid #0097a9' : '1px solid #ddd',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  background: selectedPackage === 'all_access' ? '#f0f9fa' : 'white',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <h3 style={{ fontSize: '0.95rem', margin: '0 0 6px 0' }}>🌟 {packages.all_access.name}</h3>
-                <p style={{ color: '#666', marginBottom: '0', fontSize: '0.85rem' }}>{packages.all_access.description}</p>
-              </div>
               <div
                 className={`package-card ${selectedPackage === 'section_access' ? 'selected' : ''}`}
                 onClick={() => setSelectedPackage('section_access')}
@@ -487,7 +421,7 @@ const PaymentPage = ({ intl }) => {
                   border: selectedPackage === 'section_access' ? '2px solid #0097a9' : '1px solid #ddd',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  background: selectedPackage === 'section_access' ? '#f0f9fa' : 'white',
+                  background: selectedPackage === 'section_access' ? '#e0f7fa' : '#f0f9fa',
                   transition: 'all 0.2s'
                 }}
               >
@@ -504,7 +438,7 @@ const PaymentPage = ({ intl }) => {
                   border: selectedPackage === 'all_except_conversation' ? '2px solid #0097a9' : '1px solid #ddd',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  background: selectedPackage === 'all_except_conversation' ? '#f0f9fa' : 'white',
+                  background: selectedPackage === 'all_except_conversation' ? '#e0f7fa' : '#f0f9fa',
                   transition: 'all 0.2s'
                 }}
               >
@@ -521,7 +455,7 @@ const PaymentPage = ({ intl }) => {
                   border: selectedPackage === 'mock_test' ? '2px solid #0097a9' : '1px solid #ddd',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  background: selectedPackage === 'mock_test' ? '#f0f9fa' : 'white',
+                  background: selectedPackage === 'mock_test' ? '#e0f7fa' : '#f0f9fa',
                   transition: 'all 0.2s'
                 }}
               >
@@ -538,7 +472,7 @@ const PaymentPage = ({ intl }) => {
                   border: selectedPackage === 'comprehensive_sections' ? '2px solid #0097a9' : '1px solid #ddd',
                   borderRadius: '6px',
                   cursor: 'pointer',
-                  background: selectedPackage === 'comprehensive_sections' ? '#f0f9fa' : 'white',
+                  background: selectedPackage === 'comprehensive_sections' ? '#e0f7fa' : '#f0f9fa',
                   transition: 'all 0.2s'
                 }}
               >
@@ -570,7 +504,7 @@ const PaymentPage = ({ intl }) => {
                             border: selectedDuration === option.value ? '2px solid #0097a9' : '1px solid #ddd',
                             borderRadius: '6px',
                             cursor: 'pointer',
-                            background: selectedDuration === option.value ? '#f0f9fa' : 'white',
+                            background: selectedDuration === option.value ? '#f0f9fa' : '#ffffff',
                             transition: 'all 0.2s',
                             flex: '1 1 100px',
                             minWidth: '100px',
@@ -591,13 +525,6 @@ const PaymentPage = ({ intl }) => {
                       ))}
                     </div>
                   </div>
-                  
-                  {selectedPackage === 'all_access' && (
-                    <>
-                      <p><strong>Giảng viên:</strong> Nhiều chuyên gia</p>
-                      <p><strong>Trình độ:</strong> Tất cả cấp độ</p>
-                    </>
-                  )}
                 </div>
                 <div className="benefits">
                   <h4 style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>🎯 Lợi ích:</h4>
@@ -614,80 +541,62 @@ const PaymentPage = ({ intl }) => {
               </div>
             </div>
           </div>
+    </div>
+  );
 
-          <div className="payment-method">
-            <h2>Phương thức thanh toán</h2>
-            <div className="payment-options">
-              {/* VNPay temporarily hidden */}
-              {false && (
-                <label className="payment-option">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value="vnpay"
-                    checked={paymentMethod === 'vnpay'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                  />
-                  <div className="option-content">
-                    <img src="https://vnpay.vn/wp-content/uploads/2020/07/logo-vnpay.png" alt="VNPay" />
-                    <span>VNPay</span>
-                  </div>
-                </label>
-              )}
+  return (
+    <div className="payment-page" style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+      <LearningHeader intl={intl} />
+      <div className="payment-container" style={{ width: '100%', maxWidth: '100%', padding: '0 10px' }}>
+        {/* Tab Navigation */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          marginBottom: '20px',
+          borderBottom: '2px solid #ddd'
+        }}>
+          <button
+            onClick={() => setActiveTab('packages')}
+            style={{
+              padding: '12px 24px',
+              border: 'none',
+              borderBottom: activeTab === 'packages' ? '3px solid #0097a9' : '3px solid transparent',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: activeTab === 'packages' ? 'bold' : 'normal',
+              color: activeTab === 'packages' ? '#0097a9' : '#666',
+              transition: 'all 0.2s'
+            }}
+          >
+            📦 Gói học & Thanh toán
+          </button>
+          <button
+            onClick={() => setActiveTab('subscription')}
+            style={{
+              padding: '12px 24px',
+              border: 'none',
+              borderBottom: activeTab === 'subscription' ? '3px solid #0097a9' : '3px solid transparent',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: activeTab === 'subscription' ? 'bold' : 'normal',
+              color: activeTab === 'subscription' ? '#0097a9' : '#666',
+              transition: 'all 0.2s'
+            }}
+          >
+            📋 Thông tin Subscription
+          </button>
+        </div>
 
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="payos"
-                  checked={paymentMethod === 'payos'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <div className="option-content">
-                  <img src="https://payos.vn/assets/images/logo-payos.png" alt="PayOS" style={{ maxWidth: '120px', height: 'auto' }} />
-                  <span>PayOS</span>
-                </div>
-              </label>
-            </div>
+        {/* Tab Content */}
+        {activeTab === 'packages' && renderPackagesContent()}
+        {activeTab === 'subscription' && renderSubscriptionContent()}
+      </div>
 
-            {/* Testing Toggle - Only show for VNPay */}
-            {false && paymentMethod === 'vnpay' && (
-              <div className="testing-toggle">
-                <label className="toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={useSimulator}
-                    onChange={(e) => setUseSimulator(e.target.checked)}
-                  />
-                  <span className="toggle-text">
-                    {useSimulator ? '🧪 Simulator Mode (Testing)' : '💳 VNPay Sandbox Mode'}
-                  </span>
-                </label>
-                <p className="toggle-description">
-                  {useSimulator
-                    ? 'Sử dụng simulator để test thanh toán không cần tiền thật'
-                    : 'Sử dụng VNPay sandbox - test với thẻ ảo của VNPay'}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="payment-summary">
-            <h2>Tổng thanh toán</h2>
-            <div className="summary-item">
-              <span>{currentPackage.name} ({durationOptions.find(opt => opt.value === selectedDuration)?.label}):</span>
-              <span>{formatPrice(currentPrice)}</span>
-            </div>
-            <div className="summary-item">
-              <span>Phí giao dịch:</span>
-              <span>{formatPrice(0)}</span>
-            </div>
-            <div className="summary-item total">
-              <span>Tổng cộng:</span>
-              <span>{formatPrice(currentPrice)}</span>
-            </div>
-          </div>
-
+      {/* Fixed Payment Actions - Only show on packages tab */}
+      {activeTab === 'packages' && (
+        <div className="payment-actions-fixed">
           <div className="payment-actions">
             <button
               className="btn-pay"
@@ -702,7 +611,7 @@ const PaymentPage = ({ intl }) => {
             </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

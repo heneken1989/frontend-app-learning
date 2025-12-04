@@ -26,7 +26,6 @@ import {
   PaymentSuccess,
   PaymentCancel,
   ProgressPage,
-  EnrollmentStatusRoute,
   TestSeriesPage,
   TestResultsPage,
   ModuleTransitionPage,
@@ -89,7 +88,6 @@ subscribe(APP_READY, () => {
                   <Suspense fallback={<LoadingSpinner message="Loading page..." />}>
                     <Routes>
                     <Route path="/" element={<PageWrap><LearningHome /></PageWrap>} />
-                    <Route path="/enrollment-status" element={<PageWrap><EnrollmentStatusRoute /></PageWrap>} />
                     <Route path="/test-series" element={<PageWrap><TestSeriesPage /></PageWrap>} />
                     <Route path="/test-series/results" element={<PageWrap><TestResultsPage /></PageWrap>} />
                     <Route path="/test-series/module-transition" element={<PageWrap><ModuleTransitionPage /></PageWrap>} />

@@ -24,7 +24,6 @@ import LogoSlot from '../plugin-slots/LogoSlot';
 import CourseInfoSlot from '../plugin-slots/CourseInfoSlot';
 import { courseInfoDataShape } from './LearningHeaderCourseInfo';
 import messages from './messages';
-import EnrollmentStatus from '../../../EnrollmentStatus/src/EnrollmentStatus';
 import './NavigationMenu.scss';
 import { getCachedMenuData, setCachedMenuData, clearMenuCache, invalidateCache, getCacheInfo, shouldRefreshCache } from './menuCache';
 
@@ -527,8 +526,6 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         >
           🔄 Refresh Menu
         </div>
-        {/* Hidden EnrollmentStatus */}
-        {/* <EnrollmentStatus /> */}
       </div>
       <style>{`
         .dropdown-hover-item {

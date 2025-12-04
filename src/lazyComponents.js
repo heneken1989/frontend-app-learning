@@ -6,7 +6,6 @@ export const PaymentPage = lazy(() => import('./custom-components/PaymentPage'))
 export const PaymentSuccess = lazy(() => import('./custom-components/PaymentSuccess'));
 export const PaymentCancel = lazy(() => import('./custom-components/PaymentCancel'));
 export const ProgressPage = lazy(() => import('./custom-components/ProgressPage'));
-export const EnrollmentStatusRoute = lazy(() => import('./custom-components/EnrollmentStatus/src/EnrollmentStatusRoute'));
 export const TestSeriesPage = lazy(() => import('./custom-components/TestSeriesPage'));
 export const TestResultsPage = lazy(() => import('./custom-components/TestSeriesPage/components/TestResultsPage'));
 export const ModuleTransitionPage = lazy(() => import('./custom-components/TestSeriesPage/components/ModuleTransitionPage'));
