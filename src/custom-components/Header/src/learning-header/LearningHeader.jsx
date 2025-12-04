@@ -29,8 +29,9 @@ import { getCachedMenuData, setCachedMenuData, clearMenuCache, invalidateCache, 
 
 // Add cache clear button for development (remove in production)
 const clearCacheButton = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
-// Show activate buttons only in development
-const showActivateButtons = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
+// Show activate buttons in production (Toggle Subscription only)
+const showActivateButtons = typeof window !== 'undefined';
+const showActivateSectionButton = typeof window !== 'undefined' && process.env.NODE_ENV === 'development';
 
 // Expose cache management to window for debugging (development only)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -1285,7 +1286,7 @@ const LearningHeader = ({
               onTimeExpired={handleTimeExpired}
             />
           ) : null}
-          {/* Toggle Subscription Button (for testing - development only) */}
+          {/* Toggle Subscription Button (available in production) */}
           {showActivateButtons && authenticatedUser && subscriptionInfo && (
             <div
               className="nav-item toggle-subscription-link"
@@ -1321,7 +1322,7 @@ const LearningHeader = ({
             </div>
           )}
           {/* Activate Section "読解" Button (for testing - development only) */}
-          {showActivateButtons && authenticatedUser && (
+          {showActivateSectionButton && authenticatedUser && (
             <div
               className="nav-item activate-section-link"
               style={{
