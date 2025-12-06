@@ -333,10 +333,9 @@ const PaymentPage = ({ intl }) => {
                     </div>
                   )}
                   
-                  {/* Show list of all packages if multiple */}
+                  {/* Show list of all packages */}
                   {subscriptionInfo.subscription_info.packages && 
-                   subscriptionInfo.subscription_info.packages.length > 1 && 
-                   subscriptionInfo.subscription_info.total_packages > 1 && (
+                   subscriptionInfo.subscription_info.packages.length > 0 && (
                     <div style={{ padding: '12px', background: '#fff9e6', borderRadius: '4px', border: '1px solid #ffc107' }}>
                       <strong style={{ color: '#f57c00', marginBottom: '8px', display: 'block' }}>
                         📋 Chi tiết các gói đã mua:
