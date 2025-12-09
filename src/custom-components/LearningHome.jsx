@@ -3,34 +3,37 @@ import Header from './Header/src/learning-header/LearningHeader';
 import Footer from './Footer';
 
 const LearningHome = () => {
+  // Get base URL for assets (supports both root and subdirectory deployment)
+  const baseUrl = process.env.PUBLIC_URL || '';
+  
   const slides = [
     {
       title: 'BEST PRACTICE PLATFORM FOR PTE ACADEMIC',
       subtitle: 'HIGH SCORE GUARANTEED',
       cta: 'GET STARTED',
-      image: '/assets/hero/001.png',
+      image: `${baseUrl}/assets/hero/001.png`,
     },
     {
       title: 'REAL EXAM QUESTION BANK UPDATED MONTHLY',
       subtitle: 'TRAIN WITH AUTHENTIC CONTENT',
       cta: 'VIEW COURSES',
-      image: '/assets/hero/005.png',
+      image: `${baseUrl}/assets/hero/005.png`,
     },
     {
       title: 'UX-DRIVEN PRACTICE TOOLS FOR EVERY SKILL',
       subtitle: 'DESIGNED BY TOP UX PROGRAMMERS',
       cta: 'START PRACTICING',
-      image: '/assets/hero/002.png',
+      image: `${baseUrl}/assets/hero/002.png`,
     },
     {
       title: 'EXTENSIVE MATERIALS LIBRARY',
       subtitle: 'TEXTBOOKS · PRACTICE TESTS · SPEED MASTER',
       cta: 'BROWSE MATERIALS',
-      image: '/assets/hero/007.png',
+      image: `${baseUrl}/assets/hero/007.png`,
     },
   ];
 
-  const heroBackground = '/assets/hero/45367.jpg';
+  const heroBackground = `${baseUrl}/assets/hero/45367.jpg`;
 
   const heroStyles = `
     .hero-slider {
@@ -340,7 +343,7 @@ const LearningHome = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   // Background image for testimonials (replace with your asset path if needed)
-  const testimonialBackground = '/assets/hero/008.jpg';
+  const testimonialBackground = `${baseUrl}/assets/hero/008.jpg`;
 
   const testimonials = [
     {
