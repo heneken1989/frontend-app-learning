@@ -1,13 +1,478 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './Header/src/learning-header/LearningHeader';
 import Footer from './Footer';
 
-const LearningHome = () => (
-  <div className="d-flex flex-column min-vh-100">
-    <Header />
+const LearningHome = () => {
+  const slides = [
+    {
+      title: 'BEST PRACTICE PLATFORM FOR PTE ACADEMIC',
+      subtitle: 'HIGH SCORE GUARANTEED',
+      cta: 'GET STARTED',
+      image: '/assets/hero/001.png',
+    },
+    {
+      title: 'REAL EXAM QUESTION BANK UPDATED MONTHLY',
+      subtitle: 'TRAIN WITH AUTHENTIC CONTENT',
+      cta: 'VIEW COURSES',
+      image: '/assets/hero/005.png',
+    },
+    {
+      title: 'UX-DRIVEN PRACTICE TOOLS FOR EVERY SKILL',
+      subtitle: 'DESIGNED BY TOP UX PROGRAMMERS',
+      cta: 'START PRACTICING',
+      image: '/assets/hero/002.png',
+    },
+    {
+      title: 'EXTENSIVE MATERIALS LIBRARY',
+      subtitle: 'TEXTBOOKS · PRACTICE TESTS · SPEED MASTER',
+      cta: 'BROWSE MATERIALS',
+      image: '/assets/hero/007.png',
+    },
+  ];
 
-    <main className="flex-grow-1 py-4">
-      <div className="container">
+  const heroBackground = '/assets/hero/45367.jpg';
+
+  const heroStyles = `
+    .hero-slider {
+      width: 100%;
+      padding: 0 0 24px;
+      background: url(${heroBackground});
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: cover;
+    }
+    .hero-slider-inner {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      min-height: 380px;
+      background: transparent;
+    }
+    .hero-slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+      opacity: 0;
+      padding: 0 24px;
+      box-sizing: border-box;
+    }
+    .hero-slide.active {
+      opacity: 1;
+    }
+    .hero-slide-image {
+      flex: 1 1 50%;
+      min-height: 360px;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      mix-blend-mode: multiply;
+      background-color: transparent;
+      filter: drop-shadow(0 18px 32px rgba(0,0,0,0.12));
+      background-color: transparent;
+      transition: transform 0.6s ease, opacity 0.6s ease;
+      opacity: 0;
+      transform: translateX(40px);
+    }
+    .hero-slide.active .hero-slide-image {
+      opacity: 1;
+      transform: translateX(0);
+      animation: fadeInUp 0.6s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .hero-slide-text {
+      flex: 1 1 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px;
+      color: #1f1f1f;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.6);
+    }
+    .hero-slide-text h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .hero-slide-text p {
+      font-size: 16px;
+      margin: 0;
+      color: #3a3a3a;
+    }
+    .hero-cta {
+      background: #f24c4c;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 12px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+    }
+    .hero-cta:hover {
+      background: #d63f3f;
+      transform: translateY(-1px);
+    }
+    .hero-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.08);
+      border: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      color: #f24c4c;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justifyContent: center;
+      transition: background 0.2s ease;
+    }
+    .hero-nav:hover {
+      background: rgba(0,0,0,0.14);
+    }
+    .hero-nav-prev { left: 12px; }
+    .hero-nav-next { right: 12px; }
+    .hero-dots {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+    }
+    .hero-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: none;
+      background: #ddd;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .hero-dot.active {
+      background: #f24c4c;
+      transform: scale(1.1);
+    }
+    @media (max-width: 992px) {
+      .hero-slide {
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+      .hero-slide-text {
+        align-items: center;
+      }
+      .hero-nav {
+        top: auto;
+        bottom: 24px;
+      }
+    }
+    @media (max-width: 576px) {
+      .hero-slide-text h2 {
+        font-size: 22px;
+      }
+      .hero-slide-text p {
+        font-size: 14px;
+      }
+      .hero-slider-inner {
+        min-height: 420px;
+      }
+    }
+
+    /* People Say */
+    .people-say {
+      width: 100%;
+      padding: 32px 0 48px;
+      background: #fff;
+    }
+    .people-say-inner {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0 24px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 32px;
+    }
+    .people-say-text {
+      flex: 0 0 auto;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .people-say-quote {
+      display: none;
+    }
+    .people-say-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      color: #444;
+    }
+    .people-quote {
+      position: relative;
+      max-width: 480px;
+      margin: 0 0 20px 0;
+      padding: 20px 22px;
+      font-size: 17px;
+      line-height: 1.7;
+      color: #333;
+      background: rgba(255,255,255,0.85);
+      border-radius: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+    }
+    .people-quote-text {
+      margin: 0;
+    }
+    .quote-icon {
+      position: absolute;
+      color: #f24c4c;
+      font-size: 42px;
+      font-weight: 800;
+      opacity: 0.8;
+      line-height: 1;
+    }
+    .quote-icon.left {
+      top: 6px;
+      left: 10px;
+    }
+    .quote-icon.right {
+      bottom: 4px;
+      right: 6px;
+      transform: rotate(180deg);
+    }
+    .people-avatar {
+      display: none;
+    }
+    .people-say-image {
+      flex: 1 1 40%;
+      display: flex;
+      justify-content: center;
+    }
+    .people-say-image img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      object-fit: cover;
+    }
+    .people-nav {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .people-nav button {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid #f24c4c;
+      background: #fff;
+      color: #f24c4c;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .people-nav button:hover {
+      background: #f24c4c;
+      color: #fff;
+    }
+    .people-dots {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .people-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ddd;
+      border: none;
+      cursor: pointer;
+    }
+    .people-dot.active {
+      background: #f24c4c;
+    }
+    @media (max-width: 992px) {
+      .people-say-inner {
+        flex-direction: column;
+        text-align: left;
+      }
+      .people-say-text {
+        align-items: flex-start;
+        max-width: 100%;
+      }
+      .people-quote {
+        max-width: 100%;
+        margin: 0 0 20px 0;
+      }
+      .people-say-image {
+        order: -1;
+      }
+      .people-nav {
+        justify-content: flex-start;
+      }
+      .people-meta {
+        justify-content: flex-start;
+      }
+    }
+  `;
+
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+  // Background image for testimonials (replace with your asset path if needed)
+  const testimonialBackground = '/assets/hero/008.jpg';
+
+  const testimonials = [
+    {
+      name: 'Abdul Rehman',
+      role: 'Learner',
+      quote: 'This is one of the best websites to practice for your PTE test to achieve your target. It gives the exact scoring where you stand. A good platform to practice and clear the doubts of PTE; it improves my speaking skills and makes me confident for actual test.',
+      avatar: '/assets/testomonials/user_001.jpg',
+    },
+    {
+      name: 'Helen Nguyen',
+      role: 'PTE Candidate',
+      quote: 'Awesome app for practice. Extensive real exam question bank and high-quality machine scoring aligned to Pearson. Helps identify weaknesses; highly recommended for Speaking, Reading, Listening.',
+      avatar: '/assets/testomonials/user_002.jpg',
+      image: 'https://pte.tools/assets/banner_002.png',
+    },
+    {
+      name: 'Arpan Khati',
+      role: 'Student',
+      quote: 'Legit practice material with impressive AI testing. I improved speaking, reading, listening; great for aiming 79+. Saves time and helps focus on weak points.',
+      avatar: '/assets/testomonials/user_003.jpg',
+      image: 'https://pte.tools/assets/banner_0030.png',
+    },
+    {
+      name: 'Imran Ahmed',
+      role: 'Learner',
+      quote: 'Started speaking practice here; lots of resources and helpful scoring tools. Immediate score response after speaking tasks; very helpful AI-based test platform.',
+      avatar: '/assets/testomonials/user_004.jpg',
+      image: 'https://pte.tools/assets/banner_001.png',
+    },
+    {
+      name: 'Tran Huong Hoa',
+      role: 'Learner',
+      quote: 'Best platform, well-organized with great materials and up-to-date exams. Flexible to practice on different devices anytime.',
+      avatar: '/assets/testomonials/user_005.jpg',
+      image: 'https://pte.tools/assets/banner_002.png',
+    },
+    {
+      name: 'Michael Shrestha',
+      role: 'Learner',
+      quote: 'Great tool with proper scoring. Easy to use, user friendly; improved my speaking and listening. Highly recommend for self-practice PTE prep.',
+      avatar: '/assets/testomonials/user_006.jpg',
+      image: 'https://pte.tools/assets/banner_0030.png',
+    },
+    {
+      name: 'Bianca Ng',
+      role: 'Learner',
+      quote: 'Amazing website covering nearly 80% real exam tasks. If you want to nail the test fast, PTE.tools is for you. Highly recommended.',
+      avatar: '/assets/testomonials/user_007.jpg',
+      image: 'https://pte.tools/assets/banner_001.png',
+    },
+    {
+      name: 'Trinh Hồ',
+      role: 'Learner',
+      quote: 'Powerful tool with valuable data from real exams of PTE. Assisted me to reach target scores; after 2 months my Reading, Speaking, Listening passed Superior level.',
+      avatar: '/assets/testomonials/user_008.jpg',
+      image: 'https://pte.tools/assets/banner_002.png',
+    },
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length]);
+
+  const goToSlide = (index) => {
+    setActiveSlide((index + slides.length) % slides.length);
+  };
+
+  return (
+    <div className="d-flex flex-column min-vh-100">
+      <Header />
+
+      <main className="flex-grow-1 pt-0 pb-4">
+        <section className="hero-slider">
+          <div className="hero-slider-inner">
+            {slides.map((slide, index) => (
+              <div
+                key={slide.title}
+                className={`hero-slide ${index === activeSlide ? 'active' : ''}`}
+                style={{ transform: `translateX(${(index - activeSlide) * 100}%)` }}
+              >
+            <div
+              className="hero-slide-image"
+              style={{ backgroundImage: `url(${slide.image})` }}
+              aria-label={slide.title}
+              role="img"
+            />
+                <div className="hero-slide-text">
+                  <h2>{slide.title}</h2>
+                  <p>{slide.subtitle}</p>
+                  <button type="button" className="hero-cta">
+                    {slide.cta}
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="hero-nav hero-nav-prev"
+              onClick={() => goToSlide(activeSlide - 1)}
+              aria-label="Previous slide"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="hero-nav hero-nav-next"
+              onClick={() => goToSlide(activeSlide + 1)}
+              aria-label="Next slide"
+            >
+              ›
+            </button>
+            <div className="hero-dots">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`hero-dot ${index === activeSlide ? 'active' : ''}`}
+                  onClick={() => goToSlide(index)}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+        <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
+
+        <div className="container">
+        <div className="d-flex flex-column align-items-center">
+        <div className="w-100" style={{ maxWidth: '960px' }}>
         {/* Content Header */}
         <div className="d-flex align-items-center mb-4">
           <div
@@ -94,6 +559,10 @@ const LearningHome = () => (
             </small>
           </div>
         </section>
+
+        </div>
+        </div>
+        </div>
 
         {/* WHAT WE OFFER YOU Section */}
         <section className="py-5 my-5">
@@ -262,6 +731,50 @@ const LearningHome = () => (
               <p className="text-muted">
                 Trusted and used by more than 50,000 Japanese language learners.
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* People Say */}
+        <section
+          className="people-say"
+          style={{
+            backgroundImage: `url(${testimonialBackground})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '70% auto',
+            backgroundPosition: 'right top',
+          }}
+        >
+          <div className="people-say-inner">
+            <div className="people-say-text">
+              <h3 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: '#333' }}>PEOPLE SAID</h3>
+              <div className="people-quote">
+                <span className="quote-icon left">“</span>
+                <p className="people-quote-text">{testimonials[activeTestimonial].quote}</p>
+                <span className="quote-icon right">“</span>
+              </div>
+              <div className="people-say-meta">
+                <img className="people-avatar" src={testimonials[activeTestimonial].avatar} alt={testimonials[activeTestimonial].name} />
+                <div>
+                  <div>{testimonials[activeTestimonial].name}</div>
+                  <div style={{ color: '#777', fontWeight: 400, fontSize: '13px' }}>{testimonials[activeTestimonial].role}</div>
+                </div>
+              </div>
+              <div className="people-nav">
+                <button type="button" onClick={() => setActiveTestimonial((activeTestimonial - 1 + testimonials.length) % testimonials.length)} aria-label="Previous testimonial">‹</button>
+                <button type="button" onClick={() => setActiveTestimonial((activeTestimonial + 1) % testimonials.length)} aria-label="Next testimonial">›</button>
+              </div>
+              <div className="people-dots">
+                {testimonials.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`people-dot ${idx === activeTestimonial ? 'active' : ''}`}
+                    onClick={() => setActiveTestimonial(idx)}
+                    aria-label={`Go to testimonial ${idx + 1}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -582,11 +1095,12 @@ const LearningHome = () => (
             </div>
           </div>
         </section>
-      </div>
     </main>
 
     <Footer />
   </div>
 );
+
+};
 
 export default LearningHome;

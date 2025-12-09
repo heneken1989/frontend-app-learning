@@ -602,10 +602,34 @@ const TestSeriesPage = ({ intl }) => {
       });
 
       if (data.success && data.summaries) {
-        // Group summaries by test_session_id
-        const groupedSummaries = {};
+        // First, filter duplicates by unit_id - keep only the latest record for each unit_id
+        const unitIdMap = {}; // { unit_id: latest_summary }
         
         data.summaries.forEach((summary) => {
+          const unitId = summary.unit_id;
+          if (!unitId) return;
+          
+          // If no existing record for this unit_id, or this one is newer, keep it
+          if (!unitIdMap[unitId] || 
+              (summary.completed_at && unitIdMap[unitId].completed_at && 
+               new Date(summary.completed_at) > new Date(unitIdMap[unitId].completed_at))) {
+            unitIdMap[unitId] = summary;
+          }
+        });
+        
+        // Convert back to array of unique summaries (latest per unit_id)
+        const uniqueSummaries = Object.values(unitIdMap);
+        
+        console.warn('[TestSeriesPage] fetchTestResults - Filtered duplicates:', {
+          originalCount: data.summaries.length,
+          uniqueCount: uniqueSummaries.length,
+          duplicatesRemoved: data.summaries.length - uniqueSummaries.length
+        });
+        
+        // Group summaries by test_session_id (after deduplication)
+        const groupedSummaries = {};
+        
+        uniqueSummaries.forEach((summary) => {
           const testSessionId = summary.test_session_id;
           if (!testSessionId) return;
           
@@ -1118,9 +1142,33 @@ const TestSeriesPage = ({ intl }) => {
           filteredSummaries = []; // Keep empty instead of using all results
         }
 
-        // Group summaries by test_session_id
-        const groupedSummaries = {};
+        // First, filter duplicates by unit_id - keep only the latest record for each unit_id
+        const unitIdMap = {}; // { unit_id: latest_summary }
+        
         filteredSummaries.forEach((summary) => {
+          const unitId = summary.unit_id;
+          if (!unitId) return;
+          
+          // If no existing record for this unit_id, or this one is newer, keep it
+          if (!unitIdMap[unitId] || 
+              (summary.completed_at && unitIdMap[unitId].completed_at && 
+               new Date(summary.completed_at) > new Date(unitIdMap[unitId].completed_at))) {
+            unitIdMap[unitId] = summary;
+          }
+        });
+        
+        // Convert back to array of unique summaries (latest per unit_id)
+        const uniqueSummaries = Object.values(unitIdMap);
+        
+        console.warn('[TestSeriesPage] fetchTestHistory - Filtered duplicates:', {
+          originalCount: filteredSummaries.length,
+          uniqueCount: uniqueSummaries.length,
+          duplicatesRemoved: filteredSummaries.length - uniqueSummaries.length
+        });
+
+        // Group summaries by test_session_id (after deduplication)
+        const groupedSummaries = {};
+        uniqueSummaries.forEach((summary) => {
           const testSessionId = summary.test_session_id;
           if (!testSessionId) return;
           
@@ -1331,6 +1379,205 @@ const TestSeriesPage = ({ intl }) => {
         >
           {JSON.stringify(testResultsDebugInfo, null, 2)}
         </pre>
+      </div>
+    );
+  };
+
+  // Render detailed debug results list
+  const renderDebugResultsList = () => {
+    if (!testResults || Object.keys(testResults).length === 0) {
+      return (
+        <div className="alert alert-info">
+          <strong>No test results found</strong>
+        </div>
+      );
+    }
+
+    return (
+      <div className="debug-results-container" style={{
+        background: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        borderRadius: '4px',
+        padding: '1rem',
+        marginBottom: '1rem'
+      }}>
+        <h4 style={{ marginBottom: '1rem', color: '#495057' }}>
+          🔍 Debug: Test Results & Score Calculation
+        </h4>
+        <div style={{ maxHeight: '800px', overflowY: 'auto' }}>
+          {Object.entries(testResults).map(([testSessionId, result]) => {
+            const sectionId = result.sectionId;
+            const questionCountFromMap = testQuestionCounts[sectionId] || null;
+            const unitTitlesForSection = testUnitTitles[sectionId] || [];
+            const unitTitlesCount = Array.isArray(unitTitlesForSection) 
+              ? unitTitlesForSection.reduce((sum, u) => sum + (u?.questionCount || 1), 0) 
+              : 0;
+            
+            const summaries = result.summaries || [];
+            const groupedFrom = result.groupedFrom || summaries.length;
+
+            return (
+              <div key={testSessionId} style={{
+                marginBottom: '1.5rem',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                padding: '1rem',
+                background: '#ffffff'
+              }}>
+                <div style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '2px solid #007bff' }}>
+                  <h5 style={{ margin: 0, color: '#007bff' }}>
+                    Test Session: <code style={{ fontSize: '0.85rem' }}>{testSessionId}</code>
+                  </h5>
+                  <div style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '0.25rem' }}>
+                    Section ID: <code>{sectionId || 'N/A'}</code> | 
+                    Grouped from: <strong>{groupedFrom}</strong> summaries
+                  </div>
+                </div>
+
+                {/* Summary Row */}
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                  gap: '0.5rem',
+                  marginBottom: '1rem',
+                  padding: '0.75rem',
+                  background: '#e7f3ff',
+                  borderRadius: '4px'
+                }}>
+                  <div>
+                    <strong>Correct Answers:</strong> 
+                    <span style={{ color: '#28a745', fontWeight: 'bold', marginLeft: '0.5rem' }}>
+                      {result.correctAnswers}
+                    </span>
+                  </div>
+                  <div>
+                    <strong>Total Questions:</strong> 
+                    <span style={{ fontWeight: 'bold', marginLeft: '0.5rem' }}>
+                      {result.totalQuestions}
+                    </span>
+                  </div>
+                  <div>
+                    <strong>Score:</strong> 
+                    <span style={{ 
+                      fontWeight: 'bold', 
+                      marginLeft: '0.5rem',
+                      color: result.score >= 70 ? '#28a745' : result.score >= 50 ? '#ffc107' : '#dc3545'
+                    }}>
+                      {result.score}%
+                    </span>
+                  </div>
+                  <div>
+                    <strong>Source:</strong> 
+                    <span style={{ marginLeft: '0.5rem' }}>
+                      {questionCountFromMap ? (
+                        <span style={{ color: '#28a745' }}>✓ testQuestionCounts ({questionCountFromMap})</span>
+                      ) : unitTitlesCount > 0 ? (
+                        <span style={{ color: '#ffc107' }}>⚠ unitTitles ({unitTitlesCount})</span>
+                      ) : (
+                        <span style={{ color: '#dc3545' }}>✗ unknown</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Individual Summaries */}
+                {summaries.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <h6 style={{ marginBottom: '0.5rem', color: '#495057' }}>
+                      📋 Individual Summaries ({summaries.length}):
+                    </h6>
+                    <table className="table table-sm table-bordered" style={{ fontSize: '0.8rem', marginBottom: 0 }}>
+                      <thead style={{ background: '#e9ecef' }}>
+                        <tr>
+                          <th>#</th>
+                          <th>Unit ID</th>
+                          <th>Template ID</th>
+                          <th>Correct</th>
+                          <th>Answered</th>
+                          <th>Status</th>
+                          <th>Completed At</th>
+                          <th>Quiz Data</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summaries.map((summary, idx) => (
+                          <tr key={idx}>
+                            <td style={{ textAlign: 'center', fontWeight: 'bold' }}>{idx + 1}</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>
+                              {summary.unit_id ? summary.unit_id.substring(0, 15) + '...' : 'N/A'}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>{summary.template_id || 'N/A'}</td>
+                            <td style={{ textAlign: 'center', color: '#28a745', fontWeight: 'bold' }}>
+                              {summary.correct_answers || 0}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              {summary.answered_questions || 0}
+                            </td>
+                            <td>
+                              <span style={{
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                fontSize: '0.7rem',
+                                background: summary.status === 'completed' ? '#d4edda' : '#fff3cd',
+                                color: summary.status === 'completed' ? '#155724' : '#856404'
+                              }}>
+                                {summary.status || 'N/A'}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: '0.7rem' }}>
+                              {summary.completed_at ? new Date(summary.completed_at).toLocaleString() : 'N/A'}
+                            </td>
+                            <td style={{ fontSize: '0.7rem' }}>
+                              {summary.quiz_data ? (
+                                <details>
+                                  <summary style={{ cursor: 'pointer', color: '#007bff' }}>
+                                    View Data
+                                  </summary>
+                                  <pre style={{
+                                    marginTop: '0.5rem',
+                                    padding: '0.5rem',
+                                    background: '#f8f9fa',
+                                    borderRadius: '3px',
+                                    fontSize: '0.7rem',
+                                    maxHeight: '150px',
+                                    overflow: 'auto'
+                                  }}>
+                                    {JSON.stringify(summary.quiz_data, null, 2)}
+                                  </pre>
+                                </details>
+                              ) : 'N/A'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '0.5rem', 
+                      background: '#fff3cd', 
+                      borderRadius: '4px',
+                      fontSize: '0.75rem'
+                    }}>
+                      <strong>Calculation:</strong> Sum of correct_answers from all summaries = {result.correctAnswers} | 
+                      Total questions = {result.totalQuestions} (from {questionCountFromMap ? 'testQuestionCounts' : 'unitTitles'}) | 
+                      Score = ({result.correctAnswers} / {result.totalQuestions}) × 100 = {result.score}%
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#e9ecef', borderRadius: '4px', fontSize: '0.85rem' }}>
+          <strong>Summary:</strong> {Object.keys(testResults).length} test result(s) found
+          <br />
+          <strong>Total Questions (from map):</strong> {Object.values(testQuestionCounts).reduce((sum, count) => sum + count, 0)}
+          <br />
+          <strong>Total Questions (from titles):</strong> {Object.values(testUnitTitles).reduce((sum, units) => {
+            if (!Array.isArray(units)) return sum;
+            return sum + units.reduce((uSum, u) => uSum + (u?.questionCount || 1), 0);
+          }, 0)}
+        </div>
       </div>
     );
   };
@@ -1650,8 +1897,8 @@ const TestSeriesPage = ({ intl }) => {
             </div>
           </div>
 
-            {/* Debug panel hidden - uncomment to show debug info */}
-            {/* {renderDebugPanel()} */}
+            {/* Debug panel - show test results and score calculation */}
+            {renderDebugResultsList()}
 
             {renderOverviewStats()}
 

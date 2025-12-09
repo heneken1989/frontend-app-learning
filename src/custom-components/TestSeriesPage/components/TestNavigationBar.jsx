@@ -452,11 +452,59 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     ? parseModuleNumber(nextUnitForModuleCheck.title) 
     : null;
   
+  // Count unique modules in sequence
+  const [uniqueModuleCount, setUniqueModuleCount] = useState(null);
+  
+  // Calculate unique module count from sequence using navigation API
+  useEffect(() => {
+    const calculateModuleCount = async () => {
+      if (!courseId || !sequenceId) return;
+      
+      try {
+        const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const seq = data?.blocks?.[sequenceId];
+          if (seq && Array.isArray(seq.children)) {
+            const moduleSet = new Set();
+            seq.children.forEach((childId) => {
+              const child = data.blocks[childId];
+              const title = child?.display_name || '';
+              const moduleMatch = title.match(/^(\d+)\./);
+              const modNum = moduleMatch ? parseInt(moduleMatch[1], 10) : null;
+              if (modNum) {
+                moduleSet.add(modNum);
+              }
+            });
+            setUniqueModuleCount(moduleSet.size);
+            console.log('🔍 [Module Count] Unique modules in sequence:', moduleSet.size, 'Modules:', Array.from(moduleSet));
+          }
+        }
+      } catch (e) {
+        console.warn('⚠️ Error calculating module count:', e);
+        // Fallback: assume multiple modules if we can't determine
+        setUniqueModuleCount(null);
+      }
+    };
+    
+    calculateModuleCount();
+  }, [courseId, sequenceId]);
+  
   // Check if current unit is the last question in its module
   const isLastQuestionInModule = currentModule && nextModule && currentModule !== nextModule;
   
   // Check if current unit is the last question in module 3 (final test question)
-  const isLastQuestionInModule3 = currentModule === 3 && !nextUnitIdForModuleCheck;
+  // OR if there's only 1 module and this is the last question (no next unit)
+  const isLastQuestionInModule3 = (currentModule === 3 && !nextUnitIdForModuleCheck) || 
+    (uniqueModuleCount === 1 && !nextUnitIdForModuleCheck);
+  
+  // Check if should show Finish Module button (only if multiple modules exist)
+  const shouldShowFinishModule = isLastQuestionInModule && currentModule !== 3 && (uniqueModuleCount === null || uniqueModuleCount > 1);
 
   // Handle module test expiration event
   useEffect(() => {
@@ -1741,7 +1789,7 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
 
         {/* Center - Next button and Complete Test button */}
         <div className="d-flex align-items-center gap-3" style={{ justifyContent: 'center', flex: 1, flexWrap: 'wrap' }}>
-          {/* Finish Test button - only show when at last question of module 3 */}
+          {/* Finish Test button - show when at last question of module 3 OR when only 1 module exists */}
           {isLastQuestionInModule3 && (
             <button
               onClick={handleCompleteTest}
@@ -1761,8 +1809,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               🏁 Finish Test
             </button>
           )}
-          {/* Finish Module button - only show when at last question of module 1 or 2 */}
-          {isLastQuestionInModule && currentModule !== 3 && (
+          {/* Finish Module button - only show when at last question of module 1 or 2 AND there are multiple modules */}
+          {shouldShowFinishModule && (
             <button
               onClick={handleFinishModuleClick}
               style={{

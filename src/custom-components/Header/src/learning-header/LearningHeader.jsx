@@ -436,7 +436,16 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
   };
 
   return (
-    <nav className="nav-menu">
+    <nav
+      className="nav-menu"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        width: '100%',
+        justifyContent: 'space-between',
+      }}
+    >
       <div 
         className="pte-tools" 
         style={{ cursor: 'pointer' }}
@@ -458,7 +467,7 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
           }}
         />
       </div>
-      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
         {['聴解', '言葉。漢字', '文法', '読解'].map((label) => (
           <MultiLevelDropdown
             key={label}
@@ -1273,7 +1282,16 @@ const LearningHeader = ({
   return (
     <header className="learning-header">
       <a className="sr-only sr-only-focusable" href="#main-content">{intl.formatMessage(messages.skipNavLink)}</a>
-      <div className="container-xl py-2 d-flex align-items-center">
+      <div
+        className="container-xl py-2 d-flex align-items-center"
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Logo removed */}
         <NavigationMenu courses={courses} preloadedData={internalPreloadedData} setPreloadedData={setInternalPreloadedData} />
         <div className="flex-grow-1 course-title-lockup d-flex align-items-center justify-content-end" style={{ lineHeight: 1, gap: '8px' }}>

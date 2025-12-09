@@ -8,7 +8,16 @@ const Footer = () => {
 
   return (
     <footer className="custom-footer">
-      <div className="footer-content">
+      <div
+        className="footer-content"
+        style={{
+          width: '100%',
+          maxWidth: '100%',
+          paddingLeft: '16px',
+          paddingRight: '16px',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Three Column Layout */}
         <div className="footer-columns">
           {/* SITE MAP Column */}
