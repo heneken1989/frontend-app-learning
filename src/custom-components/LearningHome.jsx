@@ -9,6 +9,9 @@ import hero005 from '../assets/hero/005.png';
 import hero007 from '../assets/hero/007.png';
 import heroBackground from '../assets/hero/45367.jpg';
 import testimonialBg from '../assets/hero/008.jpg';
+import wwo01 from '../assets/hero/wwo_01.png';
+import wwo02 from '../assets/hero/wwo_02.png';
+import wwo03 from '../assets/hero/wwo_03.png';
 
 const LearningHome = () => {
   const slides = [
@@ -345,6 +348,12 @@ const LearningHome = () => {
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [selectedDurations, setSelectedDurations] = useState({
+    section_access: '1',
+    all_except_conversation: '1',
+    mock_test: '1',
+    comprehensive_sections: '1'
+  });
 
   const testimonials = [
     {
@@ -410,6 +419,13 @@ const LearningHome = () => {
     }, 5000);
     return () => clearInterval(timer);
   }, [slides.length]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [testimonials.length]);
 
   const goToSlide = (index) => {
     setActiveSlide((index + slides.length) % slides.length);
@@ -569,172 +585,58 @@ const LearningHome = () => {
         </div>
 
         {/* WHAT WE OFFER YOU Section */}
-        <section className="py-5 my-5">
-          <div className="text-center mb-5">
-            <h2 className="display-4 fw-bold mb-3">WHAT WE OFFER YOU</h2>
-            <div className="mx-auto" style={{ width: '80px', height: '3px', backgroundColor: '#F24C4C' }}></div>
-          </div>
-          
-          <div className="row mb-4">
-            <div className="col-12">
-              <p className="lead text-center text-muted">
-                MANABI HUB offers you the biggest real exam question bank on the market. New questions and audios are updated regularly and fastest. Additionally, our tool's features and layouts are designed by top-notch UX programmers, particularly user-friendly and easy to use.
-              </p>
-            </div>
-          </div>
-
-          <div className="row g-4">
-            {/* Feature 1 */}
-            <div className="col-md-4 text-center">
-              <div className="position-relative mb-4">
-                <div 
-                  className="mx-auto d-flex align-items-center justify-content-center"
-                  style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    backgroundColor: '#F24C4C', 
-                    borderRadius: '50%',
-                    position: 'relative'
-                  }}
-                >
-                  <div 
-                    className="position-absolute"
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '50%',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px'
-                    }}
-                  ></div>
-                  <div 
-                    className="position-relative"
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      color: 'white'
-                    }}
-                  >
-                    ✓✓✓
-                  </div>
+        <section className="py-5 my-5" id="services-section">
+          <div className="container">
+            <div className="row justify-content-md-center">
+              <div className="col-lg-8">
+                <div className="text-center mb-5">
+                  <h2 className="text-uppercase fw-bold mb-3" style={{ fontSize: '2rem' }}>What We Offer You</h2>
+                  <p className="text-muted">
+                    MANABI HUB offers you the biggest real exam question bank on the market. New questions and audios are updated regularly and fastest. Additionally, our tool's features and layouts are designed by top-notch UX programmers, particularly user-friendly and easy to use.
+                  </p>
                 </div>
               </div>
-              <h4 className="fw-bold mb-3">Real Exam Questions</h4>
-              <p className="text-muted">
-                Real exams questions updated monthly, high chance to encounter in your upcoming exams.
-              </p>
             </div>
-
-            {/* Feature 2 */}
-            <div className="col-md-4 text-center">
-              <div className="position-relative mb-4">
-                <div 
-                  className="mx-auto d-flex align-items-center justify-content-center"
-                  style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    backgroundColor: '#F24C4C', 
-                    borderRadius: '50%',
-                    position: 'relative'
-                  }}
-                >
-                  <div 
-                    className="position-absolute"
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '50%',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px'
-                    }}
-                  ></div>
-                  <div 
-                    className="position-relative"
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      color: 'white'
-                    }}
-                  >
-                    ⚙️
-                  </div>
+            <div className="row">
+              <div className="col-lg-4 col-md-4">
+                <div className="text-center mb-4">
+                  <img 
+                    src={wwo01} 
+                    alt="Real Exam Questions" 
+                    className="mb-3"
+                    style={{ maxWidth: '120px', height: 'auto' }}
+                  />
+                  <p className="text-muted">
+                    Real exams questions updated monthly, high chance to encounter in your upcoming exams.
+                  </p>
                 </div>
               </div>
-              <h4 className="fw-bold mb-3">Smart Interface</h4>
-              <p className="text-muted">
-                Smart and user-friendly interface, smooth and frictionless operation system guaranteed.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="col-md-4 text-center">
-              <div className="position-relative mb-4">
-                <div 
-                  className="mx-auto d-flex align-items-center justify-content-center"
-                  style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    backgroundColor: '#F24C4C', 
-                    borderRadius: '50%',
-                    position: 'relative'
-                  }}
-                >
-                  <div 
-                    className="position-absolute"
-                    style={{
-                      width: '80px',
-                      height: '80px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '50%',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                      backgroundSize: '20px 20px'
-                    }}
-                  ></div>
-                  <div 
-                    className="position-relative"
-                    style={{
-                      width: '60px',
-                      height: '60px',
-                      backgroundColor: '#F24C4C',
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      color: 'white'
-                    }}
-                  >
-                    👥
-                  </div>
+              <div className="col-lg-4 col-md-4">
+                <div className="text-center mb-4">
+                  <img 
+                    src={wwo02} 
+                    alt="Smart Interface" 
+                    className="mb-3"
+                    style={{ maxWidth: '120px', height: 'auto' }}
+                  />
+                  <p className="text-muted">
+                    Smart and user-friendly interface, smooth and frictionless operation system guaranteed.
+                  </p>
                 </div>
               </div>
-              <h4 className="fw-bold mb-3">Trusted Community</h4>
-              <p className="text-muted">
-                Trusted and used by more than 50,000 Japanese language learners.
-              </p>
+              <div className="col-lg-4 col-md-4">
+                <div className="text-center mb-4">
+                  <img 
+                    src={wwo03} 
+                    alt="Trusted Community" 
+                    className="mb-3"
+                    style={{ maxWidth: '120px', height: 'auto' }}
+                  />
+                  <p className="text-muted">
+                    Trusted and used by more than 50,000 Japanese language learners.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -875,227 +777,272 @@ const LearningHome = () => {
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-5 my-5">
-          <div className="container">
-            <div className="text-center mb-5">
-              <h2 className="display-4 fw-bold mb-3">WHAT STUDENTS SAY</h2>
-              <div className="mx-auto" style={{ width: '80px', height: '3px', backgroundColor: '#F24C4C' }}></div>
-            </div>
-
-            <div className="row g-4">
-              <div className="col-md-4">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body text-center p-4">
-                    <div className="mb-3">
-                      <span className="text-warning">★★★★★</span>
-                    </div>
-                    <p className="card-text text-muted mb-3">
-                      "MANABI HUB helped me pass N2 on my first try! The practice questions are exactly like the real exam."
-                    </p>
-                    <h6 className="fw-bold mb-1">Nguyen Minh</h6>
-                    <small className="text-muted">N2 Graduate</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-md-4">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body text-center p-4">
-                    <div className="mb-3">
-                      <span className="text-warning">★★★★★</span>
-                    </div>
-                    <p className="card-text text-muted mb-3">
-                      "The audio quality is excellent and the interface is very user-friendly. Highly recommended!"
-                    </p>
-                    <h6 className="fw-bold mb-1">Tran Linh</h6>
-                    <small className="text-muted">N3 Graduate</small>
-                  </div>
-                </div>
-              </div>
-
-              <div className="col-md-4">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body text-center p-4">
-                    <div className="mb-3">
-                      <span className="text-warning">★★★★★</span>
-                    </div>
-                    <p className="card-text text-muted mb-3">
-                      "I love how the questions are updated regularly. It keeps the content fresh and relevant."
-                    </p>
-                    <h6 className="fw-bold mb-1">Le Hoang</h6>
-                    <small className="text-muted">N1 Graduate</small>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Subscription Plans Section */}
+        {/* Course Packages Section */}
         <section className="py-5 my-5 bg-light">
           <div className="container">
             <div className="text-center mb-5">
-              <h2 className="display-4 fw-bold mb-3">SUBSCRIPTION PLANS</h2>
+              <h2 className="display-4 fw-bold mb-3">COURSE PACKAGES</h2>
               <div className="mx-auto" style={{ width: '80px', height: '3px', backgroundColor: '#F24C4C' }}></div>
+              <p className="text-muted mt-3">Choose the package that fits your learning goals</p>
             </div>
 
-            <div className="row g-4 justify-content-center">
-              {/* Premium 1 - 1 Month */}
-              <div className="col-lg-4 col-md-6">
-                <div className="card h-100 border-0 shadow-sm position-relative">
-                  <div className="card-body text-center p-4">
-                    {/* User Image */}
-                    <div className="mb-4">
-                      <div 
-                        className="mx-auto rounded"
-                        style={{ 
-                          width: '120px', 
-                          height: '120px', 
-                          backgroundColor: '#f8f9fa',
-                          backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'35\' r=\'20\' fill=\'%23ddd\'/%3E%3Cpath d=\'M30 70 Q50 50 70 70 L70 90 L30 90 Z\' fill=\'%23ddd\'/%3E%3C/svg%3E")',
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}
-                      ></div>
+            <div className="row g-4">
+              {/* Package 1: 読解 Section */}
+              <div className="col-lg-6 col-md-6">
+                <div className="card h-100 border-0 shadow-sm">
+                  <div className="card-body p-4">
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>📚</span>
                     </div>
-
-                    <h4 className="fw-bold mb-3">PREMIUM 1</h4>
+                    <h4 className="fw-bold mb-2">Reading Section Package</h4>
+                    <p className="text-muted small mb-3">Full access to the Reading section</p>
                     
-                    <div className="mb-4">
-                      <span className="display-4 fw-bold text-dark">$35</span>
-                      <span className="text-muted">/1mo</span>
+                    <div className="mb-3">
+                      <div className="d-flex gap-2 mb-2">
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '1' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '1'})}
+                        >
+                          <div className="fw-bold text-danger">2,000đ</div>
+                          <small className="text-muted">1 month</small>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '3' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '3'})}
+                        >
+                          <div className="fw-bold text-danger">5,000đ</div>
+                          <small className="text-muted">3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '6' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '6'})}
+                        >
+                          <div className="fw-bold text-danger">8,000đ</div>
+                          <small className="text-muted">6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                        </div>
+                      </div>
                     </div>
 
                     <ul className="list-unstyled mb-4">
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real exam questions, regular update</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to all units in Reading section</span>
                       </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real audio, regular update</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Advanced recommended solutions</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Premium user only features</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Unlimited units</span>
                       </li>
                     </ul>
 
-                    <button className="btn btn-outline-dark btn-lg w-100">
-                      SUBSCRIBE
-                    </button>
+                    <a href={`/learning/subscription/checkout?package=section_access&duration=${selectedDurations.section_access}`} className="btn btn-danger w-100">
+                      SUBSCRIBE NOW
+                    </a>
                   </div>
                 </div>
               </div>
 
-              {/* Premium 3 - 3 Months (Highlighted) */}
-              <div className="col-lg-4 col-md-6">
-                <div className="card h-100 border-0 shadow-lg position-relative" style={{ transform: 'scale(1.05)' }}>
-                  <div className="card-body text-center p-4">
-                    {/* User Image */}
-                    <div className="mb-4">
-                      <div 
-                        className="mx-auto rounded"
-                        style={{ 
-                          width: '120px', 
-                          height: '120px', 
-                          backgroundColor: '#F24C4C',
-                          backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'35\' r=\'20\' fill=\'%23fff\'/%3E%3Cpath d=\'M30 70 Q50 50 70 70 L70 90 L30 90 Z\' fill=\'%23fff\'/%3E%3C/svg%3E")',
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}
-                      ></div>
+              {/* Package 2: All Sections (Except Conversation) */}
+              <div className="col-lg-6 col-md-6">
+                <div className="card h-100 border-0 shadow-sm">
+                  <div className="card-body p-4">
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>🎯</span>
                     </div>
-
-                    <h4 className="fw-bold mb-3">PREMIUM 3</h4>
+                    <h4 className="fw-bold mb-2">All Sections (Except Conversation)</h4>
+                    <p className="text-muted small mb-3">Access all sections except Conversation</p>
                     
-                    <div className="mb-4">
-                      <span className="display-4 fw-bold text-danger">$55</span>
-                      <span className="text-muted">/3mo</span>
+                    <div className="mb-3">
+                      <div className="d-flex gap-2 mb-2">
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '1' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '1'})}
+                        >
+                          <div className="fw-bold text-danger">2,000đ</div>
+                          <small className="text-muted">1 month</small>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '3' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '3'})}
+                        >
+                          <div className="fw-bold text-danger">5,000đ</div>
+                          <small className="text-muted">3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '6' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '6'})}
+                        >
+                          <div className="fw-bold text-danger">8,000đ</div>
+                          <small className="text-muted">6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                        </div>
+                      </div>
                     </div>
 
                     <ul className="list-unstyled mb-4">
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real exam questions, regular update</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Access all sections except Conversation</span>
                       </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real audio, regular update</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Advanced recommended solutions</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Premium user only features</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Unlimited units</span>
                       </li>
                     </ul>
 
-                    <button className="btn btn-danger btn-lg w-100">
-                      SUBSCRIBE
-                    </button>
+                    <a href={`/learning/subscription/checkout?package=all_except_conversation&duration=${selectedDurations.all_except_conversation}`} className="btn btn-danger w-100">
+                      SUBSCRIBE NOW
+                    </a>
                   </div>
                 </div>
               </div>
 
-              {/* Premium 6 - 6 Months */}
-              <div className="col-lg-4 col-md-6">
-                <div className="card h-100 border-0 shadow-sm position-relative">
-                  <div className="card-body text-center p-4">
-                    {/* User Image */}
-                    <div className="mb-4">
-                      <div 
-                        className="mx-auto rounded"
-                        style={{ 
-                          width: '120px', 
-                          height: '120px', 
-                          backgroundColor: '#f8f9fa',
-                          backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Ccircle cx=\'50\' cy=\'35\' r=\'20\' fill=\'%23ddd\'/%3E%3Cpath d=\'M30 70 Q50 50 70 70 L70 90 L30 90 Z\' fill=\'%23ddd\'/%3E%3C/svg%3E")',
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}
-                      ></div>
+              {/* Package 3: Mock Test */}
+              <div className="col-lg-6 col-md-6">
+                <div className="card h-100 border-0 shadow-sm">
+                  <div className="card-body p-4">
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>📝</span>
                     </div>
-
-                    <h4 className="fw-bold mb-3">PREMIUM 6</h4>
+                    <h4 className="fw-bold mb-2">Mock Test Package</h4>
+                    <p className="text-muted small mb-3">Full access to the Mock Test section</p>
                     
-                    <div className="mb-4">
-                      <span className="display-4 fw-bold text-dark">$95</span>
-                      <span className="text-muted">/6mo</span>
+                    <div className="mb-3">
+                      <div className="d-flex gap-2 mb-2">
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '1' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '1'})}
+                        >
+                          <div className="fw-bold text-danger">2,000đ</div>
+                          <small className="text-muted">1 month</small>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '3' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '3'})}
+                        >
+                          <div className="fw-bold text-danger">5,000đ</div>
+                          <small className="text-muted">3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '6' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '6'})}
+                        >
+                          <div className="fw-bold text-danger">8,000đ</div>
+                          <small className="text-muted">6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                        </div>
+                      </div>
                     </div>
 
                     <ul className="list-unstyled mb-4">
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real exam questions, regular update</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to all units in Mock Test section</span>
                       </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Real audio, regular update</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Advanced recommended solutions</span>
-                      </li>
-                      <li className="mb-2 d-flex align-items-center">
-                        <span className="text-danger me-2">✓</span>
-                        <span>Premium user only features</span>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Unlimited units</span>
                       </li>
                     </ul>
 
-                    <button className="btn btn-outline-dark btn-lg w-100">
-                      SUBSCRIBE
-                    </button>
+                    <a href={`/learning/subscription/checkout?package=mock_test&duration=${selectedDurations.mock_test}`} className="btn btn-danger w-100">
+                      SUBSCRIBE NOW
+                    </a>
                   </div>
                 </div>
               </div>
+
+              {/* Package 4: Comprehensive (Featured) */}
+              <div className="col-lg-6 col-md-6">
+                <div className="card h-100 border-0 shadow-lg position-relative" style={{ borderTop: '4px solid #F24C4C' }}>
+                  <div className="position-absolute top-0 end-0 m-3">
+                    <span className="badge bg-danger">POPULAR</span>
+                  </div>
+                  <div className="card-body p-4">
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>🌟</span>
+                    </div>
+                    <h4 className="fw-bold mb-2">Listening + Vocabulary/Kanji + Grammar + Reading</h4>
+                    <p className="text-muted small mb-3">Full access to Listening, Vocabulary/Kanji, Grammar, and Reading sections</p>
+                    
+                    <div className="mb-3">
+                      <div className="d-flex gap-2 mb-2">
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '1' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '1'})}
+                        >
+                          <div className="fw-bold text-danger">2,000đ</div>
+                          <small className="text-muted">1 month</small>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '3' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '3'})}
+                        >
+                          <div className="fw-bold text-danger">5,000đ</div>
+                          <small className="text-muted">3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                        </div>
+                        <div 
+                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '6' ? 'bg-light border-danger' : ''}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '6'})}
+                        >
+                          <div className="fw-bold text-danger">8,000đ</div>
+                          <small className="text-muted">6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className="list-unstyled mb-4">
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to Listening section</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to Vocabulary/Kanji section</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to Grammar section</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Full access to Reading section</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span>Unlimited units</span>
+                      </li>
+                    </ul>
+
+                    <a href={`/learning/subscription/checkout?package=comprehensive_sections&duration=${selectedDurations.comprehensive_sections}`} className="btn btn-danger w-100">
+                      SUBSCRIBE NOW
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center mt-4">
+              <a href="/learning/payment" className="btn btn-link text-danger">
+                Xem chi tiết và thanh toán →
+              </a>
             </div>
           </div>
         </section>

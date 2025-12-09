@@ -1,0 +1,266 @@
+.subscription {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.subscription-info {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 0;
+  align-items: center;
+  min-height: 480px;
+}
+
+.benefits-section {
+  position: relative;
+  background: #e8eaed;
+  padding: 2rem;
+  border-radius: 12px 0 0 12px;
+  border: 2px solid #d1d5db;
+  border-right: none;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 1rem;
+  }
+
+  .list-check {
+    margin-bottom: 1.5rem;
+    
+    li {
+      position: relative;
+      padding-left: 30px;
+      margin-bottom: 0.75rem;
+      font-size: 0.95rem;
+      color: #555;
+      line-height: 1.4;
+      
+      &::before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #28a745;
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .btn-primary {
+    background-color: #f24c4c;
+    border-color: #f24c4c;
+    padding: 0.7rem 2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    width: auto;
+    display: inline-block;
+    max-width: fit-content;
+    
+    &:hover {
+      background-color: #d63f3f;
+      border-color: #d63f3f;
+    }
+    
+    &:disabled {
+      background-color: #999;
+      border-color: #999;
+    }
+  }
+}
+
+.subscription-price-card {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  height: 380px;
+  overflow: visible;
+
+  border-left: none;
+  border-top: none; /* tránh xuất hiện đường kẻ mỏng phía trên */
+}
+
+.price-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 0 10px 10px 0;
+  transform: skewY(-5deg);
+  overflow: visible;
+  
+  // Background with clip
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #E31E3F 0%, #D41A3A 100%);
+    border-radius: 0 10px 10px 0;
+    z-index: 0;
+    box-shadow: 0 10px 30px rgba(227, 30, 63, 0.4);
+  }
+  
+  // Unskew content inside
+  > * {
+    transform: skewY(5deg);
+  }
+  
+  .plan-image {
+    position: absolute;
+    top: 50%;
+    left: -80px;
+    transform: translateY(-50%) skewY(5deg);
+    width: 240px;
+    height: auto;
+    max-height: 95%;
+    object-fit: contain;
+    z-index: 4;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+  }
+  
+  .price-content {
+    position: relative;
+    z-index: 3;
+    padding: 1.5rem 1.5rem 0 1.5rem;
+    text-align: right;
+    color: white;
+    min-height: 200px;
+    
+    .plan-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .price-display {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 0.25rem;
+      
+      sup {
+        font-size: 1.5rem;
+        color: white;
+        font-weight: 700;
+      }
+      
+      .price {
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: white;
+        line-height: 1;
+      }
+      
+      .duration {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+  }
+  
+  .total-section {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: transparent;
+    border-top: 2px solid rgba(255, 255, 255, 0.5);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 3;
+    
+    .total-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: white;
+    }
+    
+    .total-price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+    }
+  }
+}
+
+@media (max-width: 992px) {
+  .subscription-info {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .subscription-price-card {
+    margin: 0 auto;
+  }
+  
+  .benefits-section {
+    text-align: center;
+    
+    .list-check {
+      text-align: left;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .subscription-price-card {
+    max-width: 100%;
+    height: 380px;
+  }
+  
+  .price-card-inner {
+    .plan-image {
+      width: 180px;
+    }
+    
+    .price-content {
+      padding: 1.5rem 1.5rem 0 1.5rem;
+      
+      .plan-name {
+        font-size: 1.2rem;
+      }
+      
+      .price-display {
+        sup {
+          font-size: 1.5rem;
+        }
+        
+        .price {
+          font-size: 3rem;
+        }
+        
+        .duration {
+          font-size: 1rem;
+        }
+      }
+    }
+    
+    .total-section {
+      padding: 1rem 1.5rem;
+      
+      .total-label {
+        font-size: 1rem;
+      }
+      
+      .total-price {
+        font-size: 1.5rem;
+      }
+    }
+  }
+}
+

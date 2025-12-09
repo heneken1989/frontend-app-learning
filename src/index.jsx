@@ -25,6 +25,7 @@ import {
   PaymentPage,
   PaymentSuccess,
   PaymentCancel,
+  SubscriptionCheckout,
   ProgressPage,
   TestSeriesPage,
   TestResultsPage,
@@ -178,6 +179,7 @@ subscribe(APP_READY, () => {
                     <Route path="/payment" element={<PageWrap><PaymentPage /></PageWrap>} />
                     <Route path="/payment/success" element={<PageWrap><PaymentSuccess /></PageWrap>} />
                     <Route path="/payment/cancel" element={<PageWrap><PaymentCancel /></PageWrap>} />
+                    <Route path="/subscription/checkout" element={<PageWrap><SubscriptionCheckout /></PageWrap>} />
                     <Route path={ROUTES.UNSUBSCRIBE} element={<PageWrap><GoalUnsubscribe /></PageWrap>} />
                     <Route path={ROUTES.REDIRECT} element={<PageWrap><CoursewareRedirectLandingPage /></PageWrap>} />
                     <Route path={ROUTES.PREFERENCES_UNSUBSCRIBE} element={<PageWrap><PreferencesUnsubscribe /></PageWrap>} />
