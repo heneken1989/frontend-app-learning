@@ -2,38 +2,41 @@ import React, { useEffect, useState } from 'react';
 import Header from './Header/src/learning-header/LearningHeader';
 import Footer from './Footer';
 
+// Import images directly for webpack to handle
+import hero001 from '../assets/hero/001.png';
+import hero002 from '../assets/hero/002.png';
+import hero005 from '../assets/hero/005.png';
+import hero007 from '../assets/hero/007.png';
+import heroBackground from '../assets/hero/45367.jpg';
+import testimonialBg from '../assets/hero/008.jpg';
+
 const LearningHome = () => {
-  // Get base URL for assets (supports both root and subdirectory deployment)
-  const baseUrl = process.env.PUBLIC_URL || '';
-  
   const slides = [
     {
       title: 'BEST PRACTICE PLATFORM FOR PTE ACADEMIC',
       subtitle: 'HIGH SCORE GUARANTEED',
       cta: 'GET STARTED',
-      image: `${baseUrl}/assets/hero/001.png`,
+      image: hero001,
     },
     {
       title: 'REAL EXAM QUESTION BANK UPDATED MONTHLY',
       subtitle: 'TRAIN WITH AUTHENTIC CONTENT',
       cta: 'VIEW COURSES',
-      image: `${baseUrl}/assets/hero/005.png`,
+      image: hero005,
     },
     {
       title: 'UX-DRIVEN PRACTICE TOOLS FOR EVERY SKILL',
       subtitle: 'DESIGNED BY TOP UX PROGRAMMERS',
       cta: 'START PRACTICING',
-      image: `${baseUrl}/assets/hero/002.png`,
+      image: hero002,
     },
     {
       title: 'EXTENSIVE MATERIALS LIBRARY',
       subtitle: 'TEXTBOOKS · PRACTICE TESTS · SPEED MASTER',
       cta: 'BROWSE MATERIALS',
-      image: `${baseUrl}/assets/hero/007.png`,
+      image: hero007,
     },
   ];
-
-  const heroBackground = `${baseUrl}/assets/hero/45367.jpg`;
 
   const heroStyles = `
     .hero-slider {
@@ -342,8 +345,6 @@ const LearningHome = () => {
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  // Background image for testimonials (replace with your asset path if needed)
-  const testimonialBackground = `${baseUrl}/assets/hero/008.jpg`;
 
   const testimonials = [
     {
@@ -742,7 +743,7 @@ const LearningHome = () => {
         <section
           className="people-say"
           style={{
-            backgroundImage: `url(${testimonialBackground})`,
+            backgroundImage: `url(${testimonialBg})`,
             backgroundRepeat: 'no-repeat',
             backgroundSize: '70% auto',
             backgroundPosition: 'right top',
