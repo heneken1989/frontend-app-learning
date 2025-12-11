@@ -1,12 +1,12 @@
 .nav-menu {
   display: flex;
   align-items: center;
-  background-color: rgba(238, 230, 230, 0.95);
+  background-color: #99CED4;
   margin-left: 1rem;
 
   .pte-tools {
     background-color: transparent;
-    color: #333;
+    color: white;
     padding: 0;
     font-weight: 600;
     border-radius: 4px;
@@ -23,43 +23,51 @@
     align-items: center;
 
     .nav-item {
-      color: #333;
-      text-decoration: none;
+      color: white;
+      text-decoration: none !important;
       font-weight: 500;
       padding: 8px 0;
       position: relative;
+      border-bottom: none !important;
+      border-top: none !important;
+      box-shadow: none !important;
 
       &:hover {
-        color: #e31837;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none !important;
+        border-bottom: none !important;
+        border-top: none !important;
+        box-shadow: none !important;
       }
 
-      &:after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        background-color: transparent;
-        transition: background-color 0.2s;
+      &::before,
+      &::after {
+        display: none !important;
+        content: none !important;
+        width: 0 !important;
+        height: 0 !important;
       }
 
-      &:hover:after {
-        background-color: #e31837;
+      &:hover::before,
+      &:hover::after {
+        display: none !important;
+        content: none !important;
+        width: 0 !important;
+        height: 0 !important;
       }
     }
   }
 
   // Dropdown menu styles
   .dropdown-menu-custom {
-    background: rgba(238, 230, 230, 0.95) !important;
-    border: 2px solid #bdbdbd !important;
+    background: #99CED4 !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
   }
 
   // Ensure all dropdown levels have consistent background
   .nav-item .dropdown-menu-custom,
   .nav-item .dropdown-menu-custom > div > div > div {
-    background: rgba(238, 230, 230, 0.95) !important;
+    background: #99CED4 !important;
   }
 } 

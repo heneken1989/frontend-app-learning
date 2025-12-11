@@ -209,7 +209,7 @@ const LearningHome = () => {
     .people-say {
       width: 100%;
       padding: 32px 0 48px;
-      background: #fff;
+      background: #E6F2FF;
     }
     .people-say-inner {
       width: 100%;
@@ -416,7 +416,7 @@ const LearningHome = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(timer);
   }, [slides.length]);
 
@@ -585,7 +585,7 @@ const LearningHome = () => {
         </div>
 
         {/* WHAT WE OFFER YOU Section */}
-        <section className="py-5 my-5" id="services-section">
+        <section className="py-5 my-5" id="services-section" style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="row justify-content-md-center">
               <div className="col-lg-8">
@@ -649,6 +649,7 @@ const LearningHome = () => {
             backgroundRepeat: 'no-repeat',
             backgroundSize: '70% auto',
             backgroundPosition: 'right top',
+            backgroundColor: '#E6F2FF',
           }}
         >
           <div className="people-say-inner">
@@ -686,7 +687,7 @@ const LearningHome = () => {
         </section>
 
         {/* Course Features Section */}
-        <section className="py-5 my-5 bg-light">
+        <section className="py-5 my-5" style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="text-center mb-5">
               <h2 className="display-4 fw-bold mb-3">COURSE FEATURES</h2>
@@ -778,7 +779,7 @@ const LearningHome = () => {
         </section>
 
         {/* Course Packages Section */}
-        <section className="py-5 my-5 bg-light">
+        <section className="py-5 my-5" style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="text-center mb-5">
               <h2 className="display-4 fw-bold mb-3">COURSE PACKAGES</h2>
@@ -789,8 +790,22 @@ const LearningHome = () => {
             <div className="row g-4">
               {/* Package 1: 読解 Section */}
               <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body p-4">
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src="https://pte.tools/assets/plan_01.png"
+                    alt="Reading Section"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '120px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
                     <div className="mb-3">
                       <span style={{ fontSize: '2.5rem' }}>📚</span>
                     </div>
@@ -798,32 +813,32 @@ const LearningHome = () => {
                     <p className="text-muted small mb-3">Full access to the Reading section</p>
                     
                     <div className="mb-3">
-                      <div className="d-flex gap-2 mb-2">
+                      <div className="d-flex gap-1 mb-2">
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '1' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '1' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, section_access: '1'})}
                         >
-                          <div className="fw-bold text-danger">2,000đ</div>
-                          <small className="text-muted">1 month</small>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '3' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '3' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, section_access: '3'})}
                         >
-                          <div className="fw-bold text-danger">5,000đ</div>
-                          <small className="text-muted">3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.section_access === '6' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '6' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, section_access: '6'})}
                         >
-                          <div className="fw-bold text-danger">8,000đ</div>
-                          <small className="text-muted">6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
                         </div>
                       </div>
                     </div>
@@ -848,8 +863,22 @@ const LearningHome = () => {
 
               {/* Package 2: All Sections (Except Conversation) */}
               <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body p-4">
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src="https://pte.tools/assets/plan_02.png"
+                    alt="All Sections"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '120px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
                     <div className="mb-3">
                       <span style={{ fontSize: '2.5rem' }}>🎯</span>
                     </div>
@@ -857,32 +886,32 @@ const LearningHome = () => {
                     <p className="text-muted small mb-3">Access all sections except Conversation</p>
                     
                     <div className="mb-3">
-                      <div className="d-flex gap-2 mb-2">
+                      <div className="d-flex gap-1 mb-2">
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '1' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '1' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '1'})}
                         >
-                          <div className="fw-bold text-danger">2,000đ</div>
-                          <small className="text-muted">1 month</small>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '3' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '3' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '3'})}
                         >
-                          <div className="fw-bold text-danger">5,000đ</div>
-                          <small className="text-muted">3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.all_except_conversation === '6' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '6' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '6'})}
                         >
-                          <div className="fw-bold text-danger">8,000đ</div>
-                          <small className="text-muted">6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
                         </div>
                       </div>
                     </div>
@@ -907,8 +936,22 @@ const LearningHome = () => {
 
               {/* Package 3: Mock Test */}
               <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm">
-                  <div className="card-body p-4">
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src="https://pte.tools/assets/plan_03.png"
+                    alt="Mock Test"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '120px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
                     <div className="mb-3">
                       <span style={{ fontSize: '2.5rem' }}>📝</span>
                     </div>
@@ -916,32 +959,32 @@ const LearningHome = () => {
                     <p className="text-muted small mb-3">Full access to the Mock Test section</p>
                     
                     <div className="mb-3">
-                      <div className="d-flex gap-2 mb-2">
+                      <div className="d-flex gap-1 mb-2">
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '1' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '1' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, mock_test: '1'})}
                         >
-                          <div className="fw-bold text-danger">2,000đ</div>
-                          <small className="text-muted">1 month</small>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '3' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '3' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, mock_test: '3'})}
                         >
-                          <div className="fw-bold text-danger">5,000đ</div>
-                          <small className="text-muted">3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.mock_test === '6' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '6' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, mock_test: '6'})}
                         >
-                          <div className="fw-bold text-danger">8,000đ</div>
-                          <small className="text-muted">6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
                         </div>
                       </div>
                     </div>
@@ -966,11 +1009,25 @@ const LearningHome = () => {
 
               {/* Package 4: Comprehensive (Featured) */}
               <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-lg position-relative" style={{ borderTop: '4px solid #F24C4C' }}>
-                  <div className="position-absolute top-0 end-0 m-3">
+                <div className="card h-100 border-0 shadow-lg position-relative" style={{ borderTop: '4px solid #F24C4C', overflow: 'hidden' }}>
+                  <img 
+                    src="https://pte.tools/assets/plan_03.png"
+                    alt="Comprehensive Package"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '120px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="position-absolute top-0 end-0 m-3" style={{ zIndex: 3 }}>
                     <span className="badge bg-danger">POPULAR</span>
                   </div>
-                  <div className="card-body p-4">
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
                     <div className="mb-3">
                       <span style={{ fontSize: '2.5rem' }}>🌟</span>
                     </div>
@@ -978,32 +1035,32 @@ const LearningHome = () => {
                     <p className="text-muted small mb-3">Full access to Listening, Vocabulary/Kanji, Grammar, and Reading sections</p>
                     
                     <div className="mb-3">
-                      <div className="d-flex gap-2 mb-2">
+                      <div className="d-flex gap-1 mb-2">
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '1' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '1' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '1'})}
                         >
-                          <div className="fw-bold text-danger">2,000đ</div>
-                          <small className="text-muted">1 month</small>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '3' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '3' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '3'})}
                         >
-                          <div className="fw-bold text-danger">5,000đ</div>
-                          <small className="text-muted">3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-17%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
                         </div>
                         <div 
-                          className={`flex-fill text-center p-2 border rounded ${selectedDurations.comprehensive_sections === '6' ? 'bg-light border-danger' : ''}`}
+                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '6' ? 'bg-light border-danger' : ''}`}
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '6'})}
                         >
-                          <div className="fw-bold text-danger">8,000đ</div>
-                          <small className="text-muted">6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.65rem' }}>-33%</span></div>
+                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
+                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
                         </div>
                       </div>
                     </div>

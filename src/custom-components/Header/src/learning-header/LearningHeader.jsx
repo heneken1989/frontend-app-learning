@@ -90,35 +90,51 @@ const MultiLevelDropdown = ({
     // Data is already preloaded, no need to fetch
   };
 
+  // Check if there are any courses for this skill
+  const hasCourses = LEVELS.some(level => {
+    const filteredCourses = courses.filter(course => (course.display_name || '').toLowerCase().includes(level.toLowerCase()));
+    return filteredCourses.length > 0;
+  });
+
   return (
     <div
       className="nav-item vocab-dropdown"
-      onMouseEnter={() => { setVocabOpen(true); setHoveredSkill(label); }}
+      onMouseEnter={() => { if (hasCourses) setVocabOpen(true); setHoveredSkill(label); }}
       onMouseLeave={() => { setVocabOpen(false); setOpenLevel(null); setHoveredCourse(null); setHoveredSequence(null); }}
       style={{
-        position: 'relative', padding: '8px 16px', borderRadius: 4, cursor: 'pointer',
+        position: 'relative', padding: '8px 16px', borderRadius: 4, cursor: hasCourses ? 'pointer' : 'default',
       }}
     >
       {label}
-      {vocabOpen && (
-        <div
-          className="dropdown-menu-custom"
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            minWidth: 140,
-            background: 'rgba(238, 230, 230, 0.95)',
-            borderRadius: 6,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-            zIndex: 1000,
-            border: '2px solid #bdbdbd',
-            marginTop: 0,
-          }}
-        >
-          {LEVELS.map((level) => {
+      {vocabOpen && hasCourses && (() => {
+        const levelsWithCourses = LEVELS.filter(level => {
+          const filteredCourses = courses.filter(course => (course.display_name || '').toLowerCase().includes(level.toLowerCase()));
+          return filteredCourses.length > 0;
+        });
+        
+        if (levelsWithCourses.length === 0) return null;
+        
+        return (
+          <div
+            className="dropdown-menu-custom"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              minWidth: 140,
+              background: '#99CED4',
+              borderRadius: 6,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+              zIndex: 1000,
+              border: '2px solid #bdbdbd',
+              marginTop: 0,
+            }}
+          >
+            {LEVELS.map((level) => {
             const isLevelActive = openLevel === level;
             const filteredCourses = courses.filter(course => (course.display_name || '').toLowerCase().includes(level.toLowerCase()));
+            // Only render level if it has courses
+            if (filteredCourses.length === 0) return null;
             return (
               <div
                 key={level}
@@ -135,7 +151,7 @@ const MultiLevelDropdown = ({
                     cursor: 'default',
                     padding: '8px 16px',
                     borderRadius: 4,
-                    background: isLevelActive ? '#0097a9' : 'none',
+                    background: isLevelActive ? '#F24C4C' : 'transparent',
                     color: isLevelActive ? '#fff' : '#333',
                     transition: 'background 0.2s',
                   }}
@@ -149,7 +165,7 @@ const MultiLevelDropdown = ({
                     position: 'absolute',
                     left: '100%',
                     top: 0,
-                    background: 'rgba(238, 230, 230, 0.95)',
+                    background: '#99CED4',
                     border: '2px solid #bdbdbd',
                     minWidth: 180,
                     zIndex: 1000,
@@ -174,7 +190,7 @@ const MultiLevelDropdown = ({
                               textDecoration: 'none',
                               whiteSpace: 'nowrap',
                               borderRadius: 4,
-                              background: isCourseActive ? '#0097a9' : 'none',
+                              background: isCourseActive ? '#F24C4C' : 'transparent',
                               color: isCourseActive ? '#fff' : '#333',
                               transition: 'background 0.2s',
                               cursor: 'default',
@@ -188,7 +204,7 @@ const MultiLevelDropdown = ({
                               position: 'absolute',
                               left: '100%',
                               top: 0,
-                              background: 'rgba(238, 230, 230, 0.95)',
+                              background: '#99CED4',
                               border: '2px solid #bdbdbd',
                               minWidth: 180,
                               zIndex: 2000,
@@ -206,7 +222,7 @@ const MultiLevelDropdown = ({
                                       color: isSeqActive ? '#fff' : '#333',
                                       borderRadius: 4,
                                       transition: 'background 0.2s',
-                                      background: isSeqActive ? '#0097a9' : 'none',
+                                      background: isSeqActive ? '#F24C4C' : 'transparent',
                                     }}
                                     className="dropdown-hover-item"
                                     onMouseEnter={() => setHoveredSequence(seq.id)}
@@ -244,8 +260,9 @@ const MultiLevelDropdown = ({
               </div>
             );
           })}
-        </div>
-      )}
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -487,7 +504,7 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
             padding: '8px 16px',
             borderRadius: 4,
             cursor: 'pointer',
-            background: '#0097a9',
+            background: 'transparent',
             color: '#fff',
             fontWeight: '600',
             textDecoration: 'none',
@@ -495,11 +512,11 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
           }}
           onClick={() => window.location.href = '/learning/test-series'}
           onMouseEnter={(e) => {
-            e.target.style.background = '#007a8a';
+            e.target.style.background = 'transparent';
             e.target.style.transform = 'translateY(-1px)';
           }}
           onMouseLeave={(e) => {
-            e.target.style.background = '#0097a9';
+            e.target.style.background = 'transparent';
             e.target.style.transform = 'translateY(0)';
           }}
         >
@@ -509,6 +526,7 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         <div
           className="nav-item cache-refresh-link"
           style={{
+            display: 'block',
             position: 'relative',
             padding: '8px 16px',
             borderRadius: 4,
@@ -540,40 +558,78 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
       <style>{`
         .dropdown-hover-item {
           color: #333 !important;
+          background: transparent !important;
         }
         .dropdown-hover-item:hover {
-          background: #0097a9 !important;
+          background: #F24C4C !important;
           color: #fff !important;
         }
-        .dropdown-active-item, .nav-item-active {
-          background: #0097a9 !important;
+        .dropdown-active-item > .dropdown-hover-item, .nav-item-active {
+          background: #F24C4C !important;
           color: #fff !important;
+        }
+        .dropdown-active-item {
+          background: transparent !important;
+        }
+        .dropdown-menu-custom .dropdown-active-item {
+          background: transparent !important;
         }
         .nav-item:hover, .nav-item:focus, .nav-item-active {
-          background: #0097a9 !important;
+          background: #F24C4C !important;
           color: #fff !important;
         }
         .nav-item {
           color: #333 !important;
+          background: #99CED4 !important;
+          text-decoration: none !important;
+          border-bottom: none !important;
+        }
+        .nav-item::after {
+          display: none !important;
+          content: none !important;
+        }
+        .nav-item:hover::after {
+          display: none !important;
+          content: none !important;
         }
         .dropdown-menu, .dropdown-menu[style], .dropdown-menu-custom {
+          background: #99CED4 !important;
           border: 1px solid #d0d7de !important;
           box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
+        }
+        .dropdown-menu-custom.dropdown-menu-custom {
+          background: #99CED4 !important;
+        }
+        .dropdown-menu-custom .dropdown-active-item {
+          background: transparent !important;
+        }
+        div.dropdown-menu-custom {
+          background: #99CED4 !important;
+        }
+        div.dropdown-menu-custom > div {
+          background-color: transparent !important;
+        }
+        div.dropdown-menu-custom .dropdown-hover-item {
+          background-color: transparent !important;
+        }
+        div.dropdown-menu-custom .dropdown-hover-item:hover,
+        div.dropdown-menu-custom .dropdown-active-item > .dropdown-hover-item {
+          background-color: #F24C4C !important;
         }
         .nav-item, .nav-item:active, .nav-item:visited, .nav-item:focus {
           text-decoration: none !important;
         }
         .payment-link {
-          background: #0097a9 !important;
+          background: transparent !important;
           color: #fff !important;
           font-weight: 600 !important;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+          box-shadow: none !important;
         }
         .payment-link:hover {
-          background: #007a8a !important;
+          background: transparent !important;
           color: #fff !important;
           transform: translateY(-1px) !important;
-          box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+          box-shadow: none !important;
         }
         .auto-enroll-link {
           background: #28a745 !important;
@@ -1309,6 +1365,7 @@ const LearningHeader = ({
             <div
               className="nav-item toggle-subscription-link"
               style={{
+                display: 'none',
                 position: 'relative',
                 padding: '8px 16px',
                 borderRadius: 4,
@@ -1344,6 +1401,7 @@ const LearningHeader = ({
             <div
               className="nav-item activate-section-link"
               style={{
+                display: 'none',
                 position: 'relative',
                 padding: '8px 16px',
                 borderRadius: 4,
@@ -1383,7 +1441,7 @@ const LearningHeader = ({
               padding: '8px 16px',
               borderRadius: 4,
               cursor: 'pointer',
-              background: '#0097a9',
+              background: 'transparent',
               color: '#fff',
               fontWeight: '600',
               textDecoration: 'none',
@@ -1391,11 +1449,11 @@ const LearningHeader = ({
             }}
             onClick={() => window.location.href = '/learning/payment'}
             onMouseEnter={(e) => {
-              e.target.style.background = '#007a8a';
+              e.target.style.background = 'transparent';
               e.target.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = '#0097a9';
+              e.target.style.background = 'transparent';
               e.target.style.transform = 'translateY(0)';
             }}
           >
@@ -1414,21 +1472,21 @@ const LearningHeader = ({
       <style>
         {`
           .learning-header {
-            background: white !important;
+            background: #99CED4 !important;
             border-bottom: 1px solid #e0e0e0;
           }
           .learning-header .container-xl {
-            background: white !important;
+            background: #99CED4 !important;
           }
           .learning-header .nav-menu {
-            background: white !important;
+            background: #99CED4 !important;
           }
           .learning-header .nav-links {
-            background: white !important;
+            background: #99CED4 !important;
           }
           .course-title-lockup {
             justify-content: center;
-            background: white !important;
+            background: #99CED4 !important;
           }
           /* Make user dropdown circular */
           .learning-header .dropdown-toggle,
