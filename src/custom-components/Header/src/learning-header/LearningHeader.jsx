@@ -43,7 +43,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   };
 }
 
-const LEVELS = ['N1', 'N2', 'N3', 'N4', 'N5'];
+const LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
 
 // Extract the multi-level dropdown as a reusable component
 const MultiLevelDropdown = ({
@@ -485,7 +485,7 @@ const NavigationMenu = ({ courses, preloadedData, setPreloadedData }) => {
         />
       </div>
       <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-        {['聴解', '言葉。漢字', '文法', '読解'].map((label) => (
+        {['言葉。漢字', '文法', '読解', '聴解', '会話'].map((label) => (
           <MultiLevelDropdown
             key={label}
             label={label}

@@ -588,52 +588,118 @@ const LearningHome = () => {
         <section className="py-5 my-5" id="services-section" style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="row justify-content-md-center">
-              <div className="col-lg-8">
+              <div className="col-lg-10">
                 <div className="text-center mb-5">
                   <h2 className="text-uppercase fw-bold mb-3" style={{ fontSize: '2rem' }}>What We Offer You</h2>
                   <p className="text-muted">
-                    MANABI HUB offers you the biggest real exam question bank on the market. New questions and audios are updated regularly and fastest. Additionally, our tool's features and layouts are designed by top-notch UX programmers, particularly user-friendly and easy to use.
+                    MANABI HUB provides comprehensive practice interfaces for each skill tab, offering unique advantages that help learners achieve their goals efficiently.
                   </p>
                 </div>
               </div>
             </div>
-            <div className="row">
-              <div className="col-lg-4 col-md-4">
+            <div className="row g-4">
+              <div className="col-lg-4 col-md-6">
                 <div className="text-center mb-4">
                   <img 
                     src={wwo01} 
-                    alt="Real Exam Questions" 
+                    alt="Extensive Practice Materials" 
                     className="mb-3"
                     style={{ maxWidth: '120px', height: 'auto' }}
                   />
+                  <h5 className="fw-bold mb-3">Extensive Practice Materials</h5>
                   <p className="text-muted">
-                    Real exams questions updated monthly, high chance to encounter in your upcoming exams.
+                    Practice thousands of vocabulary words, kanji characters, grammar sentences, and reading comprehension exercises across all JLPT levels (N5 to N1).
                   </p>
                 </div>
               </div>
-              <div className="col-lg-4 col-md-4">
+              <div className="col-lg-4 col-md-6">
                 <div className="text-center mb-4">
                   <img 
                     src={wwo02} 
-                    alt="Smart Interface" 
+                    alt="Unlimited Practice Time" 
                     className="mb-3"
                     style={{ maxWidth: '120px', height: 'auto' }}
                   />
+                  <h5 className="fw-bold mb-3">Unlimited Practice Time</h5>
                   <p className="text-muted">
-                    Smart and user-friendly interface, smooth and frictionless operation system guaranteed.
+                    Practice for hours without restrictions. No daily access limits - study as much as you want, whenever you want.
                   </p>
                 </div>
               </div>
-              <div className="col-lg-4 col-md-4">
+              <div className="col-lg-4 col-md-6">
                 <div className="text-center mb-4">
                   <img 
                     src={wwo03} 
-                    alt="Trusted Community" 
+                    alt="All Market Textbooks" 
                     className="mb-3"
                     style={{ maxWidth: '120px', height: 'auto' }}
                   />
+                  <h5 className="fw-bold mb-3">All Market Textbooks</h5>
                   <p className="text-muted">
-                    Trusted and used by more than 50,000 Japanese language learners.
+                    Access practice materials from all textbooks available on the market, all in one convenient platform.
+                  </p>
+                </div>
+              </div>
+              <div className="col-lg-4 col-md-6">
+                <div className="text-center mb-4">
+                  <div 
+                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      backgroundColor: '#F24C4C', 
+                      borderRadius: '50%',
+                      color: 'white',
+                      fontSize: '3rem'
+                    }}
+                  >
+                    💻
+                  </div>
+                  <h5 className="fw-bold mb-3">Study Anywhere, Anytime</h5>
+                  <p className="text-muted">
+                    Practice from anywhere at any time that suits you. No need to carry books or notebooks - just a laptop with internet connection is all you need.
+                  </p>
+                </div>
+              </div>
+              <div className="col-lg-4 col-md-6">
+                <div className="text-center mb-4">
+                  <div 
+                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      backgroundColor: '#F24C4C', 
+                      borderRadius: '50%',
+                      color: 'white',
+                      fontSize: '3rem'
+                    }}
+                  >
+                    🔁
+                  </div>
+                  <h5 className="fw-bold mb-3">Learn Through Repetition</h5>
+                  <p className="text-muted">
+                    No need to force memorization. Simply practice exercises multiple times and you'll naturally remember the content through repetition.
+                  </p>
+                </div>
+              </div>
+              <div className="col-lg-4 col-md-6">
+                <div className="text-center mb-4">
+                  <div 
+                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      backgroundColor: '#F24C4C', 
+                      borderRadius: '50%',
+                      color: 'white',
+                      fontSize: '3rem'
+                    }}
+                  >
+                    📝
+                  </div>
+                  <h5 className="fw-bold mb-3">Real JLPT Mock Tests</h5>
+                  <p className="text-muted">
+                    Multiple mock tests that simulate real JLPT exams, allowing you to practice and prepare effectively for quick success.
                   </p>
                 </div>
               </div>
@@ -681,98 +747,6 @@ const LearningHome = () => {
                     aria-label={`Go to testimonial ${idx + 1}`}
                   />
                 ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Course Features Section */}
-        <section className="py-5 my-5" style={{ backgroundColor: '#E6F2FF' }}>
-          <div className="container">
-            <div className="text-center mb-5">
-              <h2 className="display-4 fw-bold mb-3">COURSE FEATURES</h2>
-              <div className="mx-auto" style={{ width: '80px', height: '3px', backgroundColor: '#F24C4C' }}></div>
-            </div>
-
-            <div className="row g-4">
-              <div className="col-md-6 col-lg-3">
-                <div className="text-center">
-                  <div 
-                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      backgroundColor: '#F24C4C', 
-                      borderRadius: '50%',
-                      color: 'white',
-                      fontSize: '2rem'
-                    }}
-                  >
-                    📚
-                  </div>
-                  <h5 className="fw-bold">N5-N1 Levels</h5>
-                  <p className="text-muted small">Complete coverage from beginner to advanced levels</p>
-                </div>
-              </div>
-
-              <div className="col-md-6 col-lg-3">
-                <div className="text-center">
-                  <div 
-                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      backgroundColor: '#F24C4C', 
-                      borderRadius: '50%',
-                      color: 'white',
-                      fontSize: '2rem'
-                    }}
-                  >
-                    🎧
-                  </div>
-                  <h5 className="fw-bold">Audio Practice</h5>
-                  <p className="text-muted small">High-quality audio for listening comprehension</p>
-                </div>
-              </div>
-
-              <div className="col-md-6 col-lg-3">
-                <div className="text-center">
-                  <div 
-                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      backgroundColor: '#F24C4C', 
-                      borderRadius: '50%',
-                      color: 'white',
-                      fontSize: '2rem'
-                    }}
-                  >
-                    📝
-                  </div>
-                  <h5 className="fw-bold">Practice Tests</h5>
-                  <p className="text-muted small">Simulated exams with real question patterns</p>
-                </div>
-              </div>
-
-              <div className="col-md-6 col-lg-3">
-                <div className="text-center">
-                  <div 
-                    className="mx-auto mb-3 d-flex align-items-center justify-content-center"
-                    style={{ 
-                      width: '80px', 
-                      height: '80px', 
-                      backgroundColor: '#F24C4C', 
-                      borderRadius: '50%',
-                      color: 'white',
-                      fontSize: '2rem'
-                    }}
-                  >
-                    📊
-                  </div>
-                  <h5 className="fw-bold">Progress Tracking</h5>
-                  <p className="text-muted small">Monitor your learning progress and improvement</p>
-                </div>
               </div>
             </div>
           </div>

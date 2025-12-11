@@ -37,10 +37,11 @@ const Footer = () => {
           <div className="footer-column">
             <h3 className="footer-title">COMPANY INFO</h3>
             <div className="footer-address">
-              <p>Trụ sở chính: Số 15 đường Võ Văn Kiệt, phường Phú Định, Thành phố Hồ Chí Minh.</p>
-              <p>Điện thoại: 0919 695 739</p>
-              <p>Mã số thuế: 0318916330, do Sở Tài Chính Thành phố Hồ Chí Minh cấp ngày 17 tháng 4 năm 2025</p>
-              <p>Quyết định thành lập trung tâm ngoại ngữ Trạm Học Tập, số 828/ QĐ-SGDĐT do Sở Giáo dục và Đào tạo cấp ngày 24 tháng 7 năm 2025.</p>
+              <p><strong>MANABI HUB Limited Liability Company</strong></p>
+              <p>Head Office: 15 Vo Van Kiet Street, Phu Dinh Ward, Ho Chi Minh City.</p>
+              <p>Phone: 0919 695 739</p>
+              <p>Tax ID: 0318916330, issued by Ho Chi Minh City Department of Finance on April 17, 2025</p>
+              <p>Decision to establish Tram Hoc Tap Foreign Language Center, No. 828/QD-SGDĐT, issued by the Department of Education and Training on July 24, 2025.</p>
             </div>
           </div>
 
