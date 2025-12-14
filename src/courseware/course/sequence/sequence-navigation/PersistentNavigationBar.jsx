@@ -66,7 +66,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         if (response.ok) {
           const data = await response.json();
           const accessInfoData = data.access_info || { access_type: 'free', unit_limit: 20 };
-          console.log('🔍 [PersistentNavigationBar] Fetched access_info:', accessInfoData);
           setAccessInfo(accessInfoData);
         } else {
           setAccessInfo({ access_type: 'free', unit_limit: 20 });
@@ -101,18 +100,8 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     if (accessInfo && sequence && unitId) {
       const unitIndex = sequence.unitIds?.indexOf(unitId) ?? -1;
       
-      console.log('🔍 [PersistentNavigationBar] Checking unit limit:', {
-        access_type: accessInfo.access_type,
-        unitIndex,
-        unit_limit: accessInfo.unit_limit,
-        sectionTitle,
-        allowed_sections: accessInfo.allowed_sections,
-        totalUnits: sequence.unitIds?.length
-      });
-      
       // Always allow subscribed users - no limit
       if (accessInfo.access_type === 'subscribed') {
-        console.log('🔍 [PersistentNavigationBar] Subscribed user - no limit');
         setIsAtUnitLimit(false);
         return;
       }
@@ -121,26 +110,23 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
         // If section title is in allowed_sections, no limit
         if (sectionTitle && accessInfo.allowed_sections.includes(sectionTitle)) {
-          console.log('🔍 [PersistentNavigationBar] Section access user with purchased section - no limit');
           setIsAtUnitLimit(false);
           return;
         }
         // Otherwise, limit to 20 units (free access)
         const isAtLimit = unitIndex >= (20 - 1);
-        console.log('🔍 [PersistentNavigationBar] Section access user without purchased section - limit:', isAtLimit);
         setIsAtUnitLimit(isAtLimit);
       } else if (accessInfo.access_type === 'free' && accessInfo.unit_limit) {
         // Free user: check if current unit is the last allowed unit (index = limit - 1)
         const isAtLimit = unitIndex >= (accessInfo.unit_limit - 1);
-        console.log('🔍 [PersistentNavigationBar] Free user - limit:', isAtLimit, 'unitIndex:', unitIndex, 'limit:', accessInfo.unit_limit);
         setIsAtUnitLimit(isAtLimit);
       } else {
         // Any other access type (premium, etc.) or unknown: no limit by default
-        console.log('🔍 [PersistentNavigationBar] Other access type - no limit, access_type:', accessInfo.access_type);
+        // This includes cases where accessInfo exists but access_type is not 'free' or 'section_access'
         setIsAtUnitLimit(false);
       }
     } else {
-      console.log('🔍 [PersistentNavigationBar] No accessInfo/sequence/unitId - no limit');
+      // No accessInfo yet - don't limit (allow navigation until accessInfo is loaded)
       setIsAtUnitLimit(false);
     }
   }, [accessInfo, sequence, unitId, sectionTitle]);
@@ -241,7 +227,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           }
           // Also receive template ID if provided
           if (event.data && event.data.templateId) {
-            console.log('🔍 [PersistentNavigationBar] Received template ID:', event.data.templateId);
             setCurrentTemplateId(event.data.templateId);
           }
           break;
@@ -1553,9 +1538,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const renderSubmitButton = () => {
     // Hide check button for template ID 1
-    console.log('🔍 [PersistentNavigationBar] renderSubmitButton - currentTemplateId:', currentTemplateId);
     if (currentTemplateId === 1) {
-      console.log('🔍 [PersistentNavigationBar] Hiding check button for template ID 1');
       return null;
     }
     
@@ -1661,26 +1644,18 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     const { exitActive, exitText } = courseExitNav;
     const buttonText = (isLastUnitInSequence && exitText) ? exitText : intl.formatMessage(messages.nextButton);
     
-    // Debug log
-    console.log('🔍 [PersistentNavigationBar] renderNextButton:', {
-      isLastUnitInSequence,
-      isAtUnitLimit,
-      accessInfo,
-      access_type: accessInfo?.access_type,
-      disabled: isLastUnitInSequence || isAtUnitLimit
-    });
-    
     // Disable if last unit OR if free user at unit limit
     // Only disable if we have accessInfo and it confirms the limit
     // If accessInfo is not loaded yet, don't disable (allow navigation)
-    const disabled = isLastUnitInSequence || (isAtUnitLimit && accessInfo);
+    // Always allow subscribed users
+    const isSubscribed = accessInfo && accessInfo.access_type === 'subscribed';
+    const disabled = isLastUnitInSequence || (isAtUnitLimit && accessInfo && !isSubscribed);
     const variant = 'outline-primary';
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
     const handleNextClick = () => {
       // Always allow navigation for subscribed users
       if (accessInfo && accessInfo.access_type === 'subscribed') {
-        console.log('🔍 [PersistentNavigationBar] Subscribed user - allowing navigation');
         // Continue with navigation (don't return)
       }
       // Check if user is at unit limit (free users or section_access users without access)
@@ -1806,7 +1781,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           )}
         </div>
 
-        {/* Right side - Unit Title, CourseOutline, Next */}
+        {/* Right side - Unit Title, Debug Info, CourseOutline, Next */}
         <div className="d-flex align-items-center" style={{ gap: '8px', marginLeft: 'auto' }}>
           {/* Unit title display */}
           <div style={{ 
@@ -1819,6 +1794,26 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           }}>
             {getUnitTitle()}
           </div>
+          
+          {/* Debug info display */}
+          {accessInfo && (
+            <div style={{ 
+              padding: '6px 10px',
+              background: accessInfo.access_type === 'subscribed' ? 'rgba(76, 175, 80, 0.2)' : accessInfo.access_type === 'free' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(255, 152, 0, 0.2)',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: '500',
+              color: '#333',
+              border: `1px solid ${accessInfo.access_type === 'subscribed' ? '#4caf50' : accessInfo.access_type === 'free' ? '#f44336' : '#ff9800'}`,
+              whiteSpace: 'nowrap'
+            }}>
+              {accessInfo.access_type === 'subscribed' ? '✓ Subscribed' : 
+               accessInfo.access_type === 'free' ? `Free (${accessInfo.unit_limit || 20})` : 
+               accessInfo.access_type === 'section_access' ? 'Section Access' : 
+               accessInfo.access_type || 'Unknown'}
+              {isAtUnitLimit && <span style={{ color: '#f44336', marginLeft: '4px' }}>⚠ Limit</span>}
+            </div>
+          )}
           
           <CourseOutlineSidebarSlot />
           {renderNextButton()}
