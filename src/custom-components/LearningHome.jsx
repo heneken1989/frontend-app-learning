@@ -12,6 +12,10 @@ import testimonialBg from '../assets/hero/008.jpg';
 import wwo01 from '../assets/hero/wwo_01.png';
 import wwo02 from '../assets/hero/wwo_02.png';
 import wwo03 from '../assets/hero/wwo_03.png';
+// Use static paths for webp images
+const package1 = '/assets/hero/package1.webp';
+const package2 = '/assets/hero/package2.webp';
+const package3 = '/assets/hero/package3.webp';
 
 const LearningHome = () => {
   const slides = [
@@ -69,13 +73,44 @@ const LearningHome = () => {
       align-items: center;
       justify-content: space-between;
       gap: 32px;
-      transition: transform 0.5s ease, opacity 0.5s ease;
       opacity: 0;
       padding: 0 24px;
       box-sizing: border-box;
+      visibility: hidden;
     }
     .hero-slide.active {
       opacity: 1;
+      visibility: visible;
+      animation: rotateInDownLeft 1s ease forwards;
+    }
+    .hero-slide.rotate-out {
+      opacity: 1;
+      visibility: visible;
+      animation: rotateOutUpRight 1s ease forwards;
+    }
+    @keyframes rotateInDownLeft {
+      from {
+        opacity: 0;
+        transform: rotate3d(0, 0, 1, -45deg) translate3d(0, -100%, 0);
+        transform-origin: left bottom;
+      }
+      to {
+        opacity: 1;
+        transform: rotate3d(0, 0, 0, 0deg) translate3d(0, 0, 0);
+        transform-origin: left bottom;
+      }
+    }
+    @keyframes rotateOutUpRight {
+      from {
+        opacity: 1;
+        transform: rotate3d(0, 0, 0, 0deg) translate3d(0, 0, 0);
+        transform-origin: right top;
+      }
+      to {
+        opacity: 0;
+        transform: rotate3d(0, 0, 1, 90deg) translate3d(0, -100%, 0);
+        transform-origin: right top;
+      }
     }
     .hero-slide-image {
       flex: 1 1 50%;
@@ -203,6 +238,81 @@ const LearningHome = () => {
       .hero-slider-inner {
         min-height: 420px;
       }
+    }
+
+    /* Fade in from bottom animation */
+    [data-fade-in] {
+      opacity: 0;
+      transform: translateY(150px) translateZ(0);
+      transition: opacity 1.2s ease-out, transform 1.2s ease-out;
+    }
+    [data-fade-in].fade-in-visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Package card slide in from left animation with white background fade */
+    [data-package-card] {
+      opacity: 0;
+      transform: translateX(-100px) scale(0.95) translateZ(0);
+      transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+      position: relative;
+    }
+    [data-package-card] > .card {
+      position: relative;
+      overflow: hidden;
+    }
+    [data-package-card] > .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 1);
+      z-index: 100;
+      transition: opacity 1.5s ease-out;
+      pointer-events: none;
+    }
+    [data-package-card].package-card-visible {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+    [data-package-card].package-card-visible > .card::before {
+      opacity: 0;
+    }
+    /* Hover effect - zoom in */
+    [data-package-card]:hover > .card {
+      transform: scale(1.05);
+      transition: transform 0.3s ease-out;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    }
+    [data-package-card] > .card {
+      transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(1) {
+      transition-delay: 0.3s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(1) > .card::before {
+      transition-delay: 0.3s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(2) {
+      transition-delay: 0.5s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(2) > .card::before {
+      transition-delay: 0.5s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(3) {
+      transition-delay: 0.7s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(3) > .card::before {
+      transition-delay: 0.7s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(4) {
+      transition-delay: 0.9s;
+    }
+    .row.g-4 > [data-package-card]:nth-of-type(4) > .card::before {
+      transition-delay: 0.9s;
     }
 
     /* People Say */
@@ -348,12 +458,11 @@ const LearningHome = () => {
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [selectedDurations, setSelectedDurations] = useState({
-    section_access: '1',
-    all_except_conversation: '1',
-    mock_test: '1',
-    comprehensive_sections: '1'
-  });
+  const [prevSlide, setPrevSlide] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [visibleSections, setVisibleSections] = useState({});
+  const [scrollDirection, setScrollDirection] = useState('down');
+  const [lastScrollY, setLastScrollY] = useState(0);
 
   const testimonials = [
     {
@@ -427,8 +536,84 @@ const LearningHome = () => {
     return () => clearInterval(timer);
   }, [testimonials.length]);
 
+  // Track scroll direction
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          const direction = currentScrollY > lastScrollY ? 'down' : 'up';
+          setScrollDirection(direction);
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Intersection Observer for fade-in animations
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px',
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.target.id) return;
+
+        if (entry.isIntersecting) {
+          // Fade in when element enters viewport (only when scrolling down)
+          if (scrollDirection === 'down') {
+            setVisibleSections((prev) => ({
+              ...prev,
+              [entry.target.id]: true,
+            }));
+          }
+          
+          // If this is the course-packages section, animate package cards (regardless of scroll direction)
+          if (entry.target.id === 'course-packages-section') {
+            const packageCards = document.querySelectorAll('[data-package-card]');
+            packageCards.forEach((card) => {
+              card.classList.add('package-card-visible');
+            });
+          }
+        }
+      });
+    }, observerOptions);
+
+    // Observe all sections that should animate
+    const sections = document.querySelectorAll('[data-fade-in]');
+    sections.forEach((section) => {
+      if (section.id) {
+        observer.observe(section);
+      }
+    });
+
+    return () => {
+      sections.forEach((section) => {
+        if (section.id) {
+          observer.unobserve(section);
+        }
+      });
+    };
+  }, [scrollDirection]);
+
   const goToSlide = (index) => {
-    setActiveSlide((index + slides.length) % slides.length);
+    const newIndex = (index + slides.length) % slides.length;
+    if (newIndex !== activeSlide && !isAnimating) {
+      setIsAnimating(true);
+      setPrevSlide(activeSlide);
+      setActiveSlide(newIndex);
+      setTimeout(() => setIsAnimating(false), 1000); // Animation duration
+    }
   };
 
   return (
@@ -438,27 +623,30 @@ const LearningHome = () => {
       <main className="flex-grow-1 pt-0 pb-4">
         <section className="hero-slider">
           <div className="hero-slider-inner">
-            {slides.map((slide, index) => (
-              <div
-                key={slide.title}
-                className={`hero-slide ${index === activeSlide ? 'active' : ''}`}
-                style={{ transform: `translateX(${(index - activeSlide) * 100}%)` }}
-              >
-            <div
-              className="hero-slide-image"
-              style={{ backgroundImage: `url(${slide.image})` }}
-              aria-label={slide.title}
-              role="img"
-            />
-                <div className="hero-slide-text">
-                  <h2>{slide.title}</h2>
-                  <p>{slide.subtitle}</p>
-                  <button type="button" className="hero-cta">
-                    {slide.cta}
-                  </button>
+            {slides.map((slide, index) => {
+              const isActive = index === activeSlide;
+              const isRotatingOut = index === prevSlide && index !== activeSlide && isAnimating;
+              return (
+                <div
+                  key={slide.title}
+                  className={`hero-slide ${isActive ? 'active' : ''} ${isRotatingOut ? 'rotate-out' : ''}`}
+                >
+                  <div
+                    className="hero-slide-image"
+                    style={{ backgroundImage: `url(${slide.image})` }}
+                    aria-label={slide.title}
+                    role="img"
+                  />
+                  <div className="hero-slide-text">
+                    <h2>{slide.title}</h2>
+                    <p>{slide.subtitle}</p>
+                    <button type="button" className="hero-cta">
+                      {slide.cta}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <button
               type="button"
               className="hero-nav hero-nav-prev"
@@ -490,7 +678,7 @@ const LearningHome = () => {
         </section>
         <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
 
-        <div className="container">
+        <div className={`container ${visibleSections['exam-info-section'] ? 'fade-in-visible' : ''}`} data-fade-in id="exam-info-section">
         <div className="d-flex flex-column align-items-center">
         <div className="w-100" style={{ maxWidth: '960px' }}>
         {/* Content Header */}
@@ -585,7 +773,7 @@ const LearningHome = () => {
         </div>
 
         {/* WHAT WE OFFER YOU Section */}
-        <section className="py-5 my-5" id="services-section" style={{ backgroundColor: '#E6F2FF' }}>
+        <section className={`py-5 my-5 ${visibleSections['services-section'] ? 'fade-in-visible' : ''}`} id="services-section" data-fade-in style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="row justify-content-md-center">
               <div className="col-lg-10">
@@ -709,7 +897,9 @@ const LearningHome = () => {
 
         {/* People Say */}
         <section
-          className="people-say"
+          className={`people-say ${visibleSections['people-say-section'] ? 'fade-in-visible' : ''}`}
+          id="people-say-section"
+          data-fade-in
           style={{
             backgroundImage: `url(${testimonialBg})`,
             backgroundRepeat: 'no-repeat',
@@ -753,7 +943,7 @@ const LearningHome = () => {
         </section>
 
         {/* Course Packages Section */}
-        <section className="py-5 my-5" style={{ backgroundColor: '#E6F2FF' }}>
+        <section className={`py-5 my-5 ${visibleSections['course-packages-section'] ? 'fade-in-visible' : ''}`} id="course-packages-section" data-fade-in style={{ backgroundColor: '#E6F2FF' }}>
           <div className="container">
             <div className="text-center mb-5">
               <h2 className="display-4 fw-bold mb-3">COURSE PACKAGES</h2>
@@ -762,236 +952,17 @@ const LearningHome = () => {
             </div>
 
             <div className="row g-4">
-              {/* Package 1: 読解 Section */}
-              <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
-                  <img 
-                    src="https://pte.tools/assets/plan_01.png"
-                    alt="Reading Section"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      width: '120px',
-                      height: 'auto',
-                      opacity: 0.8,
-                      zIndex: 1,
-                      pointerEvents: 'none'
-                    }}
-                  />
-                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className="mb-3">
-                      <span style={{ fontSize: '2.5rem' }}>📚</span>
-                    </div>
-                    <h4 className="fw-bold mb-2">Reading Section Package</h4>
-                    <p className="text-muted small mb-3">Full access to the Reading section</p>
-                    
-                    <div className="mb-3">
-                      <div className="d-flex gap-1 mb-2">
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '1' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '1'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '3' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '3'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.section_access === '6' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, section_access: '6'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <ul className="list-unstyled mb-4">
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Full access to all units in Reading section</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Unlimited units</span>
-                      </li>
-                    </ul>
-
-                    <a href={`/learning/subscription/checkout?package=section_access&duration=${selectedDurations.section_access}`} className="btn btn-danger w-100">
-                      SUBSCRIBE NOW
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Package 2: All Sections (Except Conversation) */}
-              <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
-                  <img 
-                    src="https://pte.tools/assets/plan_02.png"
-                    alt="All Sections"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      width: '120px',
-                      height: 'auto',
-                      opacity: 0.8,
-                      zIndex: 1,
-                      pointerEvents: 'none'
-                    }}
-                  />
-                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className="mb-3">
-                      <span style={{ fontSize: '2.5rem' }}>🎯</span>
-                    </div>
-                    <h4 className="fw-bold mb-2">All Sections (Except Conversation)</h4>
-                    <p className="text-muted small mb-3">Access all sections except Conversation</p>
-                    
-                    <div className="mb-3">
-                      <div className="d-flex gap-1 mb-2">
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '1' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '1'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '3' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '3'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.all_except_conversation === '6' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, all_except_conversation: '6'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <ul className="list-unstyled mb-4">
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Access all sections except Conversation</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Unlimited units</span>
-                      </li>
-                    </ul>
-
-                    <a href={`/learning/subscription/checkout?package=all_except_conversation&duration=${selectedDurations.all_except_conversation}`} className="btn btn-danger w-100">
-                      SUBSCRIBE NOW
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Package 3: Mock Test */}
-              <div className="col-lg-6 col-md-6">
-                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
-                  <img 
-                    src="https://pte.tools/assets/plan_03.png"
-                    alt="Mock Test"
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      width: '120px',
-                      height: 'auto',
-                      opacity: 0.8,
-                      zIndex: 1,
-                      pointerEvents: 'none'
-                    }}
-                  />
-                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
-                    <div className="mb-3">
-                      <span style={{ fontSize: '2.5rem' }}>📝</span>
-                    </div>
-                    <h4 className="fw-bold mb-2">Mock Test Package</h4>
-                    <p className="text-muted small mb-3">Full access to the Mock Test section</p>
-                    
-                    <div className="mb-3">
-                      <div className="d-flex gap-1 mb-2">
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '1' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '1'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '3' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '3'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.mock_test === '6' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, mock_test: '6'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <ul className="list-unstyled mb-4">
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Full access to all units in Mock Test section</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Unlimited units</span>
-                      </li>
-                    </ul>
-
-                    <a href={`/learning/subscription/checkout?package=mock_test&duration=${selectedDurations.mock_test}`} className="btn btn-danger w-100">
-                      SUBSCRIBE NOW
-                    </a>
-                  </div>
-                </div>
-              </div>
-
               {/* Package 4: Comprehensive (Featured) */}
-              <div className="col-lg-6 col-md-6">
+              <div className="col-lg-3 col-md-6" data-package-card>
                 <div className="card h-100 border-0 shadow-lg position-relative" style={{ borderTop: '4px solid #F24C4C', overflow: 'hidden' }}>
                   <img 
-                    src="https://pte.tools/assets/plan_03.png"
+                    src={package1}
                     alt="Comprehensive Package"
                     style={{
                       position: 'absolute',
                       top: 0,
                       right: 0,
-                      width: '120px',
+                      width: '100px',
                       height: 'auto',
                       opacity: 0.8,
                       zIndex: 1,
@@ -1005,75 +976,152 @@ const LearningHome = () => {
                     <div className="mb-3">
                       <span style={{ fontSize: '2.5rem' }}>🌟</span>
                     </div>
-                    <h4 className="fw-bold mb-2">Listening + Vocabulary/Kanji + Grammar + Reading</h4>
-                    <p className="text-muted small mb-3">Full access to Listening, Vocabulary/Kanji, Grammar, and Reading sections</p>
-                    
-                    <div className="mb-3">
-                      <div className="d-flex gap-1 mb-2">
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '1' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '1'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>2,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>1 month</small>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '3' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '3'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>5,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>3 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-17%</span></div>
-                        </div>
-                        <div 
-                          className={`flex-fill text-center p-1 border rounded ${selectedDurations.comprehensive_sections === '6' ? 'bg-light border-danger' : ''}`}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setSelectedDurations({...selectedDurations, comprehensive_sections: '6'})}
-                        >
-                          <div className="fw-bold text-danger" style={{ fontSize: '0.9rem' }}>8,000đ</div>
-                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>6 months</small>
-                          <div><span className="badge bg-success" style={{ fontSize: '0.6rem' }}>-33%</span></div>
-                        </div>
-                      </div>
-                    </div>
+                    <h4 className="fw-bold mb-2">Comprehensive</h4>
+                    <p className="text-muted small mb-3">Vocabulary + Grammar + Reading + Listening  </p>
 
                     <ul className="list-unstyled mb-4">
                       <li className="mb-2">
                         <span className="text-success me-2">✅</span>
-                        <span>Full access to Listening section</span>
+                        <span className="small">All sections included</span>
                       </li>
                       <li className="mb-2">
                         <span className="text-success me-2">✅</span>
-                        <span>Full access to Vocabulary/Kanji section</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Full access to Grammar section</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Full access to Reading section</span>
-                      </li>
-                      <li className="mb-2">
-                        <span className="text-success me-2">✅</span>
-                        <span>Unlimited units</span>
+                        <span className="small">Unlimited practice</span>
                       </li>
                     </ul>
 
-                    <a href={`/learning/subscription/checkout?package=comprehensive_sections&duration=${selectedDurations.comprehensive_sections}`} className="btn btn-danger w-100">
-                      SUBSCRIBE NOW
+                    <a href="/learning/subscription/checkout?package=comprehensive_sections" className="btn btn-danger w-100">
+                      VIEW DETAILS
                     </a>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="text-center mt-4">
-              <a href="/learning/payment" className="btn btn-link text-danger">
-                Xem chi tiết và thanh toán →
-              </a>
+              {/* Package 3: Mock Test */}
+              <div className="col-lg-3 col-md-6" data-package-card>
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src={package3}
+                    alt="Mock Test"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>📝</span>
+                    </div>
+                    <h4 className="fw-bold mb-2">Mock Test</h4>
+                    <p className="text-muted small mb-3">Full access to the Mock Test section</p>
+
+                    <ul className="list-unstyled mb-4">
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">Full access to all tests</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">Unlimited practice</span>
+                      </li>
+                    </ul>
+
+                    <a href="/learning/subscription/checkout?package=mock_test" className="btn btn-danger w-100">
+                      VIEW DETAILS
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Package 2: All Sections (Except Conversation) */}
+              <div className="col-lg-3 col-md-6" data-package-card>
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src={package2}
+                    alt="All Sections"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>🎯</span>
+                    </div>
+                    <h4 className="fw-bold mb-2">Comprehensive + Mock Test</h4>
+                    <p className="text-muted small mb-3">Access all sections except Speaking</p>
+
+                    <ul className="list-unstyled mb-4">
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">All sections access</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">Unlimited practice</span>
+                      </li>
+                    </ul>
+
+                    <a href="/learning/subscription/checkout?package=all_except_conversation" className="btn btn-danger w-100">
+                      VIEW DETAILS
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Package 1: Reading Section */}
+              <div className="col-lg-3 col-md-6" data-package-card>
+                <div className="card h-100 border-0 shadow-sm position-relative" style={{ overflow: 'hidden' }}>
+                  <img 
+                    src={package1}
+                    alt="Speaking Section"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '100px',
+                      height: 'auto',
+                      opacity: 0.8,
+                      zIndex: 1,
+                      pointerEvents: 'none'
+                    }}
+                  />
+                  <div className="card-body p-4" style={{ position: 'relative', zIndex: 2 }}>
+                    <div className="mb-3">
+                      <span style={{ fontSize: '2.5rem' }}>📚</span>
+                    </div>
+                    <h4 className="fw-bold mb-2">Speaking Section</h4>
+                    <p className="text-muted small mb-3">Full access to the Speaking section</p>
+
+                    <ul className="list-unstyled mb-4">
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">Full access to all units</span>
+                      </li>
+                      <li className="mb-2">
+                        <span className="text-success me-2">✅</span>
+                        <span className="small">Unlimited practice</span>
+                      </li>
+                    </ul>
+
+                    <a href="/learning/subscription/checkout?package=section_access" className="btn btn-danger w-100">
+                      VIEW DETAILS
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

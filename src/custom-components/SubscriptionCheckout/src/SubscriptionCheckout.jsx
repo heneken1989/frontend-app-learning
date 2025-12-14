@@ -4,6 +4,10 @@ import { getConfig } from '@edx/frontend-platform';
 import { AppContext } from '@edx/frontend-platform/react';
 import LearningHeader from '../../Header/src/learning-header/LearningHeader';
 import Footer from '../../Footer';
+// Use static paths for webp images
+const package1 = '/assets/hero/package1.webp';
+const package2 = '/assets/hero/package2.webp';
+const package3 = '/assets/hero/package3.webp';
 import './SubscriptionCheckout.scss';
 
 const SubscriptionCheckout = () => {
@@ -11,10 +15,10 @@ const SubscriptionCheckout = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(searchParams.get('duration') || '1');
 
   // Get package info from URL params
   const packageType = searchParams.get('package') || 'section_access';
-  const duration = searchParams.get('duration') || '1';
 
   // Package configurations (same as PaymentPage)
   const packages = {
@@ -79,7 +83,7 @@ const SubscriptionCheckout = () => {
     }
   };
 
-  // Duration options
+  // Duration options with prices
   const durationOptions = {
     '1': { label: '1 tháng', days: 30, priceMultiplier: 1 },
     '3': { label: '3 tháng', days: 90, priceMultiplier: 2.5 },
@@ -87,19 +91,19 @@ const SubscriptionCheckout = () => {
   };
 
   const currentPackage = packages[packageType] || packages.section_access;
-  const durationOption = durationOptions[duration] || durationOptions['1'];
+  const durationOption = durationOptions[selectedDuration] || durationOptions['1'];
   const totalPrice = currentPackage.price * durationOption.priceMultiplier;
 
-  // Map package type to image number
-  const getImageNumber = (type) => {
+  // Map package type to image
+  const getPackageImage = (type) => {
     const mapping = {
-      'section_access': '01',
-      'all_except_conversation': '02',
-      'mock_test': '03',
-      // Use same image as other packages because gói 4 chưa có ảnh riêng
-      'comprehensive_sections': '03'
+      'section_access': package1,
+      'all_except_conversation': package2,
+      'mock_test': package3,
+      // Use package1 for comprehensive (same as package 1)
+      'comprehensive_sections': package1
     };
-    return mapping[type] || '01';
+    return mapping[type] || package1;
   };
 
   // Calculate expiration date
@@ -134,7 +138,7 @@ const SubscriptionCheckout = () => {
         allowedSections: currentPackage.allowedSections,
         excludedSections: currentPackage.excludedSections,
         expiresAt: expiresAt,
-        durationMonths: duration,
+        durationMonths: selectedDuration,
         returnUrl: `${lmsBaseUrl}/api/payment/callback/`,
         cancelUrl: `${window.location.origin}/learning/payment/cancel`,
         useSimulator: false,
@@ -203,6 +207,37 @@ const SubscriptionCheckout = () => {
                       ))}
                     </ul>
                     
+                    {/* Duration Selection */}
+                    <div className="duration-selection mt-4 mb-4">
+                      <h3 className="duration-title mb-3">Choose Duration</h3>
+                      <div className="duration-options">
+                        {Object.entries(durationOptions).map(([key, option]) => {
+                          const optionPrice = currentPackage.price * option.priceMultiplier;
+                          const isSelected = selectedDuration === key;
+                          return (
+                            <div
+                              key={key}
+                              className={`duration-option ${isSelected ? 'selected' : ''}`}
+                              onClick={() => setSelectedDuration(key)}
+                            >
+                              <div className="duration-option-content">
+                                <div className="duration-label">{option.label}</div>
+                                <div className="duration-price">
+                                  ₫{optionPrice.toLocaleString()}
+                                </div>
+                                {key === '3' && (
+                                  <span className="badge bg-success ms-2" style={{ fontSize: '0.65rem' }}>-17%</span>
+                                )}
+                                {key === '6' && (
+                                  <span className="badge bg-success ms-2" style={{ fontSize: '0.65rem' }}>-33%</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
                     <button
                       className="btn btn-primary btn-lg"
                       onClick={handlePayOSPayment}
@@ -224,7 +259,7 @@ const SubscriptionCheckout = () => {
                     <div className="price-card-inner">
                       {/* Image positioned on the left */}
                       <img 
-                        src={`https://pte.tools/assets/plan_${getImageNumber(packageType)}.png`}
+                        src={getPackageImage(packageType)}
                         alt={currentPackage.name}
                         className="plan-image"
                       />

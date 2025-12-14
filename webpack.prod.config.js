@@ -66,6 +66,10 @@ config.plugins.push(
         from: path.resolve(__dirname, './public/static'),
         to: path.resolve(__dirname, './dist/static'),
       },
+      {
+        from: path.resolve(__dirname, './public/assets'),
+        to: path.resolve(__dirname, './dist/assets'),
+      },
     ],
   }),
 );
@@ -167,5 +171,19 @@ config.optimization.splitChunks.cacheGroups.styles = {
   priority: 20,
 };
 
+// Add webp support
+if (!config.module) {
+  config.module = { rules: [] };
+}
+if (!config.module.rules) {
+  config.module.rules = [];
+}
+config.module.rules.push({
+  test: /\.webp$/i,
+  type: 'asset/resource',
+  generator: {
+    filename: 'assets/[name].[hash:6][ext]',
+  },
+});
 
 module.exports = config;

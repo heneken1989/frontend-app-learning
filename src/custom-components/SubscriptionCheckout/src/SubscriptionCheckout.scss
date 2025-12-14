@@ -75,6 +75,62 @@
       border-color: #999;
     }
   }
+
+  .duration-selection {
+    .duration-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+
+    .duration-options {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .duration-option {
+      flex: 1;
+      min-width: 100px;
+      border: 2px solid #d1d5db;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: white;
+
+      &:hover {
+        border-color: #f24c4c;
+        box-shadow: 0 2px 8px rgba(242, 76, 76, 0.2);
+      }
+
+      &.selected {
+        border-color: #f24c4c;
+        background: #fff5f5;
+        box-shadow: 0 2px 8px rgba(242, 76, 76, 0.3);
+      }
+
+      .duration-option-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+
+        .duration-label {
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #333;
+        }
+
+        .duration-price {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #f24c4c;
+        }
+      }
+    }
+  }
 }
 
 .subscription-price-card {
@@ -118,11 +174,11 @@
   .plan-image {
     position: absolute;
     top: 50%;
-    left: -80px;
-    transform: translateY(-50%) skewY(5deg);
-    width: 240px;
+    left: -60px;
+    transform: translateY(calc(-50% - 40px)) skewY(5deg);
+    width: 180px;
     height: auto;
-    max-height: 95%;
+    max-height: 85%;
     object-fit: contain;
     z-index: 4;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
@@ -214,6 +270,17 @@
     .list-check {
       text-align: left;
     }
+
+    .duration-selection {
+      .duration-options {
+        justify-content: center;
+      }
+
+      .duration-option {
+        flex: 0 1 calc(33.333% - 0.5rem);
+        min-width: 90px;
+      }
+    }
   }
 }
 
@@ -225,7 +292,8 @@
   
   .price-card-inner {
     .plan-image {
-      width: 180px;
+      width: 150px;
+      left: -50px;
     }
     
     .price-content {
@@ -259,6 +327,19 @@
       
       .total-price {
         font-size: 1.5rem;
+      }
+    }
+  }
+
+  .benefits-section {
+    .duration-selection {
+      .duration-options {
+        flex-direction: column;
+      }
+
+      .duration-option {
+        flex: 1;
+        width: 100%;
       }
     }
   }

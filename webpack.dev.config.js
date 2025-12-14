@@ -62,4 +62,19 @@ config.plugins.push(
   }),
 );
 
+// Add webp support
+if (!config.module) {
+  config.module = { rules: [] };
+}
+if (!config.module.rules) {
+  config.module.rules = [];
+}
+config.module.rules.push({
+  test: /\.webp$/i,
+  type: 'asset/resource',
+  generator: {
+    filename: 'assets/[name].[hash:6][ext]',
+  },
+});
+
 module.exports = config;
