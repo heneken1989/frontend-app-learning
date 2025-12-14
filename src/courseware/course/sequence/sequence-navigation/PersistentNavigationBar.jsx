@@ -101,25 +101,46 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     if (accessInfo && sequence && unitId) {
       const unitIndex = sequence.unitIds?.indexOf(unitId) ?? -1;
       
+      console.log('🔍 [PersistentNavigationBar] Checking unit limit:', {
+        access_type: accessInfo.access_type,
+        unitIndex,
+        unit_limit: accessInfo.unit_limit,
+        sectionTitle,
+        allowed_sections: accessInfo.allowed_sections,
+        totalUnits: sequence.unitIds?.length
+      });
+      
+      // Always allow subscribed users - no limit
+      if (accessInfo.access_type === 'subscribed') {
+        console.log('🔍 [PersistentNavigationBar] Subscribed user - no limit');
+        setIsAtUnitLimit(false);
+        return;
+      }
+      
       // Check section access for section_access users
       if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
         // If section title is in allowed_sections, no limit
         if (sectionTitle && accessInfo.allowed_sections.includes(sectionTitle)) {
+          console.log('🔍 [PersistentNavigationBar] Section access user with purchased section - no limit');
           setIsAtUnitLimit(false);
           return;
         }
         // Otherwise, limit to 20 units (free access)
         const isAtLimit = unitIndex >= (20 - 1);
+        console.log('🔍 [PersistentNavigationBar] Section access user without purchased section - limit:', isAtLimit);
         setIsAtUnitLimit(isAtLimit);
       } else if (accessInfo.access_type === 'free' && accessInfo.unit_limit) {
         // Free user: check if current unit is the last allowed unit (index = limit - 1)
         const isAtLimit = unitIndex >= (accessInfo.unit_limit - 1);
+        console.log('🔍 [PersistentNavigationBar] Free user - limit:', isAtLimit, 'unitIndex:', unitIndex, 'limit:', accessInfo.unit_limit);
         setIsAtUnitLimit(isAtLimit);
       } else {
-        // Subscribed user: no limit
+        // Any other access type (premium, etc.) or unknown: no limit by default
+        console.log('🔍 [PersistentNavigationBar] Other access type - no limit, access_type:', accessInfo.access_type);
         setIsAtUnitLimit(false);
       }
     } else {
+      console.log('🔍 [PersistentNavigationBar] No accessInfo/sequence/unitId - no limit');
       setIsAtUnitLimit(false);
     }
   }, [accessInfo, sequence, unitId, sectionTitle]);
@@ -1639,14 +1660,31 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const renderNextButton = () => {
     const { exitActive, exitText } = courseExitNav;
     const buttonText = (isLastUnitInSequence && exitText) ? exitText : intl.formatMessage(messages.nextButton);
+    
+    // Debug log
+    console.log('🔍 [PersistentNavigationBar] renderNextButton:', {
+      isLastUnitInSequence,
+      isAtUnitLimit,
+      accessInfo,
+      access_type: accessInfo?.access_type,
+      disabled: isLastUnitInSequence || isAtUnitLimit
+    });
+    
     // Disable if last unit OR if free user at unit limit
-    const disabled = isLastUnitInSequence || isAtUnitLimit;
+    // Only disable if we have accessInfo and it confirms the limit
+    // If accessInfo is not loaded yet, don't disable (allow navigation)
+    const disabled = isLastUnitInSequence || (isAtUnitLimit && accessInfo);
     const variant = 'outline-primary';
     const buttonStyle = `next-button ${isAtTop ? 'text-dark' : 'justify-content-center'}`;
 
     const handleNextClick = () => {
+      // Always allow navigation for subscribed users
+      if (accessInfo && accessInfo.access_type === 'subscribed') {
+        console.log('🔍 [PersistentNavigationBar] Subscribed user - allowing navigation');
+        // Continue with navigation (don't return)
+      }
       // Check if user is at unit limit (free users or section_access users without access)
-      if (isAtUnitLimit && accessInfo) {
+      else if (isAtUnitLimit && accessInfo) {
         if (accessInfo.access_type === 'section_access' && sectionTitle && !accessInfo.allowed_sections?.includes(sectionTitle)) {
           // Section access user trying to access non-purchased section
           const upgrade = window.confirm(
