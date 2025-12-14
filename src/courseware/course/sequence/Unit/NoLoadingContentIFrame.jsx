@@ -79,7 +79,7 @@ const NoLoadingContentIFrame = ({
     <>
       <style>{`
         .content-iframe {
-          transition: opacity 0.3s ease-in-out;
+          /* Disabled: transition: opacity 0.3s ease-in-out; */
         }
 
         .content-iframe.loading {
@@ -91,33 +91,16 @@ const NoLoadingContentIFrame = ({
         }
 
         .loading-message {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 1.2rem;
-          font-weight: 500;
-          color: #333;
-          background: rgba(255, 255, 255, 0.95);
-          padding: 1.5rem 2rem;
-          border-radius: 12px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-          z-index: 10;
-          pointer-events: none;
-          opacity: 1;
-          visibility: visible;
-          transition: all 0.4s ease-in-out;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          backdrop-filter: blur(10px);
-          animation: fadeInScale 0.4s ease-out, autoHide 1s ease-in-out 1s forwards;
+          /* Completely hidden - no loading spinner */
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
         }
 
         .loading-message.hidden {
-          opacity: 0;
-          visibility: hidden;
-          animation: fadeOutScale 0.3s ease-in;
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
         }
 
         @keyframes autoHide {
@@ -137,7 +120,7 @@ const NoLoadingContentIFrame = ({
           border: 3px solid #ffebee;
           border-top: 3px solid #f44336;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
+          /* Disabled: animation: spin 1s linear infinite; */
         }
 
         .loading-dots {
@@ -150,12 +133,12 @@ const NoLoadingContentIFrame = ({
           height: 8px;
           background: #f44336;
           border-radius: 50%;
-          animation: bounce 1.4s infinite ease-in-out both;
+          /* Disabled: animation: bounce 1.4s infinite ease-in-out both; */
         }
 
-        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
-        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
-        .loading-dot:nth-child(3) { animation-delay: 0s; }
+        /* Disabled: .loading-dot:nth-child(1) { animation-delay: -0.32s; } */
+        /* Disabled: .loading-dot:nth-child(2) { animation-delay: -0.16s; } */
+        /* Disabled: .loading-dot:nth-child(3) { animation-delay: 0s; } */
 
         @keyframes spin {
           0% { transform: rotate(0deg); }

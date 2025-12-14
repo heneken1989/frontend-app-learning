@@ -28,6 +28,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const [template63QuizData, setTemplate63QuizData] = useState(null); // Store quiz data for template 63
   const [isScriptVisible, setIsScriptVisible] = useState(false); // Track if script popup is visible
   const [hasAudioQuiz, setHasAudioQuiz] = useState(false); // Whether current quiz has audio
+  const [currentTemplateId, setCurrentTemplateId] = useState(null); // Track current template ID
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
@@ -217,9 +218,19 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
           if (event.data && event.data.hasAudio) {
             setHasAudioQuiz(true);
           }
+          // Also receive template ID if provided
+          if (event.data && event.data.templateId) {
+            console.log('🔍 [PersistentNavigationBar] Received template ID:', event.data.templateId);
+            setCurrentTemplateId(event.data.templateId);
+          }
           break;
         case 'quiz.data.ready':
           // Handle quiz data directly from quiz iframe
+          // Store template ID if provided
+          if (event.data.quizData && event.data.quizData.templateId) {
+            setCurrentTemplateId(event.data.quizData.templateId);
+          }
+          
           // Check if template wants to show popup
           if (event.data.templateConfig && event.data.templateConfig.showPopup === false) {
             return;
@@ -270,6 +281,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     setTemplate63QuizData(null); // Reset template 63 quiz data when unit changes
     setIsScriptVisible(false); // Reset script visibility when unit changes
     setHasAudioQuiz(false); // Reset audio flag on unit change
+    setCurrentTemplateId(null); // Reset template ID when unit changes
     // Keep showSubmitButton as true - always show Check button
 
     // Don't send any automatic messages - only when user clicks submit
@@ -1519,6 +1531,13 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   };
 
   const renderSubmitButton = () => {
+    // Hide check button for template ID 1
+    console.log('🔍 [PersistentNavigationBar] renderSubmitButton - currentTemplateId:', currentTemplateId);
+    if (currentTemplateId === 1) {
+      console.log('🔍 [PersistentNavigationBar] Hiding check button for template ID 1');
+      return null;
+    }
+    
     // Simple button state - only changes on manual clicks
     const buttonText = isSubmitting ? '確認中...' : currentButtonState;
     
