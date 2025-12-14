@@ -108,6 +108,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
       
       // Check section access for section_access users
       if (accessInfo.access_type === 'section_access' && accessInfo.allowed_sections) {
+        // If allowed_sections contains '*' (all sections), no limit
+        if (accessInfo.allowed_sections.includes('*')) {
+          setIsAtUnitLimit(false);
+          return;
+        }
         // If section title is in allowed_sections, no limit
         if (sectionTitle && accessInfo.allowed_sections.includes(sectionTitle)) {
           setIsAtUnitLimit(false);
@@ -1805,11 +1810,22 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
               fontWeight: '500',
               color: '#333',
               border: `1px solid ${accessInfo.access_type === 'subscribed' ? '#4caf50' : accessInfo.access_type === 'free' ? '#f44336' : '#ff9800'}`,
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              cursor: 'help',
+              title: accessInfo.access_type === 'section_access' 
+                ? `Section: ${sectionTitle || 'N/A'}\nAllowed: ${accessInfo.allowed_sections?.join(', ') || 'None'}\nHas Access: ${sectionTitle && accessInfo.allowed_sections?.includes(sectionTitle) ? 'Yes' : accessInfo.allowed_sections?.includes('*') ? 'All' : 'No'}`
+                : `Access Type: ${accessInfo.access_type}\nUnit Limit: ${accessInfo.unit_limit || 'N/A'}\nAt Limit: ${isAtUnitLimit ? 'Yes' : 'No'}`
             }}>
               {accessInfo.access_type === 'subscribed' ? '✓ Subscribed' : 
                accessInfo.access_type === 'free' ? `Free (${accessInfo.unit_limit || 20})` : 
-               accessInfo.access_type === 'section_access' ? 'Section Access' : 
+               accessInfo.access_type === 'section_access' ? (
+                 <>
+                   Section Access
+                   {sectionTitle && accessInfo.allowed_sections?.includes(sectionTitle) ? ' ✓' : 
+                    accessInfo.allowed_sections?.includes('*') ? ' ✓ All' : 
+                    sectionTitle ? ' ✗' : ''}
+                 </>
+               ) : 
                accessInfo.access_type || 'Unknown'}
               {isAtUnitLimit && <span style={{ color: '#f44336', marginLeft: '4px' }}>⚠ Limit</span>}
             </div>
