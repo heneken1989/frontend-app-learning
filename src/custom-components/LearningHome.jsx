@@ -12,10 +12,10 @@ import testimonialBg from '../assets/hero/008.jpg';
 import wwo01 from '../assets/hero/wwo_01.png';
 import wwo02 from '../assets/hero/wwo_02.png';
 import wwo03 from '../assets/hero/wwo_03.png';
-// Use static paths for webp images
-const package1 = '/assets/hero/package1.webp';
-const package2 = '/assets/hero/package2.webp';
-const package3 = '/assets/hero/package3.webp';
+// Import webp images directly for webpack to handle
+import package1 from '../assets/hero/package1.webp';
+import package2 from '../assets/hero/package2.webp';
+import package3 from '../assets/hero/package3.webp';
 
 const LearningHome = () => {
   const slides = [

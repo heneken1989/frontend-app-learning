@@ -4,10 +4,10 @@ import { getConfig } from '@edx/frontend-platform';
 import { AppContext } from '@edx/frontend-platform/react';
 import LearningHeader from '../../Header/src/learning-header/LearningHeader';
 import Footer from '../../Footer';
-// Use static paths for webp images
-const package1 = '/assets/hero/package1.webp';
-const package2 = '/assets/hero/package2.webp';
-const package3 = '/assets/hero/package3.webp';
+// Import webp images directly for webpack to handle
+import package1 from '../../../assets/hero/package1.webp';
+import package2 from '../../../assets/hero/package2.webp';
+import package3 from '../../../assets/hero/package3.webp';
 import './SubscriptionCheckout.scss';
 
 const SubscriptionCheckout = () => {
