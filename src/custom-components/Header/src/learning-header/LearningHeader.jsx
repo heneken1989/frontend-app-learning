@@ -684,6 +684,7 @@ const LearningHeader = ({
   const [isToggling, setIsToggling] = useState(false);
   const [isActivatingSection, setIsActivatingSection] = useState(false);
   const [currentSectionInfo, setCurrentSectionInfo] = useState(null);
+  const [shouldStartTimer, setShouldStartTimer] = useState(false); // Default: timer không chạy, chỉ start khi nhận message timer.start
 
   // Get unit data using the same method as index.jsx
   const unit = useModel(modelKeys.units, unitId);
@@ -837,6 +838,37 @@ const LearningHeader = ({
     return () => {
       window.removeEventListener('resetTimer', handleTimerReset);
     };
+  }, [unitId]);
+
+  // Listen for timer.start message from quiz iframe (any template)
+  useEffect(() => {
+    const handleTimerStart = (event) => {
+      // Only process messages from same origin or trusted sources
+      if (event.data && event.data.type === 'timer.start') {
+        // Check if this message is for the current unit
+        const messageUnitId = event.data.unitId;
+        const messageTemplateId = event.data.templateId;
+        
+        if (!messageUnitId || messageUnitId === unitId || window.location.href.includes(messageUnitId)) {
+          console.log('▶️ Timer start message received - starting timer for unit:', unitId, 'template:', messageTemplateId);
+          setShouldStartTimer(true);
+          // Reset timer when start message received
+          setTimerKey(prev => prev + 1);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleTimerStart);
+    return () => {
+      window.removeEventListener('message', handleTimerStart);
+    };
+  }, [unitId]);
+
+  // Reset shouldStartTimer when unitId changes (new quiz loaded)
+  useEffect(() => {
+    // Reset timer to not start when unit changes
+    setShouldStartTimer(false);
+    console.log('⏸️ Timer reset - waiting for timer.start message from template');
   }, [unitId]);
 
   // Use useCallback to memoize loadMenuData function
@@ -1358,6 +1390,7 @@ const LearningHeader = ({
               unitId={unitId}
               initialTimeByProblemType={timeLimit}
               onTimeExpired={handleTimeExpired}
+              shouldStart={shouldStartTimer}
             />
           ) : null}
           {/* Toggle Subscription Button (available in production) */}

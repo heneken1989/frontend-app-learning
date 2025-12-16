@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 /**
  * Simple UnitTimer component that just shows the time
  */
-const UnitTimer = ({ unitId, initialTimeByProblemType = null, onTimeExpired = () => {} }) => {
+const UnitTimer = ({ unitId, initialTimeByProblemType = null, onTimeExpired = () => {}, shouldStart = true }) => {
   const storageKey = `unit_timer_${unitId}`;
   const [timeLeft, setTimeLeft] = useState(
     typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0
@@ -28,7 +28,8 @@ const UnitTimer = ({ unitId, initialTimeByProblemType = null, onTimeExpired = ()
       clearInterval(timerRef.current);
     }
 
-    if (typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0) {
+    // Only start timer if shouldStart is true (not null or false)
+    if (shouldStart === true && typeof initialTimeByProblemType === 'number' && initialTimeByProblemType > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev > 1) { return prev - 1; }
@@ -37,10 +38,16 @@ const UnitTimer = ({ unitId, initialTimeByProblemType = null, onTimeExpired = ()
           return 0;
         });
       }, 1000);
+    } else if (shouldStart === null) {
+      // Timer is waiting for decision (hasQuiz not determined yet)
+      // Don't start timer yet
+    } else if (shouldStart === false) {
+      // Timer is explicitly paused (waiting for audio)
+      // Don't start timer
     }
 
     return () => clearInterval(timerRef.current);
-  }, [initialTimeByProblemType, onTimeExpired, storageKey]);
+  }, [initialTimeByProblemType, onTimeExpired, storageKey, shouldStart]);
 
   // Load saved time from localStorage when component mounts
   useEffect(() => {
@@ -95,6 +102,7 @@ UnitTimer.propTypes = {
   unitId: PropTypes.string.isRequired,
   initialTimeByProblemType: PropTypes.number,
   onTimeExpired: PropTypes.func,
+  shouldStart: PropTypes.bool,
 };
 
 
