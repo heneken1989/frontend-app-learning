@@ -408,14 +408,22 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
     
     // Then convert furigana: 事務所(じむしょ) -> <ruby>事務所<rt>じむしょ</rt></ruby>
     // First convert Japanese parentheses: 毎日（まいにち） -> <ruby>毎日<rt>まいにち</rt></ruby>
-    // Xử lý cả có và không có khoảng trắng: 上（うえ）hoặc 上 （うえ）
-    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\s*（([^）]+)）/g, function(match, p1, p2) {
-      return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+    // Tách số ra khỏi kanji: 12月（がつ） -> 12<ruby>月<rt>がつ</rt></ruby>
+    // Số (half-width và full-width)
+    const numberPattern = "[\d０-９]*";
+    // Kanji pattern
+    const kanjiWord = "[\u4E00-\u9FFF々〆〤ヶ]+";
+    // Match pattern: (số*)(kanji)（furigana） - tách số ra khỏi kanji
+    decodedText = decodedText.replace(new RegExp("(" + numberPattern + ")(" + kanjiWord + ")\\s*（([^）]+)）", "g"), function(match, p1, p2, p3) {
+      // Trả về: số + <ruby>kanji<rt>furigana</rt></ruby>
+      return p1 + '<ruby>' + p2 + '<rt>' + p3 + '</rt></ruby>';
     });
     // Then convert regular parentheses: 車(くるま) -> <ruby>車<rt>くるま</rt></ruby>
-    // Xử lý cả có và không có khoảng trắng: 上(うえ) hoặc 上 (うえ)
-    decodedText = decodedText.replace(/([一-龯ひらがなカタカナ0-9]+)\s*\(([^)]+)\)/g, function(match, p1, p2) {
-      return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+    // Tách số ra khỏi kanji: 12月(がつ) -> 12<ruby>月<rt>がつ</rt></ruby>
+    // Match pattern: (số*)(kanji)(furigana) - tách số ra khỏi kanji
+    decodedText = decodedText.replace(new RegExp("(" + numberPattern + ")(" + kanjiWord + ")\\s*\\(([^)]+)\\)", "g"), function(match, p1, p2, p3) {
+      // Trả về: số + <ruby>kanji<rt>furigana</rt></ruby>
+      return p1 + '<ruby>' + p2 + '<rt>' + p3 + '</rt></ruby>';
     });
     
     return decodedText;
@@ -1035,17 +1043,23 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
         // Chỉ Kanji (và vài ký tự đặc biệt)
         const kanjiWord = "[\u4E00-\u9FFF々〆〤ヶ]+";
+        // Số (half-width và full-width)
+        const numberPattern = "[\d０-９]*";
 
-        // Dấu ngoặc Nhật (全角) - xử lý cả có và không có khoảng trắng: 上（うえ）hoặc 上 （うえ）
-        const reJaParens = new RegExp("(" + kanjiWord + ")\\s*（([^）]+)）", "g");
-        text = text.replace(reJaParens, (match, p1, p2) => {
-          return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+        // Dấu ngoặc Nhật (全角) - tách số ra khỏi kanji: 12月（がつ） -> 12<ruby>月<rt>がつ</rt></ruby>
+        // Match pattern: (số*)(kanji)（furigana） - tách số ra khỏi kanji
+        const reJaParens = new RegExp("(" + numberPattern + ")(" + kanjiWord + ")\\s*（([^）]+)）", "g");
+        text = text.replace(reJaParens, (match, p1, p2, p3) => {
+          // Trả về: số + <ruby>kanji<rt>furigana</rt></ruby>
+          return p1 + '<ruby>' + p2 + '<rt>' + p3 + '</rt></ruby>';
         });
 
-        // Dấu ngoặc ASCII (半角) - xử lý cả có và không có khoảng trắng: 上(うえ) hoặc 上 (うえ)
-        const reAsciiParens = new RegExp("(" + kanjiWord + ")\\s*\\(([^)]+)\\)", "g");
-        text = text.replace(reAsciiParens, (match, p1, p2) => {
-          return '<ruby>' + p1 + '<rt>' + p2 + '</rt></ruby>';
+        // Dấu ngoặc ASCII (半角) - tách số ra khỏi kanji: 12月(がつ) -> 12<ruby>月<rt>がつ</rt></ruby>
+        // Match pattern: (số*)(kanji)(furigana) - tách số ra khỏi kanji
+        const reAsciiParens = new RegExp("(" + numberPattern + ")(" + kanjiWord + ")\\s*\\(([^)]+)\\)", "g");
+        text = text.replace(reAsciiParens, (match, p1, p2, p3) => {
+          // Trả về: số + <ruby>kanji<rt>furigana</rt></ruby>
+          return p1 + '<ruby>' + p2 + '<rt>' + p3 + '</rt></ruby>';
         });
 
         return text;
