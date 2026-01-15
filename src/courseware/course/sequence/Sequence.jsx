@@ -358,12 +358,6 @@ const Sequence = ({
     // Check if we're in test mode
     const isTestMode = checkTestModeFromURL(window.location.pathname);
     
-    console.log('🔍 [Sequence] Test mode check:', {
-      pathname: window.location.pathname,
-      isTestMode: isTestMode,
-      willRenderPersistentBar: !isTestMode
-    });
-
     return (
       <div>
         {/* Persistent Navigation Bar - only render if NOT in test mode */}

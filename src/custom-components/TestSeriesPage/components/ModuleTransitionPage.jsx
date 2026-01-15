@@ -178,6 +178,16 @@ const ModuleTransitionPage = ({
   const currentModule = transitionData?.currentModule || propCurrentModule;
   const nextModule = transitionData?.nextModule || propNextModule;
 
+  // Module name mapping
+  const getModuleName = (moduleNumber) => {
+    const moduleNames = {
+      1: 'Vocab-Grammar',
+      2: 'Reading',
+      3: 'Listening'
+    };
+    return moduleNames[moduleNumber] || '';
+  };
+
   if (!currentModule) {
     return (
       <div style={{
@@ -241,9 +251,9 @@ const ModuleTransitionPage = ({
           color: '#333'
         }}>
           {nextModule && nextModule !== currentModule ? (
-            `Module ${currentModule} Completed!`
+            `Module ${currentModule}: ${getModuleName(currentModule)} Completed!`
           ) : nextModule ? (
-            `Module ${currentModule} Completed!`
+            `Module ${currentModule}: ${getModuleName(currentModule)} Completed!`
           ) : (
             'All Modules Completed!'
           )}
@@ -257,18 +267,18 @@ const ModuleTransitionPage = ({
         }}>
           {nextModule && nextModule !== currentModule ? (
             <>
-              You have completed all quizzes in <strong>Module {currentModule}</strong>.<br/>
-              Ready to move on to <strong>Module {nextModule}</strong>?
+              You have completed all quizzes in <strong>Module {currentModule}: {getModuleName(currentModule)}</strong>.<br/>
+              Ready to move on to <strong>Module {nextModule}: {getModuleName(nextModule)}</strong>?
             </>
           ) : nextModule ? (
             <>
-              You have completed all quizzes in <strong>Module {currentModule}</strong>.<br/>
+              You have completed all quizzes in <strong>Module {currentModule}: {getModuleName(currentModule)}</strong>.<br/>
               Continue with the remaining quizzes?
             </>
           ) : (
             <>
               Congratulations! You have completed all modules in this test.<br/>
-              Great job on finishing <strong>Module {currentModule}</strong>!
+              Great job on finishing <strong>Module {currentModule}: {getModuleName(currentModule)}</strong>!
             </>
           )}
         </p>

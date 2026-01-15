@@ -53,51 +53,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   // Only use nextUnit if it's actually a different unit
   const actualNextUnit = (nextUnitId && nextUnit && nextUnit.id === nextUnitId) ? nextUnit : null;
   
-  // Debug: log unit data
-  useEffect(() => {
-    console.log('🔍 [Unit Data] Current unit:', {
-      unitId,
-      title: unit?.title,
-      complete: unit?.complete
-    });
-    console.log('🔍 [Unit Data] Next unit:', {
-      nextUnitId,
-      title: actualNextUnit?.title,
-      complete: actualNextUnit?.complete
-    });
-    console.log('🔍 [Unit Data] Sequence:', {
-      sequenceId,
-      unitIds: sequence?.unitIds || [],
-      totalUnits: (sequence?.unitIds || []).length
-    });
-  }, [unitId, nextUnitId, sequenceId]); // Use only IDs in dependency array
-
-  // Debug navigation metadata
-  useEffect(() => {
-    console.log('🔍 [Navigation Metadata] Updated:', {
-      sequenceId,
-      unitId,
-      isFirstUnitInSequence,
-      isLastUnitInSequence,
-      nextLink,
-      previousLink
-    });
-    console.log('🔍 [Navigation Metadata] Sequence data:', sequence);
-    console.log('🔍 [Navigation Metadata] Unit data:', unit);
-  }, [sequenceId, unitId, isFirstUnitInSequence, isLastUnitInSequence, nextLink, previousLink, sequence, unit]);
-
-  // Debug component mount/unmount
-  useEffect(() => {
-    console.log('🔄 [TestNavigationBar] Component mounted/updated with:', {
-      sequenceId,
-      unitId,
-      testSessionId
-    });
-    
-    return () => {
-      console.log('🔄 [TestNavigationBar] Component unmounting');
-    };
-  }, [sequenceId, unitId, testSessionId]);
 
   // Helpers for module score aggregation
   const getModuleScoresKey = (seqId) => `moduleScores_${seqId}`;
@@ -140,8 +95,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       const currentTestSessionId = testSessionId || localStorage.getItem('currentTestSessionId');
       
       if (iframe && iframe.contentWindow && currentTestSessionId && unitId && courseId && sequenceId) {
-        console.log('📤 [prepareFinalSummary] Saving final quiz result with status=completed');
-        
         // Request answers from iframe
         const answersPromise = new Promise((resolve) => {
           const messageHandler = (event) => {
@@ -163,7 +116,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const answers = await answersPromise;
         const correctCount = (answers || []).filter(a => a.isCorrect).length;
         const answeredCount = (answers || []).length;
-        const totalQuestions = Math.max(answeredCount, 1);
         
         // Extract IDs from current URL or use provided values
         const currentUrl = window.location.href;
@@ -178,10 +130,45 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const { userId } = getUserInfo();
         
         // Check if already saved to prevent duplicate
+        // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
         const saveKey = getUnitSaveKey(currentTestSessionId, extractedUnitId);
-        if (wasUnitSaved(saveKey)) {
-          console.log('⚠️ [prepareFinalSummary] Unit already saved, skipping duplicate save');
+        if (!shouldAllowSave(saveKey, answers || [])) {
+          // Unit already saved with real answers, skipping duplicate save
         } else {
+          // Calculate totalQuestions from Unit Title parsing (same logic as TestSeriesPage)
+          let totalQuestionsForUnit = 0;
+          if (courseId && sequenceId) {
+            try {
+              const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                credentials: 'include',
+              });
+              if (response.ok) {
+                const data = await response.json();
+                const seq = data?.blocks?.[sequenceId];
+                if (seq && Array.isArray(seq.children)) {
+                  // Find the current unit in children and count its questions
+                  const currentUnitId = unitId; // Use full unitId
+                  const childId = seq.children.find(id => id === currentUnitId || id.includes(extractedUnitId));
+                  if (childId) { 
+                    const currentUnit = data.blocks[childId];
+                    if (currentUnit) {
+                      const unitTitle = currentUnit.display_name || '';
+                      totalQuestionsForUnit = parseUnitTitleForQuestionCount(unitTitle);
+                    }
+                  }
+                }
+              }
+            } catch (e) {
+              // Fallback to answeredCount if fetch fails
+              totalQuestionsForUnit = Math.max(answeredCount, 1);
+            }
+          } else {
+            // Fallback to answeredCount if no courseId/sequenceId
+            totalQuestionsForUnit = Math.max(answeredCount, 1);
+          }
+          
           // Save final quiz result with status='completed'
           const finalRequestData = {
             section_id: sectionIdToSave,
@@ -192,18 +179,112 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             test_session_id: currentTestSessionId,
             status: 'completed', // Mark as completed
             quiz_data: {
-              answers: (answers || []).map(a => a.userAnswer),
+              answers: answers || [], // Save full answer objects: {index/questionId, userAnswer, correctAnswer, isCorrect}
+              answersSummary: (answers || []).map(a => a.userAnswer), // Keep summary for backward compatibility
               correctCount,
               answeredCount,
-              totalQuestions,
-              score: totalQuestions > 0 ? correctCount / totalQuestions : 0
+              totalQuestions: totalQuestionsForUnit,
+              score: totalQuestionsForUnit > 0 ? correctCount / totalQuestionsForUnit : 0
             }
           };
           
-          console.log('📤 [prepareFinalSummary] Saving final result:', finalRequestData);
+          console.log('💾 [Prepare Final Summary] Saving final quiz result:', {
+            unit_id: extractedUnitId,
+            section_id: sectionIdToSave,
+            test_session_id: currentTestSessionId,
+            answers_count: answers.length,
+            correctCount,
+            totalQuestionsForUnit
+          });
+          
           await saveQuizResults(finalRequestData);
           markUnitSaved(saveKey); // Mark as saved to prevent duplicate
-          console.log('✅ [prepareFinalSummary] Final quiz result saved with status=completed');
+          
+          console.log('✅ [Prepare Final Summary] Saved and dispatching event');
+          
+          // Dispatch event to notify TestHeader to refresh answered questions
+          if (typeof window !== 'undefined') {
+            const eventDetail = { unitId: extractedUnitId, sectionId: sectionIdToSave };
+            console.log('📢 [Prepare Final Summary] Dispatching quizResultsSaved event:', eventDetail);
+            window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+              detail: eventDetail
+            }));
+          }
+        }
+        
+        // After saving current unit, fetch ALL summaries for this test session to calculate totals
+        // This ensures we use the same data source as TestSeriesPage.fetchTestResults()
+        let totalCorrectAnswersFromAllUnits = 0;
+        let totalQuestionsFromAllUnits = 0;
+        try {
+          const lmsBaseUrl = getLmsBaseUrl();
+          const apiUrl = `${lmsBaseUrl}/courseware/get_test_summary/?user_id=${userId}&section_id=${sectionIdToSave}&limit=100`;
+          
+          console.log('🔍 [Prepare Final Summary] Fetching all summaries to calculate totals:', {
+            section_id: sectionIdToSave,
+            test_session_id: currentTestSessionId,
+            apiUrl
+          });
+          
+          const summaryResponse = await fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
+          
+          if (summaryResponse.ok) {
+            const summaryData = await summaryResponse.json();
+            if (summaryData.success && summaryData.summaries) {
+              // Filter summaries for this test session
+              const sessionSummaries = summaryData.summaries.filter(
+                s => s.test_session_id === currentTestSessionId
+              );
+              
+              // Calculate totals (same logic as TestSeriesPage.fetchTestResults)
+              sessionSummaries.forEach((summary) => {
+                totalCorrectAnswersFromAllUnits += summary.correct_answers || 0;
+              });
+              
+              // Calculate totalQuestions from Unit Title parsing (same as TestSeriesPage)
+              if (courseId && sequenceId) {
+                try {
+                  const navResponse = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                  });
+                  if (navResponse.ok) {
+                    const navData = await navResponse.json();
+                    const seq = navData?.blocks?.[sequenceId];
+                    if (seq && Array.isArray(seq.children)) {
+                      seq.children.forEach((childId) => {
+                        const child = navData.blocks[childId];
+                        const title = child?.display_name || '';
+                        const questionsInUnit = parseUnitTitleForQuestionCount(title);
+                        totalQuestionsFromAllUnits += questionsInUnit;
+                      });
+                    }
+                  }
+                } catch (e) {
+                  console.warn('⚠️ [Prepare Final Summary] Failed to fetch navigation for totalQuestions:', e);
+                }
+              }
+              
+              console.log('📊 [Prepare Final Summary] Calculated totals from all units:', {
+                totalCorrectAnswersFromAllUnits,
+                totalQuestionsFromAllUnits,
+                summariesCount: sessionSummaries.length,
+                calculatedScore: totalQuestionsFromAllUnits > 0 
+                  ? Math.round((totalCorrectAnswersFromAllUnits / totalQuestionsFromAllUnits) * 100) 
+                  : 0
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ [Prepare Final Summary] Failed to fetch summaries for totals:', e);
         }
       }
       
@@ -330,6 +411,42 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     savedUnitSetRef.current.add(key);
     try { if (typeof window !== 'undefined') localStorage.setItem(key, '1'); } catch (e) {}
   };
+  
+  // Check if answers array has any real user answers (non-empty)
+  const hasRealAnswers = (answers) => {
+    if (!Array.isArray(answers) || answers.length === 0) return false;
+    
+    // Check if answers are objects with userAnswer property
+    if (typeof answers[0] === 'object' && answers[0] !== null) {
+      return answers.some(answer => {
+        const userAnswer = answer.userAnswer;
+        return userAnswer && userAnswer.toString().trim() !== '';
+      });
+    }
+    
+    // Check if answers are strings
+    return answers.some(answer => {
+      return answer && answer.toString().trim() !== '';
+    });
+  };
+  
+  // Check if should allow save
+  // Only allow save when user has selected an answer (has real answers)
+  const shouldAllowSave = (saveKey, answers) => {
+    if (!saveKey) {
+      // If no saveKey, check if answers have real answers
+      return hasRealAnswers(answers);
+    }
+    
+    // Only allow save if answers have real user answers
+    const hasAnswers = hasRealAnswers(answers);
+    if (!hasAnswers) {
+      console.log('⚠️ [Save Logic] No real answers selected, skipping save');
+      return false;
+    }
+    
+    return true;
+  };
   const getModuleAggKey = (sessionId, uId) => (sessionId && uId ? `agg_${sessionId}_${uId}` : null);
   const wasModuleAggregated = (key) => {
     if (!key) return false;
@@ -354,7 +471,10 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   };
   const saveQuizResults = async (requestData) => {
     try {
-      const response = await fetch(`${getLmsBaseUrl()}/courseware/save_quiz_results/`, {
+      const url = `${getLmsBaseUrl()}/courseware/save_quiz_results/`;
+      console.log('🌐 [Save Quiz Results] Sending POST request to:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -362,8 +482,20 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         },
         body: JSON.stringify(requestData),
       });
+      
+      console.log('📡 [Save Quiz Results] Response status:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const responseData = await response.json().catch(() => null);
+        console.log('✅ [Save Quiz Results] Server response:', responseData);
+      } else {
+        const errorText = await response.text().catch(() => 'Unable to read error');
+        console.error('❌ [Save Quiz Results] Server error:', response.status, errorText);
+      }
+      
       return response.ok;
     } catch (e) {
+      console.error('❌ [Save Quiz Results] Network error:', e);
       return false;
     }
   };
@@ -373,7 +505,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     if (sequenceId && typeof window !== 'undefined') {
       const testCompleted = localStorage.getItem(`testCompleted_${sequenceId}`);
       if (testCompleted === 'true') {
-        console.log('🚫 [TestNavigationBar] Test already completed (timer expired), redirecting to results');
         // Test was completed (timer expired), redirect to results immediately
         navigate('/test-series/results', { replace: true });
         return;
@@ -387,7 +518,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       // Check if test is completed first - don't restore transition if test is completed
       const testCompleted = localStorage.getItem(`testCompleted_${sequenceId}`);
       if (testCompleted === 'true') {
-        console.log('🚫 [TestNavigationBar] Test completed, skipping transition restore');
         return; // Don't restore transition if test is completed
       }
       
@@ -397,7 +527,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       if (savedTransition) {
         try {
           const transitionData = JSON.parse(savedTransition);
-          console.log('🔄 [Restore] Found saved module transition state, navigating to transition page:', transitionData);
           
           // Save sequenceId and unitId to localStorage for transition page
           localStorage.setItem('moduleTransition_sequenceId', sequenceId);
@@ -482,11 +611,9 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               }
             });
             setUniqueModuleCount(moduleSet.size);
-            console.log('🔍 [Module Count] Unique modules in sequence:', moduleSet.size, 'Modules:', Array.from(moduleSet));
           }
         }
       } catch (e) {
-        console.warn('⚠️ Error calculating module count:', e);
         // Fallback: assume multiple modules if we can't determine
         setUniqueModuleCount(null);
       }
@@ -513,30 +640,16 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       
       // Only handle if this event is for current sequence
       if (eventSeqId === sequenceId && eventUnitId === unitId) {
-        console.log('⏰ [Timer Expired] Handling module test expiration:', {
-          expiredModule,
-          sequenceId: eventSeqId,
-          unitId: eventUnitId
-        });
-        
         // Use the SAME currentModule and nextModule as Finish Module button
         // These are calculated at component level and accessible via closure
-        console.log('⏰ [Timer Expired] Current module (from component):', currentModule);
-        console.log('⏰ [Timer Expired] Next module (from component):', nextModule);
         
         // When timer expires, handle EXACTLY same as "Finish Module" or "Finish Test" button
-        console.log('⏰ [Timer Expired] Handling exactly like Finish Module/Finish Test button');
-        console.log('⏰ [Timer Expired] isLastQuestionInModule3:', isLastQuestionInModule3);
-        console.log('⏰ [Timer Expired] currentModule:', currentModule);
-        console.log('⏰ [Timer Expired] actualNextUnit:', actualNextUnit);
-        console.log('⏰ [Timer Expired] nextUnitIdForModuleCheck:', nextUnitIdForModuleCheck);
         
         // Check if this is module 3 - ALWAYS use handleCompleteTest logic (EXACTLY same as Finish Test button)
         // Finish Test button only shows when isLastQuestionInModule3 is true
         // But when timer expires in module 3, we should always use handleCompleteTest regardless
         if (currentModule === 3) {
           // Module 3 -> test finished: use handleCompleteTest (EXACTLY same as Finish Test button)
-          console.log('🏁 [Timer Expired] Module 3 detected, using handleCompleteTest (same as Finish Test)');
           
           // Call handleCompleteTest which handles everything: save answers, fetch summary, save to localStorage, and navigate
           handleCompleteTest();
@@ -546,7 +659,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         // Check if this is the last question (no next unit) but not module 3
         if (!actualNextUnit) {
           // No next unit -> test finished: show final summary (same as Finish Test button)
-          console.log('🏁 [Timer Expired] No next unit, showing unified final summary');
             
           // Mark test as completed to prevent going back
             if (typeof window !== 'undefined') {
@@ -652,12 +764,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
           }
           
-          console.log('🔍 [Timer Expired] Current unit title:', unit?.title);
-          console.log('🔍 [Timer Expired] Current module:', currentModule);
-          console.log('🔍 [Timer Expired] Next module:', nextModule);
-          console.log('🔍 [Timer Expired] First unit of next module:', firstUnitOfNextModule);
-          console.log('🔍 [Timer Expired] Next link (calculated):', navLink);
-          
           // Continue with the same logic as Finish Module button
           // Get quiz answers and save before showing transition page
           const iframe = document.getElementById('unit-iframe');
@@ -669,7 +775,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           // Request answers from iframe (EXACTLY same as Finish Module)
           const messageHandler = (event) => {
             if (event.data && event.data.type === 'quiz.answers') {
-              console.log('📨 [Timer Expired] Received quiz answers, saving...');
               window.removeEventListener('message', messageHandler);
               
               const { answers } = event.data;
@@ -702,8 +807,14 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               saveQuizResults(prepareRequestData())
                 .then(ok => {
                   if (ok) {
-                    console.log('✅ [Timer Expired] Quiz results saved successfully');
                     updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                    
+                    // Dispatch event to notify TestHeader to refresh answered questions
+                    if (typeof window !== 'undefined') {
+                      window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                        detail: { unitId: unitId, sectionId: sequenceId.split('block@')[1] }
+                      }));
+                    }
                   } else {
                     console.error('❌ [Timer Expired] Error saving quiz results');
                   }
@@ -739,41 +850,31 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   
   // Helper function to get total questions with fallback to navigation API
   const getTotalQuestions = async () => {
-    console.log('🔍 Getting total questions...');
-    console.log('🔍 Cached total questions:', cachedTotalQuestions);
-    console.log('🔍 Sequence:', sequence);
-    console.log('🔍 Unit:', unit);
-    
     // Return cached value if available
     if (cachedTotalQuestions) {
-      console.log('✅ Using cached total questions:', cachedTotalQuestions);
       return cachedTotalQuestions;
     }
     
     // Get total questions from sequence metadata
     if (sequence?.metadata?.total_questions) {
-      console.log('✅ Found total_questions in sequence metadata:', sequence.metadata.total_questions);
       setCachedTotalQuestions(sequence.metadata.total_questions);
       return sequence.metadata.total_questions;
     }
     
     // Get total questions from sequence children
     if (sequence?.children?.length > 0) {
-      console.log('✅ Found children in sequence:', sequence.children.length);
       setCachedTotalQuestions(sequence.children.length);
       return sequence.children.length;
     }
     
     // Get total questions from unitIds
     if (sequence?.unitIds?.length > 0) {
-      console.log('✅ Found unitIds in sequence:', sequence.unitIds.length);
       setCachedTotalQuestions(sequence.unitIds.length);
       return sequence.unitIds.length;
     }
     
     // Fallback: try to fetch from navigation API if sequence is empty
     if (courseId && sequenceId && (!sequence || Object.keys(sequence).length === 0)) {
-      console.log('🔄 Sequence is empty, trying navigation API fallback...');
       try {
         const response = await fetch(`${getLmsBaseUrl()}/api/course_home/v1/navigation/${courseId}`, {
           method: 'GET',
@@ -799,20 +900,16 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
             });
             
             if (totalQuestions > 0) {
-              console.log('✅ Found total questions from navigation API:', totalQuestions);
               setCachedTotalQuestions(totalQuestions);
               return totalQuestions;
             }
           }
-        } else {
-          console.warn(`⚠️ Navigation API returned ${response.status}, ignoring`);
         }
       } catch (error) {
-        console.warn('⚠️ Error fetching from navigation API:', error.message);
+        // Ignore fetch errors
       }
     }
     
-    console.log('❌ No total questions found in sequence data or navigation API');
     return 0; // Return 0 to indicate no data
   };
   
@@ -822,7 +919,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     if (!iframe) return;
     
     const totalQuestions = await getTotalQuestions();
-    console.log(`📊 Sending totalQuestions ${totalQuestions} to quiz iframe`);
     
     if (totalQuestions > 0) {
       iframe.contentWindow.postMessage({
@@ -901,6 +997,31 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   };
 
 
+  // Store saved answers for current unit (to restore when iframe is ready)
+  const savedAnswersRef = useRef(null);
+
+  // Function to restore saved answers to iframe
+  const restoreSavedAnswers = React.useCallback(() => {
+    if (!savedAnswersRef.current) {
+      return;
+    }
+    
+    const iframe = document.getElementById('unit-iframe');
+    if (!iframe || !iframe.contentWindow) {
+      return;
+    }
+    
+    const savedAnswers = savedAnswersRef.current;
+    console.log('📤 [Restore Answers] Sending restore message to iframe:', {
+      answers_count: savedAnswers.length
+    });
+    
+    iframe.contentWindow.postMessage({
+      type: 'quiz.restore_answers',
+      answers: savedAnswers
+    }, '*');
+  }, []);
+
   // Create persistent container that stays in place like TestHeader
   useEffect(() => {
     if (containerRef.current) {
@@ -941,10 +1062,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   // Message handling for iframe communication - only handle loading states
   useEffect(() => {
     const handleMessage = (event) => {
-      console.log('📨 [NavigationBar] Received message:', event.data);
-      console.log('📨 [NavigationBar] Message source:', event.source);
-      console.log('📨 [NavigationBar] Message origin:', event.origin);
-      
       // Handle quiz answers from template
       // Skip if this is being handled by Next button's message handler
       // (Next button handler will set a flag before sending quiz.get_answers)
@@ -956,13 +1073,9 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         // Let's add a flag check
         const isNextButtonHandling = localStorage.getItem('nextButtonHandling') === 'true';
         if (isNextButtonHandling) {
-          console.log('⚠️ [NavigationBar] Next button is handling this, skipping global handler');
           localStorage.removeItem('nextButtonHandling');
           return; // Let Next button handler take care of it
         }
-        
-        console.log('📨 [NavigationBar] Received quiz answers:', event.data);
-        console.log('📨 [NavigationBar] Answers array:', event.data.answers);
         
         const { answers, templateId } = event.data;
         const totalQuestions = Array.isArray(answers) ? answers.length : 1;
@@ -974,13 +1087,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const correctCount = answers.filter(a => a.isCorrect).length;
         const answeredCount = answers.length;
         
-        console.log('📊 [NavigationBar] Calculated results:', {
-          correctCount,
-          answeredCount,
-          totalQuestions,
-          templateId
-        });
-        
         // Get current URL info
         const currentUrl = window.location.href;
         const urlParts = currentUrl.split('/');
@@ -988,14 +1094,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const sequencePart = urlParts.find(part => part.includes('type@sequential'));
         const unitPart = urlParts.find(part => part.includes('type@vertical'));
         const { userId } = getUserInfo();
-        
-        console.log('📊 [NavigationBar] URL info:', {
-          currentUrl,
-          coursePart,
-          sequencePart,
-          unitPart,
-          userId
-        });
         
         // Validate required fields before sending
         const extractedUnitId = unitPart || unitId;
@@ -1021,9 +1119,10 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         }
 
         // Deduplicate saves per session+unit
+        // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
         const saveKey = getUnitSaveKey(currentTestSessionId, extractedUnitId);
-        if (wasUnitSaved(saveKey)) {
-          return; // already saved for this unit
+        if (!shouldAllowSave(saveKey, answers)) {
+          return; // already saved with real answers for this unit
         }
         
         // Check if this is a complete test action
@@ -1033,6 +1132,7 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const templateIdToSave = templateId || 67;
         
         // Prepare data to save
+        // Save full answer objects to track which questions have been answered
         const requestData = {
           section_id: sectionIdToSave, // Use sequenceId as section_id
           unit_id: extractedUnitId,
@@ -1042,7 +1142,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           test_session_id: currentTestSessionId,
           status: isCompletingTest ? 'completed' : 'processing', // Set status based on action
           quiz_data: {
-            answers: answers.map(a => a.userAnswer),
+            answers: answers, // Save full answer objects: {index/questionId, userAnswer, correctAnswer, isCorrect}
+            answersSummary: answers.map(a => a.userAnswer), // Keep summary for backward compatibility
             correctCount,
             answeredCount,
             totalQuestions,
@@ -1050,77 +1151,55 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           }
         };
         
-        // Debug logging for Next button
-        console.log('🔍 [Next Button] Debug data extraction:');
-        console.log('🔍 [Next Button] Current URL:', currentUrl);
-        console.log('🔍 [Next Button] URL parts:', urlParts);
-        console.log('🔍 [Next Button] coursePart:', coursePart);
-        console.log('🔍 [Next Button] sequencePart:', sequencePart);
-        console.log('🔍 [Next Button] unitPart:', unitPart);
-        console.log('🔍 [Next Button] Extracted IDs:');
-        console.log('  - sequenceId (original):', sequenceId);
-        console.log('  - section_id (extracted from sequenceId):', sectionIdToSave);
-        console.log('  - unit_id:', extractedUnitId);
-        console.log('  - course_id:', extractedCourseId);
-        console.log('  - user_id:', userId);
-        console.log('  - test_session_id (from state):', testSessionId);
-        console.log('  - test_session_id (from localStorage):', localStorage.getItem('currentTestSessionId'));
-        console.log('  - test_session_id (using):', currentTestSessionId);
-        console.log('🔍 [Next Button] All required fields present:', {
-          section_id: !!sectionIdToSave,
-          unit_id: !!extractedUnitId,
-          course_id: !!extractedCourseId,
-          user_id: !!userId,
-          test_session_id: !!currentTestSessionId
+        console.log('💾 [Save Quiz Results] Saving quiz data:', {
+          unit_id: extractedUnitId,
+          section_id: sectionIdToSave,
+          test_session_id: currentTestSessionId,
+          answers_count: answers.length,
+          answers_preview: answers.slice(0, 3).map(a => ({
+            hasUserAnswer: !!a.userAnswer,
+            userAnswer: a.userAnswer,
+            isCorrect: a.isCorrect
+          })),
+          quiz_data_keys: Object.keys(requestData.quiz_data)
         });
-        
-        console.log('📤 [Next Button] Sending to server:', requestData);
-        
-        console.log('📤 Using LMS base URL:', getLmsBaseUrl());
-        console.log('📤 CSRF Token:', getCsrfToken() ? 'Found' : 'Missing');
         
         // Save to database (centralized)
         saveQuizResults(requestData)
         .then(async ok => {
           if (ok) {
             markUnitSaved(saveKey);
-            console.log('✅ Quiz results saved successfully');
+            console.log('✅ [Save Quiz Results] Successfully saved:', {
+              unit_id: extractedUnitId,
+              section_id: sectionIdToSave,
+              test_session_id: currentTestSessionId
+            });
+            
+            // Dispatch event to notify TestHeader to refresh answered questions
+            if (typeof window !== 'undefined') {
+              const eventDetail = { unitId: extractedUnitId, sectionId: sectionIdToSave };
+              console.log('📢 [Save Quiz Results] Dispatching quizResultsSaved event:', eventDetail);
+              window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                detail: eventDetail
+              }));
+            }
             // Only navigate if not completing test
             if (!isCompletingTest) {
-              console.log('🔍 [Navigation] Checking navigation options:');
-              console.log('🔍 [Navigation] nextLink:', nextLink);
-              console.log('🔍 [Navigation] onClickNext:', onClickNext);
-              console.log('🔍 [Navigation] pathname:', pathname);
-
               // Try to get nextLink from sequence data first
               let actualNextLink = nextLink;
               
               if (!actualNextLink && sequence?.unitIds && sequence.unitIds.length > 0) {
-                console.log('🔍 [Navigation] No nextLink, trying to generate from sequence data');
-                console.log('🔍 [Navigation] Sequence data:', sequence);
-                console.log('🔍 [Navigation] Current unitId:', unitId);
-                console.log('🔍 [Navigation] CourseId:', courseId);
-                console.log('🔍 [Navigation] SequenceId:', sequenceId);
-                
                 // Find current unit index
                 const currentUnitIndex = sequence.unitIds.findIndex(id => id === unitId);
-                console.log('🔍 [Navigation] Current unit index:', currentUnitIndex);
                 
                 if (currentUnitIndex >= 0 && currentUnitIndex < sequence.unitIds.length - 1) {
                   // Generate nextLink for next unit
                   const nextUnitId = sequence.unitIds[currentUnitIndex + 1];
                   actualNextLink = `/course/${courseId}/${sequenceId}/${nextUnitId}`;
-                  console.log('🔍 [Navigation] Generated nextLink:', actualNextLink);
-                } else {
-                  console.log('❌ [Navigation] No more units in sequence');
                 }
               }
 
               // Navigation will be handled by Link component
-              console.log('✅ Quiz results saved successfully, Link component will handle navigation');
-            } else {
-              // If completing test, proceed with test completion logic
-              console.log('✅ Quiz results saved successfully, proceeding with test completion');
             }
           } else {
             console.error('❌ [Next Button] HTTP Error saving quiz results');
@@ -1143,6 +1222,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       switch (event.data.type) {
         case 'problem.ready':
           setIsSubmitting(false);
+          // When iframe is ready, try to restore answers
+          restoreSavedAnswers();
           break;
         case 'problem.submit.start':
           setIsSubmitting(true);
@@ -1158,6 +1239,12 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           
           // Send total questions to quiz iframe
           sendTotalQuestionsToQuiz();
+          // Also try to restore answers when quiz is ready
+          restoreSavedAnswers();
+          break;
+        case 'timer.start':
+          // Template is ready, try to restore answers
+          restoreSavedAnswers();
           break;
         case 'quiz.results.saved':
           break;
@@ -1175,19 +1262,14 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
 
   // Initialize test session ID when component mounts
   useEffect(() => {
-    console.log('🔄 [TestSessionId] Initializing test session ID...');
-    
     // Check if there's an existing session in localStorage
     const existingSession = localStorage.getItem('currentTestSessionId');
-    console.log('🔄 [TestSessionId] Existing session from localStorage:', existingSession);
     
     if (existingSession) {
-      console.log('✅ [TestSessionId] Using existing session:', existingSession);
       setTestSessionId(existingSession);
     } else {
       // Create new session ID
       const sessionId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.log('🆕 [TestSessionId] Creating new session:', sessionId);
       setTestSessionId(sessionId);
       localStorage.setItem('currentTestSessionId', sessionId);
     }
@@ -1197,23 +1279,11 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   useEffect(() => {
     const fetchAndSendTotalQuestions = async () => {
       if (sequence || (courseId && sequenceId)) {
-        console.log('🔄 Sequence data changed or component mounted:', {
-          sequence,
-          metadata: sequence?.metadata,
-          children: sequence?.children,
-          unitIds: sequence?.unitIds,
-          courseId,
-          sequenceId
-        });
-        
         const totalQuestions = await getTotalQuestions();
-        console.log('📊 Total questions:', totalQuestions);
         
         if (totalQuestions > 0) {
-          console.log('✅ Sending total questions to quiz');
           await sendTotalQuestionsToQuiz();
         } else {
-          console.log('⚠️ No total questions found, will retry later');
           // Retry after a short delay in case API is still loading
           setTimeout(async () => {
             const retryTotal = await getTotalQuestions();
@@ -1233,6 +1303,145 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     setIsSubmitting(false);
     setHasAudioQuiz(false);
   }, [unitId]);
+
+  // Fetch saved answers when unit changes
+  useEffect(() => {
+    const fetchSavedAnswers = async () => {
+      if (!unitId || !courseId || !sequenceId) {
+        savedAnswersRef.current = null;
+        return;
+      }
+      
+      try {
+        // Get user ID
+        const { userId } = getUserInfo();
+        if (!userId || userId === 'anonymous') {
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        // Get test session ID
+        const currentTestSessionId = testSessionId || localStorage.getItem('currentTestSessionId');
+        if (!currentTestSessionId) {
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        // Extract section_id from sequenceId
+        const sectionId = sequenceId.split('block@')[1];
+        if (!sectionId) {
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        // Extract unit_id from unitId
+        const extractedUnitId = unitId.split('block@')[1] || unitId;
+        
+        // Fetch quiz results for this specific unit
+        const lmsBaseUrl = getLmsBaseUrl();
+        const apiUrl = `${lmsBaseUrl}/courseware/get_quiz_results/?user_id=${userId}&section_id=${sectionId}&test_session_id=${currentTestSessionId}`;
+        
+        console.log('🔍 [Restore Answers] Fetching saved answers for unit:', {
+          unit_id: extractedUnitId,
+          section_id: sectionId,
+          test_session_id: currentTestSessionId
+        });
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.log('⚠️ [Restore Answers] Failed to fetch quiz results:', response.status);
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        const data = await response.json();
+        if (!data.success || !data.results) {
+          console.log('⚠️ [Restore Answers] No results found');
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        // Find result for current unit
+        const unitResult = data.results.find(r => {
+          const resultUnitId = r.unit_id;
+          return resultUnitId === extractedUnitId || resultUnitId === unitId;
+        });
+        
+        if (!unitResult) {
+          console.log('⚠️ [Restore Answers] No saved result for this unit');
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        const quizData = unitResult.quiz_data || {};
+        const savedAnswers = quizData.answers || [];
+        
+        if (!savedAnswers || savedAnswers.length === 0) {
+          console.log('⚠️ [Restore Answers] No saved answers found');
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        // Check if answers have real user answers
+        const hasRealAnswers = savedAnswers.some(answer => {
+          if (typeof answer === 'object' && answer !== null) {
+            const userAnswer = answer.userAnswer;
+            return userAnswer && userAnswer.toString().trim() !== '';
+          }
+          return answer && answer.toString().trim() !== '';
+        });
+        
+        if (!hasRealAnswers) {
+          console.log('⚠️ [Restore Answers] Saved answers are empty');
+          savedAnswersRef.current = null;
+          return;
+        }
+        
+        console.log('✅ [Restore Answers] Found saved answers:', {
+          unit_id: extractedUnitId,
+          answers_count: savedAnswers.length,
+          answers_preview: savedAnswers.slice(0, 2)
+        });
+        
+        // Store saved answers for later restoration
+        savedAnswersRef.current = savedAnswers;
+        
+        // Try to restore immediately (if iframe is ready)
+        setTimeout(() => {
+          const iframe = document.getElementById('unit-iframe');
+          if (iframe && iframe.contentWindow && savedAnswersRef.current) {
+            iframe.contentWindow.postMessage({
+              type: 'quiz.restore_answers',
+              answers: savedAnswersRef.current
+            }, '*');
+            console.log('📤 [Restore Answers] Sent restore message to iframe');
+          }
+        }, 500);
+        
+      } catch (error) {
+        console.error('❌ [Restore Answers] Error fetching answers:', error);
+        savedAnswersRef.current = null;
+      }
+    };
+    
+    // Reset saved answers when unit changes
+    savedAnswersRef.current = null;
+    
+    // Fetch saved answers after a short delay
+    const timeoutId = setTimeout(() => {
+      fetchSavedAnswers();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [unitId, courseId, sequenceId, testSessionId]);
 
   // Reset cache when sequence changes
   useEffect(() => {
@@ -1261,74 +1470,45 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
     if (authUser) {
       userId = authUser.id || authUser.userId || 'anonymous';
       username = authUser.username || authUser.name || 'anonymous';
-      console.log('🔍 [getUserInfo] Using getAuthenticatedUser:', { userId, username });
     } else if (authenticatedUser) {
       // Fallback to AppContext
       userId = authenticatedUser.id || 'anonymous';
       username = authenticatedUser.username || authenticatedUser.id || 'anonymous';
-      console.log('🔍 [getUserInfo] Using AppContext authenticatedUser:', { userId, username });
     } else {
       // Fallback: try to get user ID from other sources
-      console.log('🔍 [getUserInfo] No authenticated user, trying fallback...');
-      
       // Try to get from localStorage or other sources
       const storedUserId = localStorage.getItem('userId') || localStorage.getItem('user_id');
       if (storedUserId) {
         userId = storedUserId;
-        console.log('🔍 [getUserInfo] Using stored user ID:', userId);
       } else {
         // Try to get from window object or other global variables
         if (window.userId) {
           userId = window.userId;
-          console.log('🔍 [getUserInfo] Using window.userId:', userId);
         } else if (window.user && window.user.id) {
           userId = window.user.id;
-          console.log('🔍 [getUserInfo] Using window.user.id:', userId);
-        } else {
-          console.warn('❌ [getUserInfo] No user ID found, using anonymous');
         }
       }
     }
     
-    console.log('🔍 [getUserInfo] Final user info:', { userId, username, authenticatedUser, authUser });
     return { userId, username };
   };
 
   // Test save results function - copy logic from PersistentNavigationBar handleSubmit
   const handleNextClick = () => {
-    console.log('🔄 [handleNextClick] Called with:', {
-      sequenceId,
-      unitId,
-      testSessionId,
-      nextLink,
-      onClickNext: onClickNext ? 'present' : 'missing',
-      pathname,
-      sequence: sequence ? 'present' : 'missing',
-      unit: unit ? 'present' : 'missing',
-      timestamp: new Date().toISOString()
-    });
-    
     // Send message to quiz iframe to get answers
     const iframe = document.getElementById('unit-iframe');
     if (!iframe) {
-      console.error('❌ [Next Button] No iframe found');
       return;
     }
 
     try {
-      console.log('📤 [Next Button] Sending quiz.get_answers to iframe');
-      console.log('📤 [Next Button] Iframe element:', iframe);
-      console.log('📤 [Next Button] Iframe contentWindow:', iframe.contentWindow);
-      
       // Just tell iframe to send answers
       iframe.contentWindow.postMessage({
         type: 'quiz.get_answers'
       }, '*');
       
-      console.log('📤 [Next Button] Message sent successfully');
-      
     } catch (e) {
-      console.error('❌ [Next Button] Error sending message:', e);
+      // Ignore errors
     }
     
     // The actual saving and navigation will be handled by the message handler
@@ -1346,14 +1526,9 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
 
   // Complete test function
   const handleCompleteTest = async () => {
-    console.log('🔄 handleCompleteTest called');
-    
     if (!testSessionId) {
-      console.error('❌ No test session ID found');
       return;
     }
-    
-    console.log('📝 Current test session ID:', testSessionId);
 
     try {
       // Set flag to prevent navigation after saving
@@ -1364,8 +1539,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       let currentQuizAnswers = null;
       
       if (iframe && iframe.contentWindow) {
-        console.log('📤 [CompleteTest] Requesting answers from iframe');
-        
         // Wait for answers with promise
         const answersPromise = new Promise((resolve) => {
           const messageHandler = (event) => {
@@ -1408,12 +1581,11 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
           
           // Check if already saved to prevent duplicate
+          // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
           const saveKey = getUnitSaveKey(testSessionId, extractedUnitId);
-          if (wasUnitSaved(saveKey)) {
-            console.log('⚠️ [CompleteTest] Unit already saved, skipping duplicate save');
+          if (!shouldAllowSave(saveKey, currentQuizAnswers || [])) {
+            // Unit already saved with real answers, skipping duplicate save
           } else {
-            console.log('📤 [CompleteTest] Saving current quiz result with status=completed');
-            
             // Save current quiz result with status='completed'
             const currentQuizRequestData = {
               section_id: sectionIdToSave,
@@ -1424,7 +1596,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               test_session_id: testSessionId,
               status: 'completed', // Mark as completed
               quiz_data: {
-                answers: currentQuizAnswers.map(a => a.userAnswer),
+                answers: currentQuizAnswers || [], // Save full answer objects: {index/questionId, userAnswer, correctAnswer, isCorrect}
+                answersSummary: (currentQuizAnswers || []).map(a => a.userAnswer), // Keep summary for backward compatibility
                 correctCount,
                 answeredCount,
                 totalQuestions: actualQuestionCount,
@@ -1432,20 +1605,31 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
               }
             };
             
-            console.log('📤 [CompleteTest] Saving current quiz result:', currentQuizRequestData);
+            console.log('💾 [Complete Test] Saving current quiz result:', {
+              unit_id: extractedUnitId,
+              section_id: sectionIdToSave,
+              test_session_id: testSessionId,
+              answers_count: currentQuizAnswers.length
+            });
+            
             await saveQuizResults(currentQuizRequestData);
             markUnitSaved(saveKey); // Mark as saved to prevent duplicate
-            console.log('✅ [CompleteTest] Current quiz result saved with status=completed');
+            
+            console.log('✅ [Complete Test] Saved and dispatching event');
+            
+            // Dispatch event to notify TestHeader to refresh answered questions
+            if (typeof window !== 'undefined') {
+              const eventDetail = { unitId: extractedUnitId, sectionId: sectionIdToSave };
+              console.log('📢 [Complete Test] Dispatching quizResultsSaved event:', eventDetail);
+              window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                detail: eventDetail
+              }));
+            }
           }
           
           // Update module scores in localStorage (IMPORTANT: use actual question count from unit title)
           if (currentModule) {
             updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
-            console.log('✅ [CompleteTest] Module scores updated in localStorage:', {
-              module: currentModule,
-              correct: correctCount,
-              total: actualQuestionCount
-            });
           }
         }
       }
@@ -1641,11 +1825,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
   };
 
   const handleFinishModuleClick = async () => {
-    console.log('🔄 [Finish Module Button] Clicked');
-
             const iframe = document.getElementById('unit-iframe');
     if (!iframe) {
-      console.error('❌ [Finish Module] No iframe found');
       return;
     }
 
@@ -1661,15 +1842,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       }
     }
 
-    console.log('🔍 Current unit title:', unit?.title);
-    console.log('🔍 Current module:', currentModule);
-    console.log('🔍 Next module:', nextModule);
-    console.log('🔍 Target module:', targetModule);
-    console.log('🔍 Next link (final):', navLink);
-
                 const messageHandler = (event) => {
                   if (event.data && event.data.type === 'quiz.answers') {
-        console.log('📨 [Finish Module] Received quiz answers, saving...');
                     window.removeEventListener('message', messageHandler);
               
         const { answers } = event.data;
@@ -1697,12 +1871,28 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
         const unitTitle = unit?.title || '';
         const actualQuestionCount = parseUnitTitleForQuestionCount(unitTitle);
 
-        saveQuizResults(prepareRequestData())
+        const requestData = prepareRequestData();
+        console.log('💾 [Finish Module] Saving quiz result:', {
+          unit_id: unitId,
+          section_id: sequenceId.split('block@')[1],
+          answers_count: answers.length
+        });
+        
+        saveQuizResults(requestData)
           .then(ok => {
             if (ok) {
-              console.log('✅ [Finish Module] Quiz results saved successfully');
+              console.log('✅ [Finish Module] Successfully saved');
               if (currentModule) {
                 updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+              }
+              
+              // Dispatch event to notify TestHeader to refresh answered questions
+              if (typeof window !== 'undefined') {
+                const eventDetail = { unitId: unitId, sectionId: sequenceId.split('block@')[1] };
+                console.log('📢 [Finish Module] Dispatching quizResultsSaved event:', eventDetail);
+                window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                  detail: eventDetail
+                }));
               }
             } else {
               console.error('❌ [Finish Module] Error saving quiz results');
@@ -1725,29 +1915,8 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
 
   // Don't render anything if container not ready
   if (!container) {
-    console.log('🔍 [TestNavigationBar] Container not ready, not rendering');
     return null;
   }
-
-  console.log('🔍 [TestNavigationBar] Rendering with props:', {
-    courseId,
-    sequenceId,
-    unitId,
-    testSessionId,
-    nextLink,
-    onClickNext: onClickNext ? 'present' : 'missing'
-  });
-          
-  // Check if button exists in DOM
-  setTimeout(() => {
-    const buttonId = `next-button-${unitId}`;
-    const button = document.getElementById(buttonId);
-    console.log('🔍 [TestNavigationBar] Button check:', {
-      buttonId,
-      buttonExists: !!button,
-      buttonText: button ? button.textContent : 'not found'
-    });
-  }, 100);
 
   // Helper function to navigate to module transition page
   const navigateToModuleTransition = (currentModuleNum, nextModuleNum, navLink) => {
@@ -1765,7 +1934,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
       localStorage.setItem('moduleTransition_unitId', unitId);
       // Mark that we're in transition page to prevent back navigation
       localStorage.setItem(`moduleTransitionActive_${sequenceId}`, 'true');
-      console.log('💾 Saved module transition state:', transitionKey);
     }
 
     // Navigate to transition page with replace to prevent back button
@@ -1833,12 +2001,9 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
           {!isLastQuestionInModule && !isLastQuestionInModule3 && (
             <button
             onClick={() => {
-              console.log('🔄 [Button Click] Next button clicked');
-              
               // Send message to quiz iframe to get answers
               const iframe = document.getElementById('unit-iframe');
               if (!iframe) {
-                console.error('❌ [Next Button] No iframe found');
                 return;
               }
 
@@ -1846,19 +2011,16 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                 // Set flag to indicate Next button is handling this
                 localStorage.setItem('nextButtonHandling', 'true');
                 
-                console.log('📤 [Next Button] Sending quiz.get_answers to iframe');
                 iframe.contentWindow.postMessage({
                   type: 'quiz.get_answers'
                 }, '*');
                 
                 // Save quiz results and check module transition
                 const navLink = pathname.startsWith('/preview') ? `/preview${nextLink}` : nextLink;
-                console.log('🔍 [Navigation] Will navigate to:', navLink);
                 
                 // Wait for quiz.answers response before navigating
                 const messageHandler = (event) => {
                   if (event.data && event.data.type === 'quiz.answers') {
-                    console.log('📨 [Navigation] Received quiz answers, saving...');
                     window.removeEventListener('message', messageHandler);
                     
                     // Save quiz results
@@ -1874,34 +2036,22 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                     const currentUnitTitle = unit?.title;
                     const nextUnitTitle = actualNextUnit?.title;
                     
-                    console.log('🔍 Current unit title:', currentUnitTitle);
-                    console.log('🔍 Next unit title:', nextUnitTitle);
-                    console.log('🔍 Next unit exists:', !!actualNextUnit);
-                    
                     const currentModule = parseModuleNumber(currentUnitTitle);
                     const nextModule = actualNextUnit ? parseModuleNumber(nextUnitTitle) : null;
                     
-                    console.log('🔍 Current module:', currentModule);
-                    console.log('🔍 Next module:', nextModule);
-                    
                     // Check if transitioning between modules
                     const isModuleTransition = currentModule && nextModule && currentModule !== nextModule;
-                    console.log('🔍 Module transition:', isModuleTransition);
                     
                     // If no next unit (last question), check if this is the final module
                     if (!actualNextUnit) {
-                      console.log('🔍 No next unit - this is the last question');
-                      
                       // Check if this is module 3 or the last module
                       if (currentModule >= 3) {
-                        console.log('🎯 [Next Button] Module 3 or last module detected, showing final transition page');
-                        
                         // Check if already saved to prevent duplicate
+                        // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
                         const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
                         const saveKey = getUnitSaveKey(currentSession, unitId);
                         
-                        if (wasUnitSaved(saveKey)) {
-                          console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                        if (!shouldAllowSave(saveKey, answers)) {
                           // Still show final summary
                           prepareFinalSummary();
                           return;
@@ -1933,17 +2083,22 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                         .then(ok => {
                           if (ok) {
                             markUnitSaved(saveKey); // Mark as saved to prevent duplicate
-                            console.log('✅ Quiz results saved successfully');
                             // Update per-module scores and show final summary
                             updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
+                            
+                            // Dispatch event to notify TestHeader to refresh answered questions
+                            if (typeof window !== 'undefined') {
+                              window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                                detail: { unitId: unitId, sectionId: sequenceId.split('block@')[1] }
+                              }));
+                            }
+                            
                             prepareFinalSummary();
                           } else {
-                            console.error('❌ Error saving quiz results');
                             prepareFinalSummary();
                           }
                         })
                         .catch(error => {
-                          console.error('❌ Error saving quiz results:', error);
                           prepareFinalSummary();
                         });
                         return; // Don't navigate yet
@@ -1952,11 +2107,11 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                     
                     if (isModuleTransition) {
                       // Check if already saved to prevent duplicate
+                      // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
                       const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
                       const saveKey = getUnitSaveKey(currentSession, unitId);
                       
-                      if (wasUnitSaved(saveKey)) {
-                        console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                      if (!shouldAllowSave(saveKey, answers)) {
                         // Still navigate to transition page
                         navigateToModuleTransition(currentModule, nextModule, navLink);
                         return;
@@ -1988,17 +2143,19 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                       .then(ok => {
                         if (ok) {
                           markUnitSaved(saveKey); // Mark as saved to prevent duplicate
-                          console.log('✅ Quiz results saved successfully');
-                          console.log('🔄 Module transition: Navigating to transition page');
                           updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
-                        } else {
-                          console.error('❌ Error saving quiz results');
+                          
+                          // Dispatch event to notify TestHeader to refresh answered questions
+                          if (typeof window !== 'undefined') {
+                            window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                              detail: { unitId: unitId, sectionId: sequenceId.split('block@')[1] }
+                            }));
+                          }
                         }
                         // Navigate to transition page regardless of save result
                         navigateToModuleTransition(currentModule, nextModule, navLink);
                       })
                       .catch(error => {
-                        console.error('❌ Error saving quiz results:', error);
                         // Navigate to transition page even if save fails
                         navigateToModuleTransition(currentModule, nextModule, navLink);
                       });
@@ -2007,13 +2164,12 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                     
                     // Not a module transition, save and navigate normally
                     // Check if already saved to prevent duplicate
+                    // Allow save if not saved yet, or if saved but has no real answers (to update empty answers)
                     const currentSession = testSessionId || localStorage.getItem('currentTestSessionId');
                     const saveKey = getUnitSaveKey(currentSession, unitId);
                     
-                    if (wasUnitSaved(saveKey)) {
-                      console.log('⚠️ [Next Button] Unit already saved, skipping duplicate save');
+                    if (!shouldAllowSave(saveKey, answers)) {
                       // Still navigate
-                      console.log('🔍 Navigating to:', navLink);
                       navigate(navLink);
                     } else {
                     const prepareRequestData = () => ({
@@ -2041,16 +2197,20 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                       .then(ok => {
                       if (ok) {
                             markUnitSaved(saveKey); // Mark as saved to prevent duplicate
-                        console.log('✅ Quiz results saved successfully');
                             updateModuleScores(sequenceId, currentModule, correctCount, actualQuestionCount);
-                        console.log('🔍 Navigating to:', navLink);
+                        
+                        // Dispatch event to notify TestHeader to refresh answered questions
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('quizResultsSaved', {
+                            detail: { unitId: unitId, sectionId: sequenceId.split('block@')[1] }
+                          }));
+                        }
+                        
                         navigate(navLink);
-                      } else {
-                        console.error('❌ Error saving quiz results');
                       }
                     })
                     .catch(error => {
-                      console.error('❌ Error saving quiz results:', error);
+                      // Ignore errors
                     });
                   }
                     }
@@ -2063,7 +2223,6 @@ const TestNavigationBar = ({ courseId, sequenceId, unitId, onClickNext, isAtTop 
                   localStorage.removeItem('nextButtonHandling');
                 }, 5000);
               } catch (error) {
-                console.error('❌ [Next Button] Error:', error);
                 localStorage.removeItem('nextButtonHandling');
               }
             }}

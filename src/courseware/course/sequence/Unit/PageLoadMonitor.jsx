@@ -23,24 +23,9 @@ const PageLoadMonitor = ({
     const startTime = Date.now();
     setLoadStartTime(startTime);
     
-    console.log('🔍 [PageLoadMonitor] Starting page load monitoring:', {
-      courseId,
-      unitId,
-      maxLoadTime,
-      retryCount,
-      timestamp: new Date().toISOString()
-    });
-
     // Check if Unit ID exists (main condition for reload)
     const hasUnitId = () => {
       const hasId = unitId && unitId.length > 0;
-      
-      console.log('🔍 [PageLoadMonitor] Unit ID check:', {
-        hasId,
-        unitId,
-        unitIdLength: unitId ? unitId.length : 0
-      });
-      
       return hasId;
     };
 
@@ -51,28 +36,7 @@ const PageLoadMonitor = ({
       
       // Check if page is still loading after max time AND we haven't loaded successfully
       if (loadDuration > maxLoadTime && isMonitoring) {
-        const unitIdExists = hasUnitId();
-        
-        console.log('🔍 [PageLoadMonitor] Checking page load status:', {
-          loadDuration: `${loadDuration}ms`,
-          maxLoadTime: `${maxLoadTime}ms`,
-          retryCount,
-          courseId,
-          unitId,
-          unitIdExists,
-          currentUrl: window.location.href
-        });
-        
-        // Only reload if Unit ID is missing
-        const shouldReload = !unitIdExists;
-        
-        console.log('🔍 [PageLoadMonitor] Reload decision:', {
-          shouldReload,
-          reason: shouldReload ? 'Unit ID not found' : 'Unit ID exists - no reload needed'
-        });
-        
         // DISABLED: No auto-reload at all
-        console.log('ℹ️ [PageLoadMonitor] Auto-reload completely disabled - monitoring only');
         setIsMonitoring(false);
       }
     };
@@ -82,13 +46,6 @@ const PageLoadMonitor = ({
     
     // Stop monitoring when page is fully loaded
     const handlePageLoad = () => {
-      const loadDuration = Date.now() - startTime;
-      console.log('✅ [PageLoadMonitor] Page loaded successfully:', {
-        loadDuration: `${loadDuration}ms`,
-        retryCount,
-        courseId,
-        unitId
-      });
       setIsMonitoring(false);
       clearInterval(interval);
     };
@@ -98,11 +55,8 @@ const PageLoadMonitor = ({
       const unitIdExists = hasUnitId();
       
       if (unitIdExists) {
-        console.log('✅ [PageLoadMonitor] Unit ID found, stopping monitoring early');
         setIsMonitoring(false);
         clearInterval(interval);
-      } else {
-        console.log('⏳ [PageLoadMonitor] Unit ID not found yet, continuing monitoring');
       }
     };
 
