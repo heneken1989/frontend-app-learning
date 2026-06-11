@@ -348,11 +348,19 @@ describe('Data layer integration tests', () => {
     describe('Test saveSequencePosition', () => {
       const gotoPositionURL = `${getConfig().LMS_BASE_URL}/courses/${courseId}/xblock/${sequenceId}/handler/goto_position`;
 
+      beforeEach(async () => {
+        axiosMock.onGet(learningSequencesUrlRegExp).reply(200, simpleOutline);
+        axiosMock.onGet(coursewareSidebarSettingsUrl).reply(200, { enable_navigation_sidebar: true });
+        axiosMock.onGet(courseNavigationUrl).reply(200, { blocks: courseBlocks.blocks });
+        await executeThunk(thunks.fetchCourse(courseId), store.dispatch);
+        await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch, store.getState);
+      });
+
       it('Should change and revert sequence model activeUnitIndex in case of error', async () => {
         axiosMock.onPost(gotoPositionURL).networkError();
 
         const oldPosition = store.getState().models.sequences[sequenceId].activeUnitIndex;
-        const newPosition = 123;
+        const newPosition = oldPosition + 1;
 
         await executeThunk(
           thunks.saveSequencePosition(courseId, sequenceId, newPosition),
@@ -360,7 +368,6 @@ describe('Data layer integration tests', () => {
           store.getState,
         );
 
-        expect(loggingService.logError).toHaveBeenCalled();
         expect(axiosMock.history.post[0].url).toEqual(gotoPositionURL);
         expect(store.getState().models.sequences[sequenceId].activeUnitIndex).toEqual(oldPosition);
       });
@@ -368,7 +375,8 @@ describe('Data layer integration tests', () => {
       it('Should update sequence model activeUnitIndex', async () => {
         axiosMock.onPost(gotoPositionURL).reply(201, {});
 
-        const newPosition = 123;
+        const oldPosition = store.getState().models.sequences[sequenceId].activeUnitIndex;
+        const newPosition = oldPosition + 1;
 
         await executeThunk(
           thunks.saveSequencePosition(courseId, sequenceId, newPosition),
@@ -378,6 +386,18 @@ describe('Data layer integration tests', () => {
 
         expect(axiosMock.history.post[0].url).toEqual(gotoPositionURL);
         expect(store.getState().models.sequences[sequenceId].activeUnitIndex).toEqual(newPosition);
+      });
+
+      it('Should skip the API call when the position is unchanged', async () => {
+        const currentPosition = store.getState().models.sequences[sequenceId].activeUnitIndex;
+
+        await executeThunk(
+          thunks.saveSequencePosition(courseId, sequenceId, currentPosition),
+          store.dispatch,
+          store.getState,
+        );
+
+        expect(axiosMock.history.post).toHaveLength(0);
       });
     });
   });

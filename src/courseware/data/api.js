@@ -53,13 +53,38 @@ export async function getBlockCompletion(courseId, sequenceId, usageKey) {
   return data.complete === true;
 }
 
+const gotoPositionRequestCache = new Map();
+
 export async function postSequencePosition(courseId, sequenceId, activeUnitIndex) {
-  const { data } = await getAuthenticatedHttpClient().post(
+  const cacheKey = `${courseId}:${sequenceId}`;
+  const cached = gotoPositionRequestCache.get(cacheKey);
+  if (cached?.activeUnitIndex === activeUnitIndex) {
+    if (cached.promise) {
+      return cached.promise;
+    }
+    if (cached.resolved) {
+      return cached.data;
+    }
+  }
+
+  const promise = getAuthenticatedHttpClient().post(
     `${getSequenceHandlerUrl(courseId, sequenceId)}/goto_position`,
     // Position is 1-indexed on the server and 0-indexed in this app. Adjust here.
     { position: activeUnitIndex + 1 },
-  );
-  return data;
+  ).then(({ data }) => {
+    gotoPositionRequestCache.set(cacheKey, {
+      activeUnitIndex,
+      resolved: true,
+      data,
+    });
+    return data;
+  }).catch((error) => {
+    gotoPositionRequestCache.delete(cacheKey);
+    throw error;
+  });
+
+  gotoPositionRequestCache.set(cacheKey, { activeUnitIndex, promise });
+  return promise;
 }
 
 export async function getResumeBlock(courseId) {

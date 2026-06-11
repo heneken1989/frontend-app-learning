@@ -1736,6 +1736,11 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
         width: '100%',
         height: '60px' // Reduced height from 70px to 60px
       }}>
+        {/* Left - Previous unit */}
+        <div className="d-flex align-items-center">
+          {renderPreviousButton()}
+        </div>
+
         {/* Center - Check/ShowScript buttons */}
         <div className="d-flex align-items-center" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
           {hasAudioQuiz ? (

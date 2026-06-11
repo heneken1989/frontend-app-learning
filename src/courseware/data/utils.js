@@ -222,15 +222,25 @@ const defaultGatedContent = (sectionTitle = '') => ({
  * Skips the heavy /api/courseware/sequence/ endpoint — no gating/proctored/bookmark data.
  */
 export function mapOutlineToSequenceModels(courseOutline, sequenceId) {
-  const { sequences = {}, units = {} } = courseOutline || {};
+  const { sequences = {}, sections = {}, units = {} } = courseOutline || {};
   const outlineSequence = sequences[sequenceId];
   if (!outlineSequence?.unitIds?.length) {
     return null;
   }
 
+  let sectionId = null;
+  Object.values(sections).some((section) => {
+    if (section.sequenceIds?.includes(sequenceId)) {
+      sectionId = section.id;
+      return true;
+    }
+    return false;
+  });
+
   const sequence = {
     id: sequenceId,
     blockType: 'sequential',
+    sectionId,
     unitIds: outlineSequence.unitIds,
     bannerText: null,
     format: outlineSequence.format || '',

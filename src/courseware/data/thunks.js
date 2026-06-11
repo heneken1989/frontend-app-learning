@@ -84,10 +84,14 @@ function fetchCourseOutlineDeduped(courseId) {
   return courseOutlineFetchPromises[courseId];
 }
 
-function hydrateSequenceFromOutline(dispatch, courseOutline, sequenceId) {
+function hydrateSequenceFromOutline(dispatch, getState, courseOutline, sequenceId) {
   const mapped = mapOutlineToSequenceModels(courseOutline, sequenceId);
   if (!mapped) {
     return false;
+  }
+  const existingSequence = getState().models?.sequences?.[sequenceId];
+  if (existingSequence?.sectionId && !mapped.sequence.sectionId) {
+    mapped.sequence.sectionId = existingSequence.sectionId;
   }
   dispatch(updateModel({
     modelType: 'sequences',
@@ -214,7 +218,7 @@ export function fetchSequence(sequenceId) {
 
     const { courseware } = getState();
     if (courseware.courseOutlineStatus === LOADED
-      && hydrateSequenceFromOutline(dispatch, courseware.courseOutline, sequenceId)) {
+      && hydrateSequenceFromOutline(dispatch, getState, courseware.courseOutline, sequenceId)) {
       return;
     }
 
@@ -233,7 +237,7 @@ export function fetchSequence(sequenceId) {
       if (courseOutline) {
         dispatch(fetchCourseOutlineSuccess({ courseOutline }));
       }
-      if (courseOutline && hydrateSequenceFromOutline(dispatch, courseOutline, sequenceId)) {
+      if (courseOutline && hydrateSequenceFromOutline(dispatch, getState, courseOutline, sequenceId)) {
         return;
       }
 
@@ -277,7 +281,14 @@ export function checkBlockCompletion(courseId, sequenceId, unitId) {
 export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
   return async (dispatch, getState) => {
     const { models } = getState();
-    const initialActiveUnitIndex = models.sequences[sequenceId].activeUnitIndex;
+    const sequenceModel = models.sequences[sequenceId];
+    if (!sequenceModel) {
+      return;
+    }
+    const { activeUnitIndex: initialActiveUnitIndex } = sequenceModel;
+    if (initialActiveUnitIndex === activeUnitIndex) {
+      return;
+    }
     // Optimistically update the position.
     dispatch(updateModel({
       modelType: 'sequences',
@@ -288,15 +299,6 @@ export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
     }));
     try {
       await postSequencePosition(courseId, sequenceId, activeUnitIndex);
-      // Update again under the assumption that the above call succeeded, since it doesn't return a
-      // meaningful response.
-      dispatch(updateModel({
-        modelType: 'sequences',
-        model: {
-          id: sequenceId,
-          activeUnitIndex,
-        },
-      }));
     } catch (error) {
       dispatch(updateModel({
         modelType: 'sequences',
