@@ -208,3 +208,57 @@ export function normalizeOutlineBlocks(courseId, blocks) {
 
   return models;
 }
+
+const defaultGatedContent = (sectionTitle = '') => ({
+  gated: false,
+  prereqId: null,
+  prereqUrl: null,
+  prereqSectionName: null,
+  gatedSectionName: sectionTitle,
+});
+
+/**
+ * Build sequence + unit models from course navigation outline (fast path).
+ * Skips the heavy /api/courseware/sequence/ endpoint — no gating/proctored/bookmark data.
+ */
+export function mapOutlineToSequenceModels(courseOutline, sequenceId) {
+  const { sequences = {}, units = {} } = courseOutline || {};
+  const outlineSequence = sequences[sequenceId];
+  if (!outlineSequence?.unitIds?.length) {
+    return null;
+  }
+
+  const sequence = {
+    id: sequenceId,
+    blockType: 'sequential',
+    unitIds: outlineSequence.unitIds,
+    bannerText: null,
+    format: outlineSequence.format || '',
+    title: outlineSequence.title,
+    gatedContent: defaultGatedContent(outlineSequence.title),
+    isTimeLimited: false,
+    isProctored: false,
+    isHiddenAfterDue: false,
+    activeUnitIndex: 0,
+    saveUnitPosition: true,
+    showCompletion: true,
+    allowProctoringOptOut: false,
+    navigationDisabled: false,
+  };
+
+  const unitModels = outlineSequence.unitIds.map((unitId) => {
+    const outlineUnit = units[unitId] || {};
+    return {
+      id: unitId,
+      sequenceId,
+      bookmarked: false,
+      complete: outlineUnit.complete ?? false,
+      title: outlineUnit.title || '',
+      contentType: outlineUnit.icon || outlineUnit.type || 'other',
+      graded: false,
+      containsContentTypeGatedContent: false,
+    };
+  });
+
+  return { sequence, units: unitModels };
+}

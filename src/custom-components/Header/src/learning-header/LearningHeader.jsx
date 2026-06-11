@@ -17,6 +17,8 @@ import {
 } from '../../../../courseware/course/sequence/Unit/urls';
 import { useModel } from '../../../../generic/model-store';
 import { modelKeys } from '../../../../courseware/course/sequence/Unit/constants';
+import useAccessInfo, { refreshAccessInfo } from '../../../../courseware/hooks/useAccessInfo';
+import usePaymentStatus, { invalidatePaymentStatusCache, fetchPaymentStatusBundle } from '../../../../courseware/hooks/usePaymentStatus';
 
 import AnonymousUserMenu from './AnonymousUserMenu';
 import AuthenticatedUserDropdown from './AuthenticatedUserDropdown';
@@ -679,8 +681,8 @@ const LearningHeader = ({
   const [sections, setSections] = useState([]);
   const [sequences, setSequences] = useState([]);
   const [timerKey, setTimerKey] = useState(0);
-  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
-  const [accessInfo, setAccessInfo] = useState(null);
+  const { subscriptionInfo } = usePaymentStatus(!!authenticatedUser);
+  const accessInfo = useAccessInfo();
   const [isToggling, setIsToggling] = useState(false);
   const [isActivatingSection, setIsActivatingSection] = useState(false);
   const [currentSectionInfo, setCurrentSectionInfo] = useState(null);
@@ -1005,87 +1007,6 @@ const LearningHeader = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty dependency - only mount once
 
-  // Fetch subscription and access info for debugging
-  useEffect(() => {
-    const fetchSubscriptionInfo = async () => {
-      if (!authenticatedUser) {
-        console.log('🔍 [LearningHeader] User not authenticated - no subscription info');
-        return;
-      }
-
-      try {
-        const lmsBaseUrl = getConfig().LMS_BASE_URL;
-        
-        // Fetch subscription status
-        const subscriptionResponse = await fetch(`${lmsBaseUrl}/api/payment/subscription/status/`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (subscriptionResponse.ok) {
-          const subscriptionData = await subscriptionResponse.json();
-          setSubscriptionInfo(subscriptionData);
-          
-          console.log('🔍 [LearningHeader] ===== SUBSCRIPTION INFO =====');
-          console.log('🔍 User:', authenticatedUser.username, '(ID:', authenticatedUser.id, ')');
-          console.log('🔍 Has Subscription:', subscriptionData.has_subscription);
-          console.log('🔍 Subscription Details:', JSON.stringify(subscriptionData.subscription_info, null, 2));
-          console.log('🔍 ============================================');
-        } else {
-          console.warn('🔍 [LearningHeader] Failed to fetch subscription status:', subscriptionResponse.status);
-        }
-
-        // Fetch access info
-        const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (accessResponse.ok) {
-          const accessData = await accessResponse.json();
-          setAccessInfo(accessData.access_info);
-          
-          console.log('🔍 [LearningHeader] ===== ACCESS INFO =====');
-          console.log('🔍 Access Type:', accessData.access_info?.access_type);
-          console.log('🔍 Unit Limit:', accessData.access_info?.unit_limit);
-          console.log('🔍 Allowed Sections:', accessData.access_info?.allowed_sections || []);
-          console.log('🔍 Updated At:', accessData.access_info?.updated_at);
-          console.log('🔍 Full Access Info:', JSON.stringify(accessData.access_info, null, 2));
-          console.log('🔍 ============================================');
-        } else {
-          console.warn('🔍 [LearningHeader] Failed to fetch access info:', accessResponse.status);
-        }
-
-        // Fetch enrollment status for more details
-        const enrollmentResponse = await fetch(`${lmsBaseUrl}/api/payment/enrollment/status/`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (enrollmentResponse.ok) {
-          const enrollmentData = await enrollmentResponse.json();
-          
-          console.log('🔍 [LearningHeader] ===== ENROLLMENT STATUS =====');
-          console.log('🔍 Total Enrolled:', enrollmentData.enrollments?.total_enrolled);
-          console.log('🔍 Total Available:', enrollmentData.enrollments?.total_available);
-          console.log('🔍 Status:', JSON.stringify(enrollmentData.status, null, 2));
-          console.log('🔍 Recent Transactions:', enrollmentData.transactions?.transaction_list?.length || 0);
-          if (enrollmentData.transactions?.transaction_list?.length > 0) {
-            console.log('🔍 Latest Transaction:', JSON.stringify(enrollmentData.transactions.transaction_list[0], null, 2));
-          }
-          console.log('🔍 ============================================');
-        } else {
-          console.warn('🔍 [LearningHeader] Failed to fetch enrollment status:', enrollmentResponse.status);
-        }
-
-      } catch (error) {
-        console.error('🔍 [LearningHeader] Error fetching subscription/access info:', error);
-      }
-    };
-
-    fetchSubscriptionInfo();
-  }, [authenticatedUser]);
-
   // Debug: Log current section and access info
   useEffect(() => {
     if (currentSection && accessInfo) {
@@ -1189,25 +1110,9 @@ const LearningHeader = ({
 
       const result = await response.json();
       
-      // Refresh subscription info
-      const subscriptionResponse = await fetch(`${lmsBaseUrl}/api/payment/subscription/status/`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (subscriptionResponse.ok) {
-        const subscriptionData = await subscriptionResponse.json();
-        setSubscriptionInfo(subscriptionData);
-      }
-
-      // Refresh access info
-      const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (accessResponse.ok) {
-        const accessData = await accessResponse.json();
-        setAccessInfo(accessData.access_info);
-      }
+      invalidatePaymentStatusCache();
+      await fetchPaymentStatusBundle();
+      await refreshAccessInfo();
 
       alert(`✅ ${result.message}\n\nAccess Type: ${result.access_info.access_type}\nUnit Limit: ${result.access_info.unit_limit || 'Unlimited'}\n\nVui lòng reload trang để thấy thay đổi!`);
       
@@ -1289,20 +1194,8 @@ const LearningHeader = ({
 
       const result = await response.json();
       
-      // Refresh access info
-      const accessResponse = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (accessResponse.ok) {
-        const accessData = await accessResponse.json();
-        setAccessInfo(accessData.access_info);
-        
-        // Dispatch event to notify other components (e.g., SidebarSequence) to refresh
-        window.dispatchEvent(new CustomEvent('accessInfoUpdated'));
-        // Also update localStorage to trigger storage event for cross-tab updates
-        localStorage.setItem('access_info_updated', Date.now().toString());
-      }
+      await refreshAccessInfo();
+      localStorage.setItem('access_info_updated', Date.now().toString());
 
       alert(`✅ ${result.message}\n\nSection: ${result.section_name}\nEnrolled Courses: ${result.enrolled_courses}\n\nVui lòng reload trang để thấy thay đổi!`);
       

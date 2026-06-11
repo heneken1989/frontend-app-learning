@@ -9,9 +9,8 @@ import {
 } from '@edx/frontend-platform/analytics';
 import { useIntl } from '@edx/frontend-platform/i18n';
 import { useSelector } from 'react-redux';
-import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
-import { getConfig } from '@edx/frontend-platform';
 import SequenceExamWrapper from '@edx/frontend-lib-special-exams';
+import useAccessInfo from '@src/courseware/hooks/useAccessInfo';
 
 import PageLoading from '@src/generic/PageLoading';
 import { useModel } from '@src/generic/model-store';
@@ -38,7 +37,7 @@ const Sequence = ({
 }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const [accessInfo, setAccessInfo] = useState(null);
+  const accessInfo = useAccessInfo();
   
   // Safe check: metadata may be loading in background (non-blocking)
   const coursewareMeta = useModel('coursewareMeta', courseId) || {};
@@ -57,37 +56,6 @@ const Sequence = ({
   const sequenceStatus = useSelector(state => state.courseware.sequenceStatus);
   const sequenceMightBeUnit = useSelector(state => state.courseware.sequenceMightBeUnit);
   const { enableNavigationSidebar: isEnabledOutlineSidebar } = useSelector(getCoursewareOutlineSidebarSettings);
-
-  // Fetch access_info
-  useEffect(() => {
-    const fetchAccessInfo = async () => {
-      try {
-        const user = getAuthenticatedUser();
-        if (!user) {
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-          return;
-        }
-
-        const lmsBaseUrl = getConfig().LMS_BASE_URL;
-        const response = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setAccessInfo(data.access_info || { access_type: 'free', unit_limit: 20 });
-        } else {
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-        }
-      } catch (error) {
-        console.warn('Failed to fetch access_info:', error);
-        setAccessInfo({ access_type: 'free', unit_limit: 20 });
-      }
-    };
-
-    fetchAccessInfo();
-  }, []);
 
   // Check if current unit is beyond limit and redirect if needed
   useEffect(() => {

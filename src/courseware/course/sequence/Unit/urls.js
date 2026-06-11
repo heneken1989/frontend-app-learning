@@ -30,16 +30,37 @@ export const getIFrameUrl = ({
   });
 };
 
-export const fetchUnitById = (unitId) => fetch(`${getConfig().LMS_BASE_URL}/api/courseware/v1/units/${unitId}/`)
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error('Failed to fetch unit data');
-    }
-    return response.json();
-  })
-  .catch((error) => {
-    throw new Error(`Error fetching unit: ${error.message}`);
-  });
+const unitDataCache = {};
+const unitDataInFlight = {};
+
+export const fetchUnitById = (unitId) => {
+  if (unitDataCache[unitId]) {
+    return Promise.resolve(unitDataCache[unitId]);
+  }
+
+  if (unitDataInFlight[unitId]) {
+    return unitDataInFlight[unitId];
+  }
+
+  unitDataInFlight[unitId] = fetch(`${getConfig().LMS_BASE_URL}/api/courseware/v1/units/${unitId}/`)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to fetch unit data');
+      }
+      return response.json();
+    })
+    .then((data) => {
+      unitDataCache[unitId] = data;
+      delete unitDataInFlight[unitId];
+      return data;
+    })
+    .catch((error) => {
+      delete unitDataInFlight[unitId];
+      throw new Error(`Error fetching unit: ${error.message}`);
+    });
+
+  return unitDataInFlight[unitId];
+};
 
 export const fetchAllCourses = () => fetch(`${getConfig().LMS_BASE_URL}/api/all_courses/`)
   .then((response) => {

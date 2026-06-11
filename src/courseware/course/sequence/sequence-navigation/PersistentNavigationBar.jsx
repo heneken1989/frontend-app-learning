@@ -6,6 +6,7 @@ import { Button } from '@openedx/paragon';
 import { useModel } from '@src/generic/model-store';
 import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
 import { getConfig } from '@edx/frontend-platform';
+import useAccessInfo from '@src/courseware/hooks/useAccessInfo';
 import { GetCourseExitNavigation } from '../../course-exit';
 import { useSequenceNavigationMetadata } from './hooks';
 import messages from './messages';
@@ -32,7 +33,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
 
   const [container, setContainer] = useState(null);
   const containerRef = useRef(null);
-  const [accessInfo, setAccessInfo] = useState(null);
+  const accessInfo = useAccessInfo();
   const [isAtUnitLimit, setIsAtUnitLimit] = useState(false);
 
   const {
@@ -44,56 +45,6 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
   const unit = useModel('units', unitId);
   const section = useModel('sections', sequence?.sectionId);
   const sectionTitle = section?.title || '';
-
-  // Fetch access_info and check unit limit
-  useEffect(() => {
-    const fetchAccessInfo = async () => {
-      try {
-        const user = getAuthenticatedUser();
-        if (!user) {
-          // Free user - default access
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-          return;
-        }
-
-        const lmsBaseUrl = getConfig().LMS_BASE_URL;
-        const response = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-cache', // Prevent caching
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const accessInfoData = data.access_info || { access_type: 'free', unit_limit: 20 };
-          setAccessInfo(accessInfoData);
-        } else {
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-        }
-      } catch (error) {
-        console.warn('Failed to fetch access_info, defaulting to free:', error);
-        setAccessInfo({ access_type: 'free', unit_limit: 20 });
-      }
-    };
-
-    fetchAccessInfo();
-    
-    // Refresh access_info when storage changes (e.g., after activating section)
-    const handleStorageChange = (e) => {
-      if (e.key === 'access_info_updated' || !e.key) {
-        fetchAccessInfo();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    // Also listen for custom event for same-origin updates
-    window.addEventListener('accessInfoUpdated', fetchAccessInfo);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('accessInfoUpdated', fetchAccessInfo);
-    };
-  }, []);
 
   // Check if current unit is at the limit for free users or section_access users
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { logInfo } from '@edx/frontend-platform/logging';
+import { LOADED, LOADING } from '@src/constants';
 import { getCourseHomeCourseMetadata } from '../../course-home/data/api';
 import {
   addModel, addModelsMap, updateModel, updateModels, updateModelsMap,
@@ -11,10 +12,10 @@ import {
   getCourseTopics,
   getCoursewareOutlineSidebarToggles,
   getLearningSequencesOutline,
-  getSequenceMetadata,
   postIntegritySignature,
   postSequencePosition,
 } from './api';
+import { mapOutlineToSequenceModels } from './utils';
 import {
   fetchCourseDenied,
   fetchCourseFailure,
@@ -32,6 +33,73 @@ import {
 
 // Lazy fetch course metadata - only fetch when actually needed
 let metadataFetchPromises = {};
+const courseOutlineCache = {};
+let courseOutlineFetchPromises = {};
+const learningSequencesCache = {};
+let learningSequencesInFlight = {};
+
+function fetchLearningSequencesDeduped(courseId) {
+  if (learningSequencesCache[courseId]) {
+    return Promise.resolve(learningSequencesCache[courseId]);
+  }
+
+  if (learningSequencesInFlight[courseId]) {
+    return learningSequencesInFlight[courseId];
+  }
+
+  learningSequencesInFlight[courseId] = getLearningSequencesOutline(courseId)
+    .then((data) => {
+      learningSequencesCache[courseId] = data;
+      delete learningSequencesInFlight[courseId];
+      return data;
+    })
+    .catch((error) => {
+      delete learningSequencesInFlight[courseId];
+      throw error;
+    });
+
+  return learningSequencesInFlight[courseId];
+}
+
+function fetchCourseOutlineDeduped(courseId) {
+  if (courseOutlineCache[courseId]) {
+    return Promise.resolve(courseOutlineCache[courseId]);
+  }
+
+  if (courseOutlineFetchPromises[courseId]) {
+    return courseOutlineFetchPromises[courseId];
+  }
+
+  courseOutlineFetchPromises[courseId] = getCourseOutline(courseId)
+    .then((data) => {
+      courseOutlineCache[courseId] = data;
+      delete courseOutlineFetchPromises[courseId];
+      return data;
+    })
+    .catch((error) => {
+      delete courseOutlineFetchPromises[courseId];
+      throw error;
+    });
+
+  return courseOutlineFetchPromises[courseId];
+}
+
+function hydrateSequenceFromOutline(dispatch, courseOutline, sequenceId) {
+  const mapped = mapOutlineToSequenceModels(courseOutline, sequenceId);
+  if (!mapped) {
+    return false;
+  }
+  dispatch(updateModel({
+    modelType: 'sequences',
+    model: mapped.sequence,
+  }));
+  dispatch(updateModels({
+    modelType: 'units',
+    models: mapped.units,
+  }));
+  dispatch(fetchSequenceSuccess({ sequenceId }));
+  return true;
+}
 export function fetchCourseMetadataLazy(courseId) {
   return async (dispatch, getState) => {
     // Check if already cached
@@ -77,7 +145,7 @@ export function fetchCourse(courseId) {
     
     // Fetch only critical APIs needed for quiz rendering
     Promise.allSettled([
-      getLearningSequencesOutline(courseId),
+      fetchLearningSequencesDeduped(courseId),
       getCoursewareOutlineSidebarToggles(courseId),
     ]).then(([
       learningSequencesOutlineResult,
@@ -140,35 +208,44 @@ export function fetchCourse(courseId) {
   };
 }
 
-export function fetchSequence(sequenceId, isPreview) {
-  return async (dispatch) => {
+export function fetchSequence(sequenceId) {
+  return async (dispatch, getState) => {
     dispatch(fetchSequenceRequest({ sequenceId }));
+
+    const { courseware } = getState();
+    if (courseware.courseOutlineStatus === LOADED
+      && hydrateSequenceFromOutline(dispatch, courseware.courseOutline, sequenceId)) {
+      return;
+    }
+
+    const { courseId } = courseware;
+    if (!courseId) {
+      dispatch(fetchSequenceFailure({ sequenceId }));
+      return;
+    }
+
+    if (courseware.courseOutlineStatus !== LOADED && courseware.courseOutlineStatus !== LOADING) {
+      dispatch(fetchCourseOutlineRequest());
+    }
+
     try {
-      const { sequence, units } = await getSequenceMetadata(sequenceId, { preview: isPreview ? '1' : '0' });
-      if (sequence.blockType !== 'sequential') {
-        // Some other block types (particularly 'chapter') can be returned
-        // by this API. We want to error in that case, since downstream
-        // courseware code is written to render Sequences of Units.
-        dispatch(fetchSequenceFailure({ sequenceId }));
-      } else {
-        dispatch(updateModel({
-          modelType: 'sequences',
-          model: sequence,
-        }));
-        dispatch(updateModels({
-          modelType: 'units',
-          models: units,
-        }));
-        dispatch(fetchSequenceSuccess({ sequenceId }));
+      const courseOutline = await fetchCourseOutlineDeduped(courseId);
+      if (courseOutline) {
+        dispatch(fetchCourseOutlineSuccess({ courseOutline }));
       }
+      if (courseOutline && hydrateSequenceFromOutline(dispatch, courseOutline, sequenceId)) {
+        return;
+      }
+
+      // CoursewareContainer may pass a unit id; detect it from the navigation outline.
+      if (courseOutline?.units?.[sequenceId]) {
+        dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit: true }));
+        return;
+      }
+
+      dispatch(fetchSequenceFailure({ sequenceId }));
     } catch (error) {
-      // Some errors are expected - for example, CoursewareContainer may request sequence metadata for a unit and rely
-      // on the request failing to notice that it actually does have a unit (mostly so it doesn't have to know anything
-      // about the opaque key structure). In such cases, the backend gives us a 422.
-      const sequenceMightBeUnit = error?.response?.status === 422;
-      if (!sequenceMightBeUnit) {
-      }
-      dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit }));
+      dispatch(fetchSequenceFailure({ sequenceId }));
     }
   };
 }
@@ -273,10 +350,18 @@ export function getCourseDiscussionTopics(courseId) {
 }
 
 export function getCourseOutlineStructure(courseId) {
-  return async (dispatch) => {
-    dispatch(fetchCourseOutlineRequest());
+  return async (dispatch, getState) => {
+    const { courseware } = getState();
+    if (courseware.courseOutlineStatus === LOADED) {
+      return;
+    }
+
+    if (courseware.courseOutlineStatus !== LOADING) {
+      dispatch(fetchCourseOutlineRequest());
+    }
+
     try {
-      const courseOutline = await getCourseOutline(courseId);
+      const courseOutline = await fetchCourseOutlineDeduped(courseId);
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
       dispatch(fetchCourseOutlineFailure());

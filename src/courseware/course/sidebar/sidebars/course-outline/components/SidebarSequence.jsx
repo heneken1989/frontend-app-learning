@@ -1,12 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 import { Collapsible } from '@openedx/paragon';
-import { getAuthenticatedUser } from '@edx/frontend-platform/auth';
-import { getConfig } from '@edx/frontend-platform';
-
 import courseOutlineMessages from '@src/course-home/outline-tab/messages';
+import useAccessInfo from '@src/courseware/hooks/useAccessInfo';
 import { useCourseOutlineSidebar } from '../hooks';
 import CompletionIcon from './CompletionIcon';
 import SidebarUnit from './SidebarUnit';
@@ -30,138 +28,21 @@ const SidebarSequence = ({
   } = sequence;
 
   const [open, setOpen] = useState(defaultOpen);
-  const [accessInfo, setAccessInfo] = useState(null);
-  const [fetchedSection, setFetchedSection] = useState(null);
+  const accessInfo = useAccessInfo();
   const { activeSequenceId, units, sections } = useCourseOutlineSidebar();
   const isActiveSequence = id === activeSequenceId;
-  
-  // Get section info from model store (if available)
-  const section = sequence?.sectionId ? sections?.[sequence.sectionId] : null;
-  
-  // Fetch section from API directly (optimized - fetch immediately, don't wait for model store)
-  useEffect(() => {
-    const fetchSectionInfo = async () => {
-      // Fetch from API if we have courseId and sequenceId
-      if (courseId && id) {
-        try {
-          const lmsBaseUrl = getConfig().LMS_BASE_URL;
-          // Fetch section info from course outline API
-          const sectionsResponse = await fetch(`${lmsBaseUrl}/api/all_courses/${courseId}/sections/`, {
-            method: 'GET',
-            credentials: 'include',
-            cache: 'no-cache', // Prevent caching
-          });
-          
-          if (sectionsResponse.ok) {
-            const sectionsData = await sectionsResponse.json();
-            // Find section that contains this sequence
-            for (const sec of sectionsData) {
-              const sequencesResponse = await fetch(`${lmsBaseUrl}/api/sections/${sec.id}/sequences/`, {
-                method: 'GET',
-                credentials: 'include',
-                cache: 'no-cache', // Prevent caching
-              });
-              if (sequencesResponse.ok) {
-                const sequencesData = await sequencesResponse.json();
-                const hasSequence = sequencesData.some(seq => seq.id === id);
-                if (hasSequence) {
-                  setFetchedSection({
-                    id: sec.id,
-                    title: sec.display_name || sec.title || 'Unknown Section',
-                  });
-                  break;
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.warn('🔍 [SidebarSequence] Failed to fetch section info:', error);
-        }
-      }
-    };
-    
-    fetchSectionInfo();
-  }, [courseId, id]); // Only depend on courseId and id, fetch immediately
-  
-  // Use fetched section from API first (optimized), then fallback to model store
-  const currentSection = fetchedSection || section;
-  // Try multiple sources for section title
-  const sectionDisplayName = currentSection?.title || currentSection?.display_name || '';
-  
-  // Debug: Log section info
-  useEffect(() => {
-    if (sequence?.sectionId || fetchedSection) {
-      console.log('🔍 [SidebarSequence] Section info:', {
-        sequenceId: id,
-        sequenceTitle: title,
-        sequenceSectionId: sequence?.sectionId,
-        section: section,
-        fetchedSection: fetchedSection,
-        currentSection: currentSection,
-        sectionTitle: currentSection?.title,
-        sectionDisplayName: sectionDisplayName,
-        sectionSource: section ? 'model-store' : (fetchedSection ? 'api-fetch' : 'none'),
-        allSections: Object.keys(sections || {}).map(key => ({
-          id: key,
-          title: sections[key]?.title,
-          display_name: sections[key]?.display_name
-        }))
-      });
+
+  // Resolve parent section from course outline already in Redux (no extra API calls).
+  const currentSection = useMemo(() => {
+    if (sequence?.sectionId && sections?.[sequence.sectionId]) {
+      return sections[sequence.sectionId];
     }
-  }, [sequence?.sectionId, section, fetchedSection, currentSection, sectionDisplayName, id, sections, title]);
+    return Object.values(sections || {}).find(
+      (sec) => sec.sequenceIds?.includes(id),
+    ) || null;
+  }, [sequence?.sectionId, sections, id]);
 
-  // Fetch user access_info
-  useEffect(() => {
-    const fetchAccessInfo = async () => {
-      try {
-        const user = getAuthenticatedUser();
-        if (!user) {
-          // Free user - default access
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-          return;
-        }
-
-        const lmsBaseUrl = getConfig().LMS_BASE_URL;
-        const response = await fetch(`${lmsBaseUrl}/api/payment/user/access-info/`, {
-          method: 'GET',
-          credentials: 'include',
-          cache: 'no-cache', // Prevent caching
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const accessInfoData = data.access_info || { access_type: 'free', unit_limit: 20 };
-          console.log('🔍 [SidebarSequence] Fetched access_info:', accessInfoData);
-          setAccessInfo(accessInfoData);
-        } else {
-          // Default to free if API fails
-          console.warn('🔍 [SidebarSequence] API failed, defaulting to free');
-          setAccessInfo({ access_type: 'free', unit_limit: 20 });
-        }
-      } catch (error) {
-        console.warn('Failed to fetch access_info, defaulting to free:', error);
-        setAccessInfo({ access_type: 'free', unit_limit: 20 });
-      }
-    };
-
-    fetchAccessInfo();
-    
-    // Refresh access_info when storage changes (e.g., after activating section)
-    const handleStorageChange = (e) => {
-      if (e.key === 'access_info_updated' || !e.key) {
-        fetchAccessInfo();
-      }
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    // Also listen for custom event for same-origin updates
-    window.addEventListener('accessInfoUpdated', fetchAccessInfo);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('accessInfoUpdated', fetchAccessInfo);
-    };
-  }, []);
+  const sectionDisplayName = currentSection?.title || currentSection?.display_name || '';
 
   // Filter unitIds based on access_info
   const filteredUnitIds = useMemo(() => {

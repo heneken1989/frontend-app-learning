@@ -45,6 +45,7 @@ describe('Data layer integration tests', () => {
   const sequenceId = sequenceBlocks[0].id;
   const unitId = unitBlocks[0].id;
   const coursewareSidebarSettingsUrl = `${getConfig().LMS_BASE_URL}/courses/${courseId}/courseware-navigation-sidebar/toggles/`;
+  const courseNavigationUrl = `${getConfig().LMS_BASE_URL}/api/course_home/v1/navigation/${courseId}`;
 
   let store;
 
@@ -192,42 +193,36 @@ describe('Data layer integration tests', () => {
   });
 
   describe('Test fetchSequence', () => {
-    it('Should result in fetch failure if error occurs', async () => {
-      axiosMock.onGet(sequenceUrl).networkError();
+    it('Should result in fetch failure if navigation outline request fails', async () => {
+      axiosMock.onGet(learningSequencesUrlRegExp).reply(200, simpleOutline);
+      axiosMock.onGet(coursewareSidebarSettingsUrl).reply(200, { enable_navigation_sidebar: true });
+      axiosMock.onGet(courseNavigationUrl).networkError();
 
-      await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch);
+      await executeThunk(thunks.fetchCourse(courseId), store.dispatch);
+      await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch, store.getState);
 
-      expect(loggingService.logError).toHaveBeenCalled();
       expect(store.getState().courseware.sequenceStatus).toEqual('failed');
     });
 
-    it('Should result in fetch failure if a non-sequential block is returned', async () => {
-      const sectionMetadata = {
-        ...sequenceMetadata,
-        // 'chapter' is the block_type of a Section, which the sequence metadata
-        // API will happily return if requested, since SectionBlock is implemented
-        // as a subclass of SequenceBlock.
-        tag: 'chapter',
-      };
-      axiosMock.onGet(sequenceUrl).reply(200, sectionMetadata);
+    it('Should treat a unit id as sequenceMightBeUnit when not found in outline sequences', async () => {
+      axiosMock.onGet(learningSequencesUrlRegExp).reply(200, simpleOutline);
+      axiosMock.onGet(coursewareSidebarSettingsUrl).reply(200, { enable_navigation_sidebar: true });
+      axiosMock.onGet(courseNavigationUrl).reply(200, { blocks: courseBlocks.blocks });
 
-      await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch);
+      await executeThunk(thunks.fetchCourse(courseId), store.dispatch);
+      await executeThunk(thunks.fetchSequence(unitId), store.dispatch, store.getState);
 
-      expect(loggingService.logError).toHaveBeenCalled();
       expect(store.getState().courseware.sequenceStatus).toEqual('failed');
+      expect(store.getState().courseware.sequenceMightBeUnit).toEqual(true);
     });
 
-    it('Should fetch and normalize metadata, and then update existing models with sequence metadata', async () => {
-      axiosMock.onGet(courseHomeMetadataUrl).reply(200, courseHomeMetadata);
-      axiosMock.onGet(courseUrl).reply(200, courseMetadata);
-      axiosMock.onGet(learningSequencesUrlRegExp).reply(200, buildOutlineFromBlocks(courseBlocks));
-      axiosMock.onGet(sequenceUrl).reply(200, sequenceMetadata);
+    it('Should hydrate sequence models from navigation outline without the heavy sequence API', async () => {
+      axiosMock.onGet(learningSequencesUrlRegExp).reply(200, simpleOutline);
+      axiosMock.onGet(coursewareSidebarSettingsUrl).reply(200, { enable_navigation_sidebar: true });
+      axiosMock.onGet(courseNavigationUrl).reply(200, { blocks: courseBlocks.blocks });
 
-      // setting course with blocks before sequence to check that blocks receive
-      // additional information after fetchSequence call.
       await executeThunk(thunks.fetchCourse(courseId), store.dispatch);
 
-      // ensure that initial state has no additional sequence info
       let state = store.getState();
       expect(state.models.sequences).toEqual({
         [sequenceId]: expect.not.objectContaining({
@@ -236,30 +231,26 @@ describe('Data layer integration tests', () => {
         }),
       });
 
-      // Update our state variable again.
       state = store.getState();
-
       expect(state.courseware.courseStatus).toEqual('loaded');
       expect(state.courseware.courseId).toEqual(courseId);
       expect(state.courseware.sequenceStatus).toEqual('loading');
       expect(state.courseware.sequenceId).toEqual(null);
 
-      await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch);
+      await executeThunk(thunks.fetchSequence(sequenceId), store.dispatch, store.getState);
 
-      // Update our state variable again.
       state = store.getState();
-
-      // ensure that additional information appeared in store
       expect(state.models.sequences).toEqual({
         [sequenceId]: expect.objectContaining({
-          gatedContent: expect.any(Object),
+          gatedContent: expect.objectContaining({ gated: false }),
           activeUnitIndex: expect.any(Number),
+          unitIds: expect.arrayContaining([unitId]),
         }),
       });
       expect(state.models.units).toEqual({
         [unitId]: expect.objectContaining({
-          complete: null,
-          bookmarked: expect.any(Boolean),
+          complete: expect.any(Boolean),
+          bookmarked: false,
         }),
       });
 
@@ -267,6 +258,7 @@ describe('Data layer integration tests', () => {
       expect(state.courseware.courseId).toEqual(courseId);
       expect(state.courseware.sequenceStatus).toEqual('loaded');
       expect(state.courseware.sequenceId).toEqual(sequenceId);
+      expect(axiosMock.history.get.find((req) => req.url === sequenceUrl)).toBeUndefined();
     });
   });
 
@@ -274,8 +266,11 @@ describe('Data layer integration tests', () => {
     beforeEach(async () => {
       // thunks tested in this block rely on fact, that store already has
       // some info about sequence
-      axiosMock.onGet(sequenceUrl).reply(200, sequenceMetadata);
-      await executeThunk(thunks.fetchSequence(sequenceMetadata.item_id), store.dispatch);
+      axiosMock.onGet(learningSequencesUrlRegExp).reply(200, simpleOutline);
+      axiosMock.onGet(coursewareSidebarSettingsUrl).reply(200, { enable_navigation_sidebar: true });
+      axiosMock.onGet(courseNavigationUrl).reply(200, { blocks: courseBlocks.blocks });
+      await executeThunk(thunks.fetchCourse(courseId), store.dispatch);
+      await executeThunk(thunks.fetchSequence(sequenceMetadata.item_id), store.dispatch, store.getState);
     });
 
     describe('Test checkBlockCompletion', () => {
