@@ -1,11 +1,30 @@
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
 
 import messages from '../messages';
-import UnitIcon, { UNIT_ICON_TYPES } from './UnitIcon';
+import { UNIT_ICON_TYPES } from './UnitIcon';
 import UnitLinkWrapper from './UnitLinkWrapper';
+
+function findScrollParent(element) {
+  let node = element?.parentElement;
+  while (node) {
+    const { overflowY } = window.getComputedStyle(node);
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function getLmsBaseUrl() {
+  if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
+    return 'http://local.openedx.io:8000';
+  }
+  return 'https://lms.nihongodrill.com';
+}
 
 const SidebarUnit = ({
   id,
@@ -24,121 +43,102 @@ const SidebarUnit = ({
     icon = UNIT_ICON_TYPES.other,
   } = unit;
 
-  // State để track completion status từ API
+  const unitRef = useRef(null);
+  const fetchingRef = useRef(false);
   const [isCompleted, setIsCompleted] = useState(complete);
   const [isChecking, setIsChecking] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
 
-  // Check if this is a quiz/problem unit
   const isQuizUnit = icon === UNIT_ICON_TYPES.problem || title.toLowerCase().includes('quiz');
 
-  // Check completion status using our custom API (prioritize current unit)
-  useEffect(() => {
-    if (isQuizUnit && !isChecking && !hasChecked) {
-      const checkCompletionStatus = async () => {
-        setIsChecking(true);
-        try {
-          console.log(`🔍 Checking completion for quiz: ${title}`, { id, idType: typeof id, isActive });
-          
-          // Get CSRF token
-          const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
-                           document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
-                           'rN400a1rY6H0c7Ex86YaiA9ibJbFmEDf';
-          
-          // Dynamic LMS backend URL for different environments (same logic as LearningHeader)
-          let lmsBaseUrl;
-          if (window.location.hostname === 'localhost' || window.location.hostname.includes('local.openedx.io')) {
-            // Development - LMS runs on port 8000
-            lmsBaseUrl = 'http://local.openedx.io:8000';
-          } else {
-            // Production - LMS runs on subdomain lms.nihongodrill.com
-            lmsBaseUrl = 'https://lms.nihongodrill.com';
-          }
-          const apiUrl = `${lmsBaseUrl}/courseware/check_block_completion/`;
-          console.log(`🔗 Environment: ${window.location.hostname.includes('local') ? 'Development' : 'Production'}`);
-          console.log(`🔗 LMS Base URL: ${lmsBaseUrl}`);
-          console.log(`🔗 API URL: ${apiUrl}`);
-          console.log(`🔗 Frontend origin: ${window.location.origin}`);
-          
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': csrfToken,
-              'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-              'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              'block_key': id
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`📊 Completion status for ${title}:`, data);
-            
-            // 0 = chưa hoàn thành, 1 = hoàn thành
-            const completed = data.is_completed === true || data.completion > 0;
-            console.log(`🔍 Completion logic: is_completed=${data.is_completed}, completion=${data.completion}, result=${completed}`);
-            setIsCompleted(completed);
-            
-            if (completed !== complete) {
-              console.log(`🔄 Status changed for ${title}: ${complete} -> ${completed}`);
-            }
-          } else {
-            console.log(`❌ Failed to check completion for ${title}:`, response.status, response.statusText);
-            // Fallback to original complete status if API fails
-            setIsCompleted(complete);
-          }
-        } catch (error) {
-          console.log(`❌ Error checking completion for ${title}:`, error);
-        } finally {
-          setIsChecking(false);
-          setHasChecked(true);
-        }
-      };
-      
-      // Priority: Check current unit immediately, others with delay
-      if (isActive) {
-        // Current unit - check immediately
-        checkCompletionStatus();
-      } else {
-        // Other units - check with delay to avoid blocking UI
-        const timeoutId = setTimeout(() => {
-          checkCompletionStatus();
-        }, 2000); // 2 second delay for non-active units
-        
-        return () => clearTimeout(timeoutId);
-      }
+  const checkCompletionStatus = useCallback(async () => {
+    if (fetchingRef.current) {
+      return;
     }
-  }, [isQuizUnit, id, title, isActive]); // Added isActive to dependencies
+
+    fetchingRef.current = true;
+    setIsChecking(true);
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        || document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+        || '';
+
+      const apiUrl = `${getLmsBaseUrl()}/courseware/check_block_completion/`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+          Authorization: `Bearer ${localStorage.getItem('access_token') || ''}`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ block_key: id }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const completed = data.is_completed === true || data.completion > 0;
+        setIsCompleted(completed);
+      } else {
+        setIsCompleted(complete);
+      }
+    } catch {
+      setIsCompleted(complete);
+    } finally {
+      fetchingRef.current = false;
+      setIsChecking(false);
+      setHasChecked(true);
+    }
+  }, [complete, id]);
+
+  // Active unit: fetch immediately on every visit.
+  useEffect(() => {
+    if (!isQuizUnit || !isActive) {
+      return undefined;
+    }
+    checkCompletionStatus();
+    return undefined;
+  }, [checkCompletionStatus, isActive, isQuizUnit]);
+
+  // Visible (non-active) units: fetch only when scrolled into the sidebar viewport.
+  useEffect(() => {
+    if (!isQuizUnit || isActive || hasChecked) {
+      return undefined;
+    }
+
+    const element = unitRef.current;
+    if (!element) {
+      return undefined;
+    }
+
+    const scrollRoot = findScrollParent(element);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          checkCompletionStatus();
+          observer.disconnect();
+        }
+      },
+      {
+        root: scrollRoot,
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [checkCompletionStatus, hasChecked, isActive, isQuizUnit]);
 
   const iconType = isLocked ? UNIT_ICON_TYPES.lock : icon;
-
-  // Determine completion status for display
   const displayCompleted = isQuizUnit ? isCompleted : complete;
   const isQuizCompleted = isQuizUnit && displayCompleted;
 
-  // Debug logging
-  console.log(`🔍 SidebarUnit Debug:`, {
-    title,
-    id,
-    isActive,
-    isQuizUnit,
-    isQuizCompleted,
-    displayCompleted,
-    complete,
-    isCompleted
-  });
-
-  // Inline style for current quiz
   const currentQuizStyle = isActive && isQuizUnit ? {
     backgroundColor: '#F5F5DC',
-    color: '#333'
+    color: '#333',
   } : {};
 
-  // Force style with useEffect
   useEffect(() => {
     if (isActive && isQuizUnit) {
       const element = document.querySelector(`li[data-unit-id="${id}"]`);
@@ -150,14 +150,15 @@ const SidebarUnit = ({
   }, [isActive, isQuizUnit, id]);
 
   return (
-    <li 
+    <li
+      ref={unitRef}
       data-unit-id={id}
       className={classNames({
-        'bg-info-100': isActive, 
+        'bg-info-100': isActive,
         'border-top border-light': !isFirst,
         'quiz-completed': isQuizCompleted,
         'quiz-incomplete': isQuizUnit && !isQuizCompleted,
-        'current-quiz': isActive && isQuizUnit, // Add current-quiz class for active quiz
+        'current-quiz': isActive && isQuizUnit,
       })}
       style={currentQuizStyle}
     >
@@ -173,7 +174,8 @@ const SidebarUnit = ({
           <span className={classNames('unit-title', {
             'quiz-title-completed': isQuizCompleted,
             'quiz-title-incomplete': isQuizUnit && !isQuizCompleted,
-          })}>
+          })}
+          >
             {title}
             {isQuizUnit && isQuizCompleted && (
               <span className="completion-indicator ml-2">
