@@ -194,6 +194,7 @@ export function normalizeOutlineBlocks(courseId, blocks) {
       case 'vertical':
         models.units[block.id] = {
           complete: block.complete,
+          resumeBlock: block.resume_block,
           icon: block.icon,
           id: block.id,
           title: block.display_name,
@@ -218,6 +219,27 @@ const defaultGatedContent = (sectionTitle = '') => ({
 });
 
 /**
+ * Pick which unit to open when landing on /course/:id/:sequenceId (no unit in URL).
+ * 1. resume_block from navigation API (last completed unit in sequence)
+ * 2. first incomplete unit in the sequence
+ * 3. first unit
+ */
+export function resolveActiveUnitIndex(unitIds, units = {}) {
+  if (!unitIds?.length) {
+    return 0;
+  }
+  const resumeIndex = unitIds.findIndex((unitId) => units[unitId]?.resumeBlock);
+  if (resumeIndex >= 0) {
+    return resumeIndex;
+  }
+  const firstIncompleteIndex = unitIds.findIndex((unitId) => !units[unitId]?.complete);
+  if (firstIncompleteIndex >= 0) {
+    return firstIncompleteIndex;
+  }
+  return 0;
+}
+
+/**
  * Build sequence + unit models from course navigation outline (fast path).
  * Skips the heavy /api/courseware/sequence/ endpoint — no gating/proctored/bookmark data.
  */
@@ -237,6 +259,8 @@ export function mapOutlineToSequenceModels(courseOutline, sequenceId) {
     return false;
   });
 
+  const activeUnitIndex = resolveActiveUnitIndex(outlineSequence.unitIds, units);
+
   const sequence = {
     id: sequenceId,
     blockType: 'sequential',
@@ -249,7 +273,7 @@ export function mapOutlineToSequenceModels(courseOutline, sequenceId) {
     isTimeLimited: false,
     isProctored: false,
     isHiddenAfterDue: false,
-    activeUnitIndex: 0,
+    activeUnitIndex,
     saveUnitPosition: true,
     showCompletion: true,
     allowProctoringOptOut: false,
