@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { IconButton } from '@openedx/paragon';
 import { injectIntl, intlShape } from '@edx/frontend-platform/i18n';
@@ -11,7 +12,7 @@ import { ID } from './constants';
 import { useCourseOutlineSidebar } from './hooks';
 import messages from './messages';
 
-const CourseOutlineTray = ({ intl }) => {
+const CourseOutlineTray = ({ intl, standalone = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const trayRef = useRef(null);
 
@@ -169,7 +170,8 @@ const CourseOutlineTray = ({ intl }) => {
     }
   }, [isOpen, unitId]);
 
-  if (!isEnabledSidebar || isActiveEntranceExam || currentSidebar !== ID) {
+  // Bottom nav embeds the tray via standalone — must not depend on left sidebar being open.
+  if (!isEnabledSidebar || isActiveEntranceExam || (!standalone && currentSidebar !== ID)) {
     return null;
   }
 
@@ -231,6 +233,11 @@ const CourseOutlineTray = ({ intl }) => {
 
 CourseOutlineTray.propTypes = {
   intl: intlShape.isRequired,
+  standalone: PropTypes.bool,
+};
+
+CourseOutlineTray.defaultProps = {
+  standalone: false,
 };
 
 CourseOutlineTray.ID = ID;

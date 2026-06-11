@@ -13,8 +13,7 @@ import messages from './messages';
 import PreviousButton from './generic/PreviousButton';
 import NextButton from './generic/NextButton';
 import { NextUnitTopNavTriggerSlot } from '../../../../plugin-slots/NextUnitTopNavTriggerSlot';
-import { CourseOutlineSidebarTriggerSlot } from '../../../../plugin-slots/CourseOutlineSidebarTriggerSlot';
-import { CourseOutlineSidebarSlot } from '../../../../plugin-slots/CourseOutlineSidebarSlot';
+import CourseOutlineTray from '../../sidebar/sidebars/course-outline/CourseOutlineTray';
 
 /**
  * Persistent Navigation Bar that stays fixed and doesn't re-render during unit changes
@@ -1801,7 +1800,7 @@ const PersistentNavigationBar = ({ courseId, sequenceId, unitId, onClickPrevious
             </div>
           )}
           
-          <CourseOutlineSidebarSlot />
+          <CourseOutlineTray standalone />
           {renderNextButton()}
         </div>
       </div>
