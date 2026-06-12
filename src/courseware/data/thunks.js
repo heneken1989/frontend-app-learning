@@ -1,5 +1,4 @@
 import { logInfo } from '@edx/frontend-platform/logging';
-import { LOADED, LOADING } from '@src/constants';
 import { getCourseHomeCourseMetadata } from '../../course-home/data/api';
 import {
   addModel, addModelsMap, updateModel, updateModels, updateModelsMap,
@@ -12,10 +11,10 @@ import {
   getCourseTopics,
   getCoursewareOutlineSidebarToggles,
   getLearningSequencesOutline,
+  getSequenceMetadata,
   postIntegritySignature,
   postSequencePosition,
 } from './api';
-import { mapOutlineToSequenceModels } from './utils';
 import {
   fetchCourseDenied,
   fetchCourseFailure,
@@ -31,131 +30,40 @@ import {
   updateCourseOutlineCompletion,
 } from './slice';
 
-// Lazy fetch course metadata - only fetch when actually needed
-let metadataFetchPromises = {};
-const courseOutlineCache = {};
-let courseOutlineFetchPromises = {};
-const learningSequencesCache = {};
-let learningSequencesInFlight = {};
-
-function fetchLearningSequencesDeduped(courseId) {
-  if (learningSequencesCache[courseId]) {
-    return Promise.resolve(learningSequencesCache[courseId]);
-  }
-
-  if (learningSequencesInFlight[courseId]) {
-    return learningSequencesInFlight[courseId];
-  }
-
-  learningSequencesInFlight[courseId] = getLearningSequencesOutline(courseId)
-    .then((data) => {
-      learningSequencesCache[courseId] = data;
-      delete learningSequencesInFlight[courseId];
-      return data;
-    })
-    .catch((error) => {
-      delete learningSequencesInFlight[courseId];
-      throw error;
-    });
-
-  return learningSequencesInFlight[courseId];
-}
-
-function fetchCourseOutlineDeduped(courseId) {
-  if (courseOutlineCache[courseId]) {
-    return Promise.resolve(courseOutlineCache[courseId]);
-  }
-
-  if (courseOutlineFetchPromises[courseId]) {
-    return courseOutlineFetchPromises[courseId];
-  }
-
-  courseOutlineFetchPromises[courseId] = getCourseOutline(courseId)
-    .then((data) => {
-      courseOutlineCache[courseId] = data;
-      delete courseOutlineFetchPromises[courseId];
-      return data;
-    })
-    .catch((error) => {
-      delete courseOutlineFetchPromises[courseId];
-      throw error;
-    });
-
-  return courseOutlineFetchPromises[courseId];
-}
-
-function hydrateSequenceFromOutline(dispatch, getState, courseOutline, sequenceId) {
-  const mapped = mapOutlineToSequenceModels(courseOutline, sequenceId);
-  if (!mapped) {
-    return false;
-  }
-  const existingSequence = getState().models?.sequences?.[sequenceId];
-  if (existingSequence?.sectionId && !mapped.sequence.sectionId) {
-    mapped.sequence.sectionId = existingSequence.sectionId;
-  }
-  dispatch(updateModel({
-    modelType: 'sequences',
-    model: mapped.sequence,
-  }));
-  dispatch(updateModels({
-    modelType: 'units',
-    models: mapped.units,
-  }));
-  dispatch(fetchSequenceSuccess({ sequenceId }));
-  return true;
-}
-export function fetchCourseMetadataLazy(courseId) {
-  return async (dispatch, getState) => {
-    // Check if already cached
-    const state = getState();
-    if (state && state.models?.coursewareMeta?.[courseId]) {
-      return; // Already loaded
-    }
-    
-    // Check if already fetching
-    if (metadataFetchPromises[courseId]) {
-      return metadataFetchPromises[courseId];
-    }
-    
-    // Start fetch
-    metadataFetchPromises[courseId] = getCourseMetadata(courseId).then((metadata) => {
-      dispatch(addModel({
-        modelType: 'coursewareMeta',
-        model: metadata,
-      }));
-      delete metadataFetchPromises[courseId];
-      return metadata;
-    }).catch((error) => {
-      delete metadataFetchPromises[courseId];
-      console.warn('Failed to fetch course metadata (lazy):', error);
-      throw error;
-    });
-    
-    return metadataFetchPromises[courseId];
-  };
-}
-
 export function fetchCourse(courseId) {
   return async (dispatch) => {
     dispatch(fetchCourseRequest({ courseId }));
-    
-    // DO NOT fetch course metadata here - it's not needed for quiz rendering
-    // Metadata will be fetched lazily when components actually need it
-    // This saves ~1.3s on initial load
-    
-    // DO NOT fetch courseHomeMetadata here - backend APIs will handle access control
-    // If user doesn't have access, backend will return 403 which we handle below
-    // This saves additional load time
-    
-    // Fetch only critical APIs needed for quiz rendering
     Promise.allSettled([
-      fetchLearningSequencesDeduped(courseId),
+      getCourseMetadata(courseId),
+      getLearningSequencesOutline(courseId),
+      getCourseHomeCourseMetadata(courseId, 'courseware'),
       getCoursewareOutlineSidebarToggles(courseId),
     ]).then(([
+      courseMetadataResult,
       learningSequencesOutlineResult,
+      courseHomeMetadataResult,
       coursewareOutlineSidebarTogglesResult]) => {
+      const fetchedMetadata = courseMetadataResult.status === 'fulfilled';
+      const fetchedCourseHomeMetadata = courseHomeMetadataResult.status === 'fulfilled';
       const fetchedOutline = learningSequencesOutlineResult.status === 'fulfilled';
       const fetchedCoursewareOutlineSidebarTogglesResult = coursewareOutlineSidebarTogglesResult.status === 'fulfilled';
+
+      if (fetchedMetadata) {
+        dispatch(addModel({
+          modelType: 'coursewareMeta',
+          model: courseMetadataResult.value,
+        }));
+      }
+
+      if (fetchedCourseHomeMetadata) {
+        dispatch(addModel({
+          modelType: 'courseHomeMeta',
+          model: {
+            id: courseId,
+            ...courseHomeMetadataResult.value,
+          },
+        }));
+      }
 
       if (fetchedOutline) {
         const {
@@ -186,70 +94,70 @@ export function fetchCourse(courseId) {
         dispatch(setCoursewareOutlineSidebarToggles({ enableNavigationSidebar, alwaysOpenAuxiliarySidebar }));
       }
 
-      // Handle access control - backend APIs will return 403 if user doesn't have access
+      // Log errors for each request if needed. Outline failures may occur
+      // even if the course metadata request is successful
       if (!fetchedOutline) {
         const { response } = learningSequencesOutlineResult.reason;
         if (response && response.status === 403) {
-          // 403 responses mean user doesn't have access - backend handles access control
+          // 403 responses are normal - they happen when the learner is logged out.
+          // We'll redirect them in a moment to the outline tab by calling fetchCourseDenied() below.
           logInfo(learningSequencesOutlineResult.reason);
-          dispatch(fetchCourseDenied({ courseId }));
-          return;
         } else {
-          // Other errors
-          dispatch(fetchCourseFailure({ courseId }));
-          return;
         }
       }
-      
-      if (!fetchedCoursewareOutlineSidebarTogglesResult) {
-        // Toggle fetch failure is not critical - continue anyway
+      if (!fetchedMetadata) {
       }
-      
-      // If we got here, outline was fetched successfully, so user has access
-      // Allow quiz to render immediately
-      dispatch(fetchCourseSuccess({ courseId }));
+      if (!fetchedCourseHomeMetadata) {
+      }
+      if (!fetchedCoursewareOutlineSidebarTogglesResult) {
+      }
+      if (fetchedMetadata && fetchedCourseHomeMetadata) {
+        if (courseHomeMetadataResult.value.courseAccess.hasAccess && fetchedOutline) {
+          // User has access
+          dispatch(fetchCourseSuccess({ courseId }));
+          return;
+        }
+        // User either doesn't have access or only has partial access
+        // (can't access course blocks)
+        dispatch(fetchCourseDenied({ courseId }));
+        return;
+      }
+
+      // Definitely an error happening
+      dispatch(fetchCourseFailure({ courseId }));
     });
   };
 }
 
-export function fetchSequence(sequenceId) {
-  return async (dispatch, getState) => {
+export function fetchSequence(sequenceId, isPreview) {
+  return async (dispatch) => {
     dispatch(fetchSequenceRequest({ sequenceId }));
-
-    const { courseware } = getState();
-    if (courseware.courseOutlineStatus === LOADED
-      && hydrateSequenceFromOutline(dispatch, getState, courseware.courseOutline, sequenceId)) {
-      return;
-    }
-
-    const { courseId } = courseware;
-    if (!courseId) {
-      dispatch(fetchSequenceFailure({ sequenceId }));
-      return;
-    }
-
-    if (courseware.courseOutlineStatus !== LOADED && courseware.courseOutlineStatus !== LOADING) {
-      dispatch(fetchCourseOutlineRequest());
-    }
-
     try {
-      const courseOutline = await fetchCourseOutlineDeduped(courseId);
-      if (courseOutline) {
-        dispatch(fetchCourseOutlineSuccess({ courseOutline }));
+      const { sequence, units } = await getSequenceMetadata(sequenceId, { preview: isPreview ? '1' : '0' });
+      if (sequence.blockType !== 'sequential') {
+        // Some other block types (particularly 'chapter') can be returned
+        // by this API. We want to error in that case, since downstream
+        // courseware code is written to render Sequences of Units.
+        dispatch(fetchSequenceFailure({ sequenceId }));
+      } else {
+        dispatch(updateModel({
+          modelType: 'sequences',
+          model: sequence,
+        }));
+        dispatch(updateModels({
+          modelType: 'units',
+          models: units,
+        }));
+        dispatch(fetchSequenceSuccess({ sequenceId }));
       }
-      if (courseOutline && hydrateSequenceFromOutline(dispatch, getState, courseOutline, sequenceId)) {
-        return;
-      }
-
-      // CoursewareContainer may pass a unit id; detect it from the navigation outline.
-      if (courseOutline?.units?.[sequenceId]) {
-        dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit: true }));
-        return;
-      }
-
-      dispatch(fetchSequenceFailure({ sequenceId }));
     } catch (error) {
-      dispatch(fetchSequenceFailure({ sequenceId }));
+      // Some errors are expected - for example, CoursewareContainer may request sequence metadata for a unit and rely
+      // on the request failing to notice that it actually does have a unit (mostly so it doesn't have to know anything
+      // about the opaque key structure). In such cases, the backend gives us a 422.
+      const sequenceMightBeUnit = error?.response?.status === 422;
+      if (!sequenceMightBeUnit) {
+      }
+      dispatch(fetchSequenceFailure({ sequenceId, sequenceMightBeUnit }));
     }
   };
 }
@@ -281,14 +189,7 @@ export function checkBlockCompletion(courseId, sequenceId, unitId) {
 export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
   return async (dispatch, getState) => {
     const { models } = getState();
-    const sequenceModel = models.sequences[sequenceId];
-    if (!sequenceModel) {
-      return;
-    }
-    const { activeUnitIndex: initialActiveUnitIndex } = sequenceModel;
-    if (initialActiveUnitIndex === activeUnitIndex) {
-      return;
-    }
+    const initialActiveUnitIndex = models.sequences[sequenceId].activeUnitIndex;
     // Optimistically update the position.
     dispatch(updateModel({
       modelType: 'sequences',
@@ -299,6 +200,15 @@ export function saveSequencePosition(courseId, sequenceId, activeUnitIndex) {
     }));
     try {
       await postSequencePosition(courseId, sequenceId, activeUnitIndex);
+      // Update again under the assumption that the above call succeeded, since it doesn't return a
+      // meaningful response.
+      dispatch(updateModel({
+        modelType: 'sequences',
+        model: {
+          id: sequenceId,
+          activeUnitIndex,
+        },
+      }));
     } catch (error) {
       dispatch(updateModel({
         modelType: 'sequences',
@@ -352,22 +262,13 @@ export function getCourseDiscussionTopics(courseId) {
 }
 
 export function getCourseOutlineStructure(courseId) {
-  return async (dispatch, getState) => {
-    const { courseware } = getState();
-    if (courseware.courseOutlineStatus === LOADED) {
-      return;
-    }
-
-    if (courseware.courseOutlineStatus !== LOADING) {
-      dispatch(fetchCourseOutlineRequest());
-    }
-
+  return async (dispatch) => {
+    dispatch(fetchCourseOutlineRequest());
     try {
-      const courseOutline = await fetchCourseOutlineDeduped(courseId);
+      const courseOutline = await getCourseOutline(courseId);
       dispatch(fetchCourseOutlineSuccess({ courseOutline }));
     } catch (error) {
       dispatch(fetchCourseOutlineFailure());
     }
   };
 }
-
